@@ -161,3 +161,26 @@ production acknowledged every customer and answered none. The repo had already
 shipped this shape once, an identity-cast fence defaulting to a no-op. Tests
 pass because tests always inject the real thing. Assert the default itself:
 build the production seam with no arguments and prove it calls out.
+
+## A test that names a behaviour is not a test that checks it
+
+2026-09-12, E1 review. "The default turn is the real one, because a silent
+default is a bot nobody notices is dead" asserted only that some call reached
+openrouter.ai. A bot whose every model call returns 500 satisfies that: extraction
+throws, the turn escalates, the writer throws, the reply is null, nothing is
+sent. The last hop of the ticket had no test at all, and dropping the send's
+transport argument survived the suite.
+
+Assert the end of the path, not evidence that the path was entered. Where a name
+promises reaching something, name the thing and assert that URL.
+
+## Deriving an expectation from the code under test proves only that it agrees with itself
+
+Same review. `vertical.test.ts` computed its expected price by calling `priceFor`
+and `totalOf`, the two functions the test exists to pin. Doubling every price in
+the seed left all five tests green. One written-out constant, 45000, kills it.
+
+The paired trap: the fixture the whole suite leaned on was a `vatIncluded: true`
+row, so the one end to end test for "comes back with a VAT inclusive price" never
+once multiplied by the rate. Check that the fixture exercises the arithmetic the
+test is named after.
