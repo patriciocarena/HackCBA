@@ -22,4 +22,4 @@ COPY . .
 ENV NODE_ENV=production
 RUN bun run build
 
-CMD ["bash", "-c", "bun src/storage/write-litestream-config.ts && litestream restore -config /etc/litestream.yml -if-db-not-exists -if-replica-exists \"$DATA_DIR/dante.db\" && litestream replicate -config /etc/litestream.yml -exec \"bash -c 'bun src/telegram/set-webhook.ts && bun .mastra/output/index.mjs'\""]
+CMD ["bash", "-c", "bun src/storage/write-litestream-config.ts && litestream restore -config /etc/litestream.yml -if-db-not-exists -if-replica-exists \"$DATA_DIR/dante.db\" && bun src/storage/migrate-cli.ts && litestream replicate -config /etc/litestream.yml -exec \"bash -c 'bun src/telegram/set-webhook.ts && bun .mastra/output/index.mjs'\""]
