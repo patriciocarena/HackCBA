@@ -5,7 +5,7 @@ import type { InboundMessage } from '@/telegram/inbound'
 import { inMemoryPriceEdits } from '@/voice/price-edit-proposal'
 import type { Extraction, PriceEditExtractionPort, PriceEditIntent } from '@/voice/price-edit-intent'
 import type { Transcription, TranscriptionPort } from '@/voice/transcription'
-import { businessCards, catalogRows } from '@test/support/catalog'
+import { businessCards, catalogRows } from '@/catalog/business-cards'
 
 const RAISE: PriceEditIntent = {
   kind: 'edit',

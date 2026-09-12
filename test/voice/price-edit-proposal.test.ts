@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'bun:test'
 import { proposePriceEdit } from '@/voice/price-edit-proposal'
 import type { PriceEditIntent } from '@/voice/price-edit-intent'
-import { businessCards, catalogRows } from '@test/support/catalog'
+import { businessCards, catalogRows } from '@/catalog/business-cards'
+import type { CatalogRow } from '@/domain/price-for'
 
 const CONTEXT = { mediaId: 'voice-1', proposedBy: '7', proposedAt: '2026-09-12T13:40:00.000Z' }
 
@@ -48,7 +49,7 @@ describe('proposePriceEdit, when the target names nothing loaded', () => {
   it('refuses when the family it named carries no sale row, because that edit changes nothing', () => {
     const result = proposePriceEdit({
       intent: raise(20),
-      rows: catalogRows.filter((row) => row.kind !== 'sale'),
+      rows: catalogRows.filter((row: CatalogRow) => row.kind !== 'sale'),
       family: businessCards,
       ...CONTEXT,
     })
