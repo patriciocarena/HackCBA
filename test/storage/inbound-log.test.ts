@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { conversationId } from '@/domain/types'
 import { sqliteInboundLog } from '@/storage/inbound-log'
 import { migratedDb } from '@test/support/db'
-import { localFence, type InboundMessage } from '@/telegram/inbound'
+import { fence } from '@/security/fence'
+import type { InboundMessage } from '@/telegram/inbound'
 
 const message: InboundMessage = {
   updateId: 70,
@@ -11,7 +12,7 @@ const message: InboundMessage = {
   role: 'customer',
   chatId: '-100',
   senderId: '42',
-  text: localFence('hola'),
+  text: fence('hola', 'message'),
   mediaId: null,
   receivedAt: '2026-09-12T09:30:00.000Z',
 }
@@ -48,7 +49,7 @@ describe('sqliteInboundLog', () => {
       role: 'customer',
       chat_id: '-100',
       sender_id: '42',
-      text: 'hola',
+      text: message.text,
       media_id: null,
       received_at: '2026-09-12T09:30:00.000Z',
     })
