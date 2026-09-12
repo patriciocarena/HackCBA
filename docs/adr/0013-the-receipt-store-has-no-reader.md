@@ -1,4 +1,4 @@
-# 12. The receipt store has no reader, so confirmation cannot be shown a receipt
+# 13. The receipt store has no reader, so confirmation cannot be shown a receipt
 
 Date: 2026-09-12
 
