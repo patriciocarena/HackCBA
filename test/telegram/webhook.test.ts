@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { telegramWebhook } from '@/telegram/webhook'
 import { inMemoryInboundLog, type InboundMessage } from '@/telegram/inbound'
+import { inMemorySeenUpdates } from '@/telegram/seen-updates'
 import type { Callback, OnCallback } from '@/telegram/callback'
 
 const noPress: OnCallback = async () => {}
@@ -132,7 +133,10 @@ describe('telegramWebhook', () => {
     expect(turns).toBeEmpty()
   })
 
-  it('lets a failing turn surface, and the retry Telegram sends stays silent', async () => {
+  // This asserted `calls` stayed 1, that is, the retry was dropped. That was the defect written
+  // down as the contract: a `sendMessage` that came back 429 left the customer answered zero
+  // times and Telegram's retry found the id already claimed.
+  it('lets a failing turn surface, and the retry Telegram sends runs it again', async () => {
     let calls = 0
     const webhook = telegramWebhook({
       onCallback: noPress,
@@ -141,9 +145,9 @@ describe('telegramWebhook', () => {
     })
 
     await expect(webhook(delivery(update(70)))).rejects.toThrow('extraction is down')
+    await expect(webhook(delivery(update(70)))).rejects.toThrow('extraction is down')
 
-    expect((await webhook(delivery(update(70)))).status).toBe(200)
-    expect(calls).toBe(1)
+    expect(calls).toBe(2)
   })
 })
 
@@ -244,5 +248,74 @@ describe('telegramWebhook, on a button press', () => {
 
     expect((await telegramWebhook({ secret: SECRET, onCallback })(wrong)).status).toBe(401)
     expect(presses).toBeEmpty()
+  })
+})
+
+describe('a turn that threw leaves the update for the retry', () => {
+  it('runs the turn again, where before the claim was burned and the customer heard nothing', async () => {
+    const seenUpdates = inMemorySeenUpdates()
+    let attempts = 0
+    const handle = telegramWebhook({
+      secret: SECRET,
+      seenUpdates,
+      onCallback: noPress,
+      turn: async () => {
+        attempts += 1
+        if (attempts === 1) throw new Error('telegram sendMessage 429: Too Many Requests')
+      },
+    })
+
+    expect(handle(delivery(update(500)))).rejects.toThrow('429')
+
+    const retry = await handle(delivery(update(500)))
+
+    expect(retry.status).toBe(200)
+    expect(attempts).toBe(2)
+  })
+
+  it('claims it again after a success, so the retry of a delivered reply is still dropped', async () => {
+    const seenUpdates = inMemorySeenUpdates()
+    const watcher = spy()
+    const handle = telegramWebhook({ secret: SECRET, seenUpdates, onCallback: noPress, turn: watcher.turn })
+
+    await handle(delivery(update(501)))
+    await handle(delivery(update(501)))
+
+    expect(watcher.turns).toHaveLength(1)
+  })
+
+  it('gives back only the id that failed', async () => {
+    const seenUpdates = inMemorySeenUpdates()
+    const handle = telegramWebhook({
+      secret: SECRET,
+      seenUpdates,
+      onCallback: noPress,
+      turn: async (message) => {
+        if (message.updateId === 502) throw new Error('boom')
+      },
+    })
+
+    await handle(delivery(update(503)))
+    expect(handle(delivery(update(502)))).rejects.toThrow('boom')
+
+    expect(await seenUpdates.seen(502)).toBeFalse()
+    expect(await seenUpdates.seen(503)).toBeTrue()
+  })
+})
+
+describe('release', () => {
+  it('un-claims an id so the next claim succeeds', async () => {
+    const seenUpdates = inMemorySeenUpdates()
+    await seenUpdates.seen(70)
+
+    await seenUpdates.release(70)
+
+    expect(await seenUpdates.seen(70)).toBeFalse()
+  })
+
+  it('is quiet about an id that was never claimed', async () => {
+    const seenUpdates = inMemorySeenUpdates()
+
+    expect(seenUpdates.release(70)).resolves.toBeUndefined()
   })
 })

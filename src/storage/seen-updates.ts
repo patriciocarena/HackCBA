@@ -29,5 +29,9 @@ export function sqliteSeenUpdates(
 
       return claim?.rowsAffected === 0
     },
+
+    async release(updateId) {
+      await client.execute({ sql: 'DELETE FROM telegram_updates WHERE update_id = ?', args: [updateId] })
+    },
   }
 }

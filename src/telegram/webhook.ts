@@ -77,8 +77,23 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
       receivedAt: now(),
     }
 
-    await log.record(message)
-    await turn(message)
+    try {
+      await log.record(message)
+      await turn(message)
+    } catch (error) {
+      // The claim is given back and the failure is re-raised, so Telegram retries and the turn
+      // runs again. Before this, a `sendMessage` that came back 429 threw, the handler answered
+      // 500, and the retry found the id claimed: the customer was answered zero times and no
+      // state recorded that anything had been attempted.
+      //
+      // This does not risk answering twice, and the reason is the order inside `customerTurn`:
+      // the send is the last statement that can throw, so a throw means nothing was said. Any
+      // Turn wired here owes the same, and it is the whole contract: a turn that has already
+      // spoken must not throw.
+      await seenUpdates.release(update.updateId)
+
+      throw error
+    }
 
     return acknowledged()
   }
