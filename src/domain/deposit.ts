@@ -51,6 +51,19 @@ export type ReceiptStore = {
   record(receipt: Receipt): Promise<void>
 }
 
+// ponytail: in memory, A3's receipts table when a receipt has to outlive the process. No
+// accessor, so the seam a later lane picks up cannot read a receipt back either, which is
+// the same rule ADR 0013 puts on the type.
+export function inMemoryReceipts(): ReceiptStore {
+  const receipts: Receipt[] = []
+
+  return {
+    async record(receipt) {
+      receipts.push(receipt)
+    },
+  }
+}
+
 export type ReceiptRefusal = 'no_deposit_pending' | 'empty_receipt'
 
 export type ReceiptOutcome = { ok: true; notice: string } | { ok: false; reason: ReceiptRefusal }

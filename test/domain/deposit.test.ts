@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   confirmDeposit,
+  inMemoryReceipts,
   recordReceipt,
   requestDeposit,
   type Receipt,
@@ -189,6 +190,14 @@ describe('only an admin confirms, and confirming never shows the receipt', () =>
     expect(store.written[0]?.mediaId).toBe(FORGED)
     expect(got.notice).not.toContain(FORGED)
     expect(JSON.stringify(confirmed.order)).not.toContain(FORGED)
+  })
+
+  test('the in memory store writes through and offers nothing back', async () => {
+    const store = inMemoryReceipts()
+    const got = await recordReceipt(awaitingDeposit(), { mediaId: 'AgACphoto', text: null, receivedAt: now }, store)
+
+    expect(got.ok).toBe(true)
+    expect(Object.keys(store)).toEqual(['record'])
   })
 
   test('the store type has one member, so no reader can be added without failing typecheck', () => {
