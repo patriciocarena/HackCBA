@@ -1,5 +1,6 @@
 import { ESCALATION_REASONS, type EscalationReason } from "../domain/types";
 import { fence } from "../security/fence";
+import { arrayTypedPaths, nullable } from "../conversation/structured-output";
 import type { FetchLike } from "./transcription";
 
 
@@ -58,15 +59,15 @@ Return an edit only when the owner named both what to change and how much. A per
 
 Return a review when anything is missing or unclear. In particular, a vague quantity with no number in it, such as "un poco", "bastante" or "algo", is never an amount: it is reason "ambiguous". Never infer, round or assume a number the owner did not say. A wrong price is worse than no price.`;
 
-const SCHEMA = {
+export const PRICE_EDIT_SCHEMA: object = {
   type: "object",
   properties: {
     kind: { type: "string", enum: ["edit", "review"] },
-    target: { type: ["string", "null"] },
-    direction: { type: ["string", "null"], enum: ["raise", "lower", null] },
-    changeKind: { type: ["string", "null"], enum: ["percent", "absolute", null] },
-    value: { type: ["number", "null"] },
-    reason: { type: ["string", "null"], enum: [...ESCALATION_REASONS, null] },
+    target: nullable({ type: "string" }),
+    direction: nullable({ type: "string", enum: ["raise", "lower"] }),
+    changeKind: nullable({ type: "string", enum: ["percent", "absolute"] }),
+    value: nullable({ type: "number" }),
+    reason: nullable({ type: "string", enum: [...ESCALATION_REASONS] }),
     detail: { type: "string" },
   },
   required: [
@@ -79,7 +80,16 @@ const SCHEMA = {
     "detail",
   ],
   additionalProperties: false,
-} as const;
+};
+
+// At import, so a deploy carrying the broken shape dies before it answers the owner rather
+// than after. Nothing else in this module can tell the difference at run time.
+const brokenPaths = arrayTypedPaths(PRICE_EDIT_SCHEMA);
+if (brokenPaths.length > 0) {
+  throw new Error(
+    `the price edit schema would lose its constraint at ${brokenPaths.join(", ")}`,
+  );
+}
 
 type RawIntent = {
   kind?: unknown;
@@ -181,7 +191,7 @@ export function openRouterExtraction(
               json_schema: {
                 name: "price_edit_intent",
                 strict: true,
-                schema: SCHEMA,
+                schema: PRICE_EDIT_SCHEMA,
               },
             },
           }),

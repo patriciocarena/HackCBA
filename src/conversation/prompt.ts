@@ -1,4 +1,5 @@
 import { INTENT_KINDS, type AttributeContract, type EscalationReason, type FamilyContract } from '../domain/types'
+import { arrayTypedPaths, nullable } from './structured-output'
 
 /**
  * The escalations only a reader of the message can raise. `priceFor` takes a QuoteIntent and
@@ -45,38 +46,47 @@ No prometas nada que no esté en esos bloques: ni plazos, ni descuentos, ni sucu
 export const INTRODUCTION = `Es tu primer mensaje en esta conversación: presentate en una frase como asistente automático de la imprenta antes de contestar.`
 
 export function extractionSchema(family: FamilyContract): object {
-  return {
+  const schema = {
     type: 'object',
     properties: {
       kind: { type: 'string', enum: [...INTENT_KINDS] },
-      family: { type: ['string', 'null'], enum: [family.slug, null] },
+      family: nullable({ type: 'string', enum: [family.slug] }),
       attributes: {
         type: 'object',
         properties: Object.fromEntries(family.attributes.map(attributeProperty)),
         required: family.attributes.map((attribute) => attribute.name),
         additionalProperties: false,
       },
-      size: {
-        type: ['object', 'null'],
+      size: nullable({
+        type: 'object',
         properties: { widthCm: { type: 'number' }, heightCm: { type: 'number' } },
         required: ['widthCm', 'heightCm'],
         additionalProperties: false,
-      },
+      }),
       addOns: { type: 'array', items: { type: 'string', enum: family.addOns } },
-      factKey: { type: ['string', 'null'] },
-      reason: { type: ['string', 'null'], enum: [...EXTRACTION_REASONS, null] },
+      factKey: nullable({ type: 'string' }),
+      reason: nullable({ type: 'string', enum: [...EXTRACTION_REASONS] }),
     },
     required: ['kind', 'family', 'attributes', 'size', 'addOns', 'factKey', 'reason'],
     additionalProperties: false,
   }
+
+  // The attribute properties are computed from whatever catalog loaded, so this schema is the
+  // one that can grow the broken shape back without anybody editing this file.
+  const broken = arrayTypedPaths(schema)
+  if (broken.length > 0) {
+    throw new Error(`the extraction schema would lose its constraint at ${broken.join(', ')}`)
+  }
+
+  return schema
 }
 
 function attributeProperty(attribute: AttributeContract): [string, object] {
   return [
     attribute.name,
-    {
-      type: [attribute.kind === 'number' ? 'number' : 'string', 'null'],
-      enum: [...attribute.values, null],
-    },
+    nullable({
+      type: attribute.kind === 'number' ? 'number' : 'string',
+      enum: [...attribute.values],
+    }),
   ]
 }
