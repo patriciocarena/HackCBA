@@ -1,0 +1,3 @@
+[test]
+preload = ["./src/config/load-env.ts"]
+root = "./test"

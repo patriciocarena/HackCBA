@@ -80,10 +80,13 @@ an unloaded family escalates instead of guessing, so not loading them breaks not
 
 ## Stack
 
-Bun, TypeScript and Mastra. LibSQL on a Fly volume, with Litestream replicating from the
-first deploy. Telegram as the channel. Idempotent inline DDL, and enums as SQLite CHECKs
-generated from TypeScript `as const` arrays: one source for both the union type and the
-constraint.
+Bun, TypeScript and Mastra. LibSQL on a Fly volume, with Fly's scheduled snapshots as the
+backup. Telegram as the channel. Models reach Claude through OpenRouter. Idempotent inline
+DDL, and enums as SQLite CHECKs generated from TypeScript `as const` arrays: one source for
+both the union type and the constraint.
+
+The deployment shape and the model routing are written up in `docs/adr/`. Litestream was cut
+from the first deploy; the reasoning is in ADR 0001.
 
 ## Repo map
 
@@ -96,9 +99,12 @@ constraint.
 | `linear-import.csv` | CSV import for Linear, no credentials needed |
 | `scripts/create-linear-issues.ts` | Creates the issues and their blocking links over the Linear API |
 | `docs/assumptions.md` | What we take as true because the client has not answered yet |
+| `docs/amenazas.md` | The threat model, ticket D7 |
+| `docs/adr/` | The decisions this repo made and why |
 | `seed/business-cards.json` | The cards catalog: items, add-ons, discounts and the module table |
 
-The long product plan, the domain glossary and the ADRs live in the client repo, not here.
+The long product plan and the domain glossary live in the client repo. The ADRs here cover
+only this repo's own decisions.
 
 ## The four of us
 
@@ -117,8 +123,9 @@ Critical chain: A1, A2, A3, A4, C4, E1, E4. Everything else has slack.
 
 ## Rules for the day
 
-1. Everything is in English: code, identifiers, docs, commits, tickets. The only Spanish is
-   what a customer reads. Dante speaks rioplatense; the repo does not.
+1. Code, identifiers, commits and tickets are in English, and so is what a customer does not
+   read. Dante speaks rioplatense; the repo does not. Docs are the one exception: write them
+   in the language you think in, and we translate after the hackathon.
 2. Contracts freeze at H+2. After that you add fields, you do not rename them.
 3. Nobody merges to `main` without `bun test` and `bun run typecheck` green.
 4. Zero client constants in the code. They go to `.env` or to the database.
@@ -129,15 +136,29 @@ Critical chain: A1, A2, A3, A4, C4, E1, E4. Everything else has slack.
 
 ## Getting started
 
-The chassis is ticket A1 and does not exist yet. Once it does:
-
 ```
+mise trust
 bun install
 cp .env.example .env
-bun run db:migrate
-bun run seed
 bun test
+bun run typecheck
 bun run dev
 ```
 
-No secret goes in the repo. They go to `fly secrets`, and `gitleaks` runs on pre-commit.
+There is no migration step. Every store creates its own table with `CREATE TABLE IF NOT
+EXISTS` the first time it is used, so the schema arrives with the code that needs it.
+
+Deploy with `fly deploy`. Secrets are set once on Fly with `fly secrets set` and are never
+imported from a laptop, so nobody's stale `.env` can unset someone else's key. `.env` holds
+dev values only. No secret goes in the repo, and `gitleaks` runs on pre-commit.
+
+The deployed app is `dante-multimpresos`. `GET /health` is Mastra's own liveness check and
+always returns 200. `GET /health/db` is the one that means something: it opens the database on
+the volume and returns a beat counter that keeps climbing across deploys.
+
+## Branches
+
+One branch per ticket, named by its id: `a1-service-chassis`. The author merges it once
+`bun test` and `bun run typecheck` are green locally, without waiting for a review. CI runs
+the same two commands on every push and pull request. Reviews are for the integration block
+on Saturday at 16:00, not for each ticket.
