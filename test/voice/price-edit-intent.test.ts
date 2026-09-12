@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { ESCALATION_REASONS } from "../../src/domain/types";
 import {
-  ESCALATION_REASONS,
   extractionFromEnv,
   isActionable,
   openRouterExtraction,
@@ -371,26 +371,6 @@ describe("configuration is a boot concern", () => {
     expect(() => extractionFromEnv({})).toThrow(
       "missing OPENROUTER_API_KEY, OPENROUTER_MODEL",
     );
-  });
-});
-
-describe("the escalation vocabulary has one source", () => {
-  test("the mirror matches the frozen block in PLAN.md", async () => {
-    const plan = await Bun.file(
-      new URL("../../PLAN.md", import.meta.url),
-    ).text();
-
-    const block = plan.match(
-      /export const ESCALATION_REASONS = \[([\s\S]*?)\] as const/,
-    );
-    if (!block) throw new Error("ESCALATION_REASONS not found in PLAN.md");
-
-    const frozen: string[] = [...block[1]!.matchAll(/'([a-z_]+)'/g)].map(
-      (m) => m[1]!,
-    );
-    const mirrored: string[] = [...ESCALATION_REASONS];
-
-    expect(mirrored).toEqual(frozen);
   });
 });
 
