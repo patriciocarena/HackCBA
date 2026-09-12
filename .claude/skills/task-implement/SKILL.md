@@ -79,6 +79,14 @@ the smallest local version of it and say so in the PR, rather than reaching acro
 9. Report the PR number and stop. You do NOT merge. The orchestrator merges, and a
    reviewer you never see reads your PR first.
 
+## Ponytail is on
+
+Read `.claude/skills/ponytail-lane.md` before you plan. This is a hackathon MVP: the only
+thing that ships is the six steps in `PLAN.md` section 10, and code that serves none of
+them does not get written. Reach for a type or flag the repo already has before you write
+a new one. No interface with one implementation, no capacity bound, no cache, unless a
+test fails without it.
+
 ## The rules that are not up for negotiation
 
 They are in `PLAN.md` section 5 and they are the point of the product. The two that catch
