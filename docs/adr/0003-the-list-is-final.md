@@ -4,7 +4,11 @@ Date: 2026-09-12
 
 ## Status
 
-Accepted. It needs one confirmation from Javier, which does not change the shape.
+Superseded in its premise by ADR 0020, and still in force in its shape.
+
+The confirmation this asked for exists, in `lista-precios.html`, and it says the list is net.
+The flag and the brand stay exactly as decided here; `vat_included` flips to `false` after the
+hackathon demo. ADR 0020 carries the evidence and the reason the flip waits.
 
 ## Context
 

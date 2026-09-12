@@ -269,3 +269,18 @@ which is worse than failing: one run in two.
 ADR 0005 already said an attribute no family declares cannot be extracted at all. The same rule
 was never drawn for a fact key. When a lookup is keyed on a model's word, constrain the word to
 the keys that exist, and fall back to the open string only when there are none.
+
+## A premise a document in hand can settle is not a premise to argue
+
+2026-09-12. ADR 0003 decided the price list is already gross and reasoned from a general fact:
+"in Argentina a shop does not publish a price without tax". It closed by saying it needed one
+confirmation from Javier. The confirmation had been sitting in the client repo since 2026-09-10:
+`lista-precios.html` says "Los precios no incluyen IVA" in its header and repeats it in the
+clarifications. This shop is one of the ones that does.
+
+The cost was a quote 21% under the shop's own price, in every conversation, for two days,
+behind a green suite. Nothing could catch it: every test asserted the number the seed declared.
+
+When an ADR names a premise and says it needs confirming, go and get it before writing the
+decision, especially when the client repo holds the document that settles it. And notice what
+the reasoning is made of: "usually true about shops like this" is a guess with a citation voice.
