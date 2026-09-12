@@ -88,6 +88,10 @@ function attributeContract(name: string, rows: CatalogRow[]): AttributeContract 
     ),
   ]
 
+  if (values.length === 0) {
+    throw new Error(`${name} is declared but no sale row carries it`)
+  }
+
   if (values.every((value) => typeof value === 'number')) {
     return { name, kind: 'number', values: values as number[] }
   }

@@ -95,4 +95,13 @@ describe('loadCatalog', () => {
     expect(seed.papers.map((entry) => entry.slug)).toContain('illustration_300_plain')
     expect(paper?.values).not.toContain('illustration_300_plain')
   })
+
+  it('refuses a declared attribute that no sale row carries', () => {
+    const withGhost = {
+      ...seed,
+      family: { ...seed.family, attributes: [...seed.family.attributes, 'varnish'] },
+    }
+
+    expect(() => loadCatalog(withGhost)).toThrow('varnish is declared but no sale row carries it')
+  })
 })
