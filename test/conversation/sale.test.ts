@@ -72,3 +72,52 @@ describe('accepting the quote the conversation was shown', () => {
     expect(sale.accept(conversation, customer)).toMatchObject({ kind: 'escalate', reason: 'ambiguous' })
   })
 })
+
+const admin: Actor = { kind: 'person', id: '99900011' }
+const onlyAdmin = (id: string) => id === '99900011'
+
+function awaitingDeposit() {
+  const sale = aSale()
+  sale.hold(conversation, priced)
+  sale.accept(conversation, customer)
+
+  return sale
+}
+
+describe('a person confirms the deposit, and the record says who', () => {
+  test('it records who confirmed and when', () => {
+    const confirmed = awaitingDeposit().confirmDeposit(conversation, admin, onlyAdmin)
+
+    expect(confirmed.ok).toBe(true)
+    if (!confirmed.ok) return
+    expect(confirmed.order.state).toBe('deposit_confirmed')
+    expect(confirmed.order.depositConfirmedBy).toBe('99900011')
+    expect(confirmed.order.depositConfirmedAt).toBe(now)
+  })
+
+  test('a sender who is not on the allowlist confirms nothing, and the order does not move', () => {
+    const sale = awaitingDeposit()
+
+    expect(sale.confirmDeposit(conversation, customer, onlyAdmin)).toEqual({
+      ok: false,
+      reason: 'not_an_admin',
+    })
+    expect(sale.orderFor(conversation)?.state).toBe('deposit_pending')
+  })
+
+  test('there is nothing to confirm for a conversation that never accepted', () => {
+    const other = conversationId('telegram', '99999999', 'customer')
+
+    expect(aSale().confirmDeposit(other, admin, onlyAdmin)).toEqual({ ok: false, reason: 'not_a_transition' })
+  })
+
+  test('confirming twice does not move the order a second time', () => {
+    const sale = awaitingDeposit()
+
+    expect(sale.confirmDeposit(conversation, admin, onlyAdmin).ok).toBe(true)
+    expect(sale.confirmDeposit(conversation, admin, onlyAdmin)).toEqual({
+      ok: false,
+      reason: 'not_a_transition',
+    })
+  })
+})

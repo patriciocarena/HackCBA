@@ -1,8 +1,9 @@
 import { acceptQuote, quoteFrom, type Actor } from '../domain/order'
-import { requestDeposit } from '../domain/deposit'
+import { confirmDeposit, requestDeposit, type DepositOutcome } from '../domain/deposit'
 import { pesos } from '../domain/quote-text'
 import { totalOf } from '../domain/breakdown'
-import type { ConversationId, Quote, Resolution } from '../domain/types'
+import type { IsAdmin } from '../security/allowlist'
+import type { ConversationId, Order, Quote, Resolution } from '../domain/types'
 
 export type SaleConfig = {
   alias: string
@@ -13,6 +14,12 @@ export type SaleConfig = {
 export type Sale = {
   hold(conversationId: ConversationId, resolution: Resolution): void
   accept(conversationId: ConversationId, by: Actor): Resolution
+  orderFor(conversationId: ConversationId): Order | null
+  /**
+   * Takes no receipt store, and there is none in this module to take. ADR 0013 is the
+   * authority: the person confirming reads the bank, never the photo.
+   */
+  confirmDeposit(conversationId: ConversationId, by: Actor, isAdmin: IsAdmin): DepositOutcome
 }
 
 const DELEGATE = 'te delego con un humano'
@@ -21,6 +28,7 @@ const DELEGATE = 'te delego con un humano'
 // the quote a conversation may accept and the state that conversation is in expire together.
 export function inMemorySale(config: SaleConfig): Sale {
   const held = new Map<ConversationId, Quote>()
+  const orders = new Map<ConversationId, Order>()
 
   return {
     hold(conversationId, resolution) {
@@ -44,8 +52,25 @@ export function inMemorySale(config: SaleConfig): Sale {
       if (!asked.ok) return escalate('ambiguous', DELEGATE)
 
       held.delete(conversationId)
+      orders.set(conversationId, asked.order)
 
       return { kind: 'accepted', order: asked.order, alias: config.alias }
+    },
+
+    orderFor(conversationId) {
+      return orders.get(conversationId) ?? null
+    },
+
+    confirmDeposit(conversationId, by, isAdmin) {
+      const order = orders.get(conversationId)
+      // No order is not a transition anyone may make, which is what advanceOrder would say
+      // if there were an order to ask it about.
+      if (order === undefined) return { ok: false, reason: 'not_a_transition' }
+
+      const confirmed = confirmDeposit(order, { by, now: config.now() }, isAdmin)
+      if (confirmed.ok) orders.set(conversationId, confirmed.order)
+
+      return confirmed
     },
   }
 }
