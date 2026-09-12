@@ -20,9 +20,9 @@ no expression anywhere turned "the owner confirms" into a call.
 The gap was not only mechanical. C4 decides who may propose by asking whether the inbound
 message arrived with `role === 'admin'`, then records the proposer as a bare string. C7
 decides who may apply by asking whether `input.by.kind === 'person'`. Nothing converted a
-Telegram user id into an `Actor`, so C7's `not_a_person` guard could not fire on C4's output,
-and its `person` check would have admitted any person at all: by the time a proposal is in
-hand the allowlist is three modules behind it and was never written down.
+Telegram user id into an `Actor`, and C7's `person` check would have admitted any person at
+all: by the time a proposal is in hand the allowlist is three modules behind it and was never
+written down.
 
 `docs/adr/0013-the-receipt-store-has-no-reader.md` decided the opposite shape one demo step
 later, and decided it hard: a store with no reader, so that no confirmation path can be shown
@@ -47,7 +47,9 @@ The order of operations is fixed and each step earns the next:
 1. The allowlist answers first. `isAdmin` arrives injected and defaults to denying everyone,
    so a caller that forgets to wire it confirms nothing rather than confirming for anybody.
 2. The `Actor` is minted here, from that answer. This is the only place the Telegram id is a
-   fact, which is what makes C7's `not_a_person` guard able to fire at all.
+   fact. Minting does not make C7's `not_a_person` guard fire: it makes it unreachable from
+   this entry point, which is the Consequences below. What it buys is that `by.id` is an
+   allowlist-verified id rather than the bare `proposedBy` string C4 carried.
 3. The proposal is loaded by id. Nothing in the message is trusted: 0013 already warned that
    callback data round-trips through the client and is attacker-controlled, and the prices in
    a proposal are the money path.

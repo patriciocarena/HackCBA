@@ -13,14 +13,14 @@ describe('readUpdate', () => {
       privateChat: true,
       senderId: '42',
       text: 'cuánto 1000 tarjetas',
-      mediaId: null,
+      media: null,
     })
   })
 
   it('takes the voice file as the media id', () => {
     const parsed = readUpdate(message({ voice: { file_id: 'voice-1', duration: 3 } }))
 
-    expect(parsed).toMatchObject({ text: null, mediaId: 'voice-1' })
+    expect(parsed).toMatchObject({ text: null, media: { kind: 'voice', id: 'voice-1' } })
   })
 
   it('takes the largest photo and reads its caption as the text', () => {
@@ -28,7 +28,15 @@ describe('readUpdate', () => {
       message({ caption: 'la lista nueva', photo: [{ file_id: 'small' }, { file_id: 'large' }] }),
     )
 
-    expect(parsed).toMatchObject({ text: 'la lista nueva', mediaId: 'large' })
+    expect(parsed).toMatchObject({ text: 'la lista nueva', media: { kind: 'photo', id: 'large' } })
+  })
+
+  it('keeps a photo apart from a voice note, because only one of the two can be transcribed', () => {
+    const photo = readUpdate(message({ photo: [{ file_id: 'large' }], voice: undefined }))
+    const voice = readUpdate(message({ voice: { file_id: 'voice-1' } }))
+
+    expect(photo).toMatchObject({ media: { kind: 'photo' } })
+    expect(voice).toMatchObject({ media: { kind: 'voice' } })
   })
 
   it('reports a group chat as not private, so a role decision can see it', () => {

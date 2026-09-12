@@ -53,7 +53,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
       chatId: update.chatId,
       senderId: update.senderId,
       text: update.text === null ? null : fence(update.text, 'message'),
-      mediaId: update.mediaId,
+      media: update.media,
       receivedAt: now(),
     }
 

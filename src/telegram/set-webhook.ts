@@ -5,7 +5,9 @@ const BACKOFF_MS = [2000, 5000, 15000, 30000, 60000]
 
 type Config = { token: string; url: string; secret: string }
 
-type Fetch = (url: string, init: RequestInit) => Promise<Response>
+export const API = 'https://api.telegram.org'
+
+export type Fetch = (url: string, init?: RequestInit) => Promise<Response>
 
 type Deps = {
   fetch?: Fetch
@@ -25,7 +27,7 @@ export async function setTelegramWebhook(cfg: Config, deps: Deps = {}): Promise<
 }
 
 async function attemptSetWebhook(cfg: Config, fetchFn: Fetch): Promise<string | null> {
-  const res = await fetchFn(`https://api.telegram.org/bot${cfg.token}/setWebhook`, {
+  const res = await fetchFn(`${API}/bot${cfg.token}/setWebhook`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url: cfg.url, secret_token: cfg.secret }),

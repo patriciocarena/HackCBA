@@ -16,13 +16,15 @@ const updateSchema = z.object({
   message: messageSchema.optional(),
 })
 
+export type Media = { kind: 'voice'; id: string } | { kind: 'photo'; id: string }
+
 type Update = {
   updateId: number
   chatId: string
   privateChat: boolean
   senderId: string
   text: string | null
-  mediaId: string | null
+  media: Media | null
 }
 
 export function readUpdate(body: unknown): Update | null {
@@ -33,8 +35,8 @@ export function readUpdate(body: unknown): Update | null {
   if (message?.from === undefined) return null
 
   const text = message.text ?? message.caption ?? null
-  const mediaId = message.voice?.file_id ?? message.photo?.at(-1)?.file_id ?? null
-  if (text === null && mediaId === null) return null
+  const media = mediaOf(message)
+  if (text === null && media === null) return null
 
   return {
     updateId: update.data.update_id,
@@ -42,6 +44,15 @@ export function readUpdate(body: unknown): Update | null {
     privateChat: message.chat.type === 'private',
     senderId: String(message.from.id),
     text,
-    mediaId,
+    media,
   }
+}
+
+function mediaOf(message: z.infer<typeof messageSchema>): Media | null {
+  if (message.voice !== undefined) return { kind: 'voice', id: message.voice.file_id }
+
+  const largest = message.photo?.at(-1)
+  if (largest !== undefined) return { kind: 'photo', id: largest.file_id }
+
+  return null
 }

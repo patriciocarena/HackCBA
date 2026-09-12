@@ -50,34 +50,3 @@ never passed it anywhere, and asserted the stored numbers came out. It passed on
 run and would pass against any implementation, because the signature takes an id and has no
 parameter to forge through. It was deleted, and the property it claimed to cover is stated in
 the ADR where the signature already guarantees it.
-
-## Each half correct, the whole wrong: a hazard with three sightings
-
-Two modules each correctly perform one half of a contract that says the thing happens exactly
-once. Neither is wrong on its own. Git reports no conflict, because neither edits the other's
-lines. No unit test on either side can observe it, because each side's test asserts its own
-half and both halves pass. The defect exists only in the composition, and integration is the
-first place it is visible.
-
-Three sightings in one night, found from three directions by three sessions:
-
-A5 fenced `message.text` inside the turn while #15 fenced at the webhook. Each fenced once.
-Merged, a customer message reached the writer inside two nonces. This one is in the repo's
-history, so it is citable rather than hypothetical.
-
-E1 captures `rows` once at boot and `src/conversation/turn.ts` reads that reference for the
-life of the process; `confirmPriceEdit` returns a new array from `applyPriceEdit`. Each side
-swaps once and the turn sees neither, so the owner is told the edit applied, `price_versions`
-records it, and the bot goes on quoting the old price. Step 5 succeeds on camera and step 1
-contradicts it.
-
-The D5 lane arrived at the double fence independently, from a third direction, while looking
-for something else.
-
-The fix is not to check more carefully at the seam. It is to make the second half impossible:
-`rows: () => CatalogRow[]` rather than a captured array, one fence with one owner rather than
-two correct ones. A guarantee that rests on both sides remembering the contract is a guarantee
-that holds until the two sides are written by different people, which on this board is always.
-
-Look for it wherever a contract says "exactly once" and two modules can each satisfy it alone.
-Do not wait for a test to find it; no test at either end is looking.

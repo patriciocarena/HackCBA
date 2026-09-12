@@ -1,4 +1,6 @@
 import type { ConversationId, Role, UntrustedText } from '../domain/types'
+import type { IsAdmin } from '../security/allowlist'
+import type { Media } from './update'
 
 export type InboundMessage = {
   updateId: number
@@ -7,11 +9,11 @@ export type InboundMessage = {
   chatId: string
   senderId: string
   text: UntrustedText | null
-  mediaId: string | null
+  media: Media | null
   receivedAt: string
 }
 
-export type IsAdmin = (telegramUserId: string) => boolean
+export type { IsAdmin }
 
 export type Turn = (message: InboundMessage) => Promise<void>
 
