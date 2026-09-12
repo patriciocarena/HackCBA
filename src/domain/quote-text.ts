@@ -1,6 +1,6 @@
 import { spanishName } from '../catalog/spanish'
 import { totalOf } from './breakdown'
-import type { PriceBreakdown } from './types'
+import type { BreakdownRate, PriceBreakdown } from './types'
 
 /**
  * What a customer reads. The amount, what they are charged extra for, and how long it holds.
@@ -49,12 +49,33 @@ function moduleSentence(breakdown: PriceBreakdown): string {
   return `${modules} y por eso lleva ${rates} de descuento.`
 }
 
+/**
+ * What the customer asked to have done, whether the list charges it as an amount or as a
+ * percentage. One sentence over both, because the difference between a laminado and a
+ * triplicado is how the owner priced it and not what the customer is buying.
+ *
+ * The rate itself never appears. The breakdown keeps it for whoever audits the amount, and a
+ * customer reads what the job includes rather than how it was worked out.
+ */
 function addOnSentence(breakdown: PriceBreakdown): string {
-  if (breakdown.addOns.length === 0) {
+  const named = [
+    ...breakdown.addOns.map((line) => line.label),
+    ...breakdown.rates.filter(isNamedSurcharge).map((rate) => rate.label),
+  ]
+
+  if (named.length === 0) {
     return ''
   }
 
-  return `Incluye ${list(breakdown.addOns.map((line) => customerLabel(line.label)))}.`
+  return `Incluye ${list(named.map(customerLabel))}.`
+}
+
+/**
+ * A surcharge the list stated on a row, which is the only kind of rate that has a name to say.
+ * A module discount is arithmetic about the size and the module sentence already says it.
+ */
+function isNamedSurcharge(rate: BreakdownRate): rate is BreakdownRate & { label: string } {
+  return rate.kind === 'surcharge' && rate.label !== undefined
 }
 
 /**

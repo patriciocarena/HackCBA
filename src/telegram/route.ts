@@ -1,6 +1,5 @@
 import { registerApiRoute, type ApiRoute } from '@mastra/core/server'
 import { LOADED_FAMILIES } from '../catalog/families'
-import { baseConfig, businessCards } from '../catalog/business-cards'
 import { shopFacts } from '../catalog/shop-facts'
 import type { LiveCatalog } from '../catalog/live-catalog'
 import { requireEnv } from '../config/env'

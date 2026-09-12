@@ -52,6 +52,40 @@ function wired(options: { owner?: string | null } = {}) {
   return { sent, deliver }
 }
 
+/**
+ * What he has to do to the paper, on its own line.
+ *
+ * The job line is the stock and the sale row's attributes, and the add-ons were on neither. A
+ * triplicado is 40% of the price and three copies of the paper, so an order that priced it and
+ * did not say it is an order he fills as a duplicado. Facturas is the first family where the
+ * add-on is the job rather than a finish, which is what made the gap worth a line of its own:
+ * appended to the comma list it reads as one more attribute and is the easiest thing to skim.
+ */
+describe('the add-ons the order was priced with', () => {
+  function facturas(addOns: string[]) {
+    const priced = priceFor(
+      { kind: 'quote', family: 'facturas', attributes: { quantity: 1, format: 'half_legal', ink: 'color' }, size: null, addOns },
+      ALL_ROWS,
+      configFor('facturas')!,
+    )
+    if (priced.kind !== 'price') throw new Error(priced.kind)
+
+    return workOrderText(anOrder({ breakdown: priced.breakdown }), ALL_ROWS, LOADED_FAMILIES)
+  }
+
+  test('are named, even when the list priced them as a percentage', () => {
+    expect(facturas(['facturas:triplicate'])).toContain('\nCon: Por triplicado')
+  })
+
+  test('carry the whole label, because it says which row he is reading', () => {
+    expect(facturas(['facturas:carbonless'])).toContain('Con papel químico, 1/2 oficio')
+  })
+
+  test('and the line is absent when the job has none', () => {
+    expect(facturas([])).not.toContain('Con:')
+  })
+})
+
 describe('the work order is the job, not a notification', () => {
   const text = workOrderText(anOrder(), catalogRows, [businessCards])
 

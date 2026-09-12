@@ -48,15 +48,46 @@ describe('an edit the owner dictates', () => {
   })
 
   /**
-   * "color" is a word in the folletos label as well as the one he said, and word overlap alone
-   * cannot tell him which he meant. Picking one would be the wrong list repriced silently.
+   * A message that names two families names neither, and picking one would reprice a list he
+   * never said out loud on a diff that does not show the transcript.
    */
-  test('a word that answers for two families is sent back for review, not guessed', () => {
-    const proposed = propose('las facturas color')
+  test('a message that names two families is sent back for review, not guessed', () => {
+    const proposed = propose('las tarjetas de facturas')
 
     expect(proposed.ok).toBe(false)
     if (proposed.ok) return
     expect(proposed.review.reason).toBe('ambiguous')
+  })
+
+  /**
+   * Which word decides, and which only describes.
+   *
+   * Matching on any shared word refused this: the folletos label is "Folletos full color
+   * láser", so "full" and "color" answered for folletos in a sentence about tarjetas, and the
+   * owner's own wording for the cards rows could not make the edit at all. No two labels share
+   * a word, so ranking by how many matched does not help either: here it is two against two.
+   *
+   * The head word is the product noun the list names the family by, and it is the one word
+   * that decides. The rest only tell apart families that share a head, which is four groups of
+   * the thirty eight: "folletos" alone will refuse once the offset family loads, and "folletos
+   * láser" will still resolve.
+   */
+  test('a descriptor in another family label does not answer for it', () => {
+    for (const said of ['las tarjetas full color', 'las tarjetas personales full color']) {
+      const proposed = propose(said)
+
+      expect(proposed.ok).toBe(true)
+      if (!proposed.ok) return
+      expect(proposed.proposal.familySlug).toBe('business_cards')
+    }
+  })
+
+  test('so a descriptor beside the family he did name still names that one', () => {
+    const proposed = propose('las facturas color')
+
+    expect(proposed.ok).toBe(true)
+    if (!proposed.ok) return
+    expect(proposed.proposal.familySlug).toBe('facturas')
   })
 
   test('a family nobody loaded is no match, the way it always was', () => {

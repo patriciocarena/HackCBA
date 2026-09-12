@@ -92,7 +92,12 @@ export async function turn(
   const resolved = await resolve(deps, message, fenced, state).catch(
     (): Resolved => ({ resolution: escalate('ambiguous'), attributes: state.attributes, family: state.family }),
   )
-  const settled = settle(resolved.resolution, state)
+  // What this conversation has already asked, for the family it is now about. A message that
+  // names a new family asks nothing twice, however many of the names repeat.
+  const asked = askedFor(state, resolved)
+  // Everything the customer has said, which a family switch does not unsay.
+  const stated = [...new Set([...state.stated, ...Object.values(resolved.attributes).map(String)])]
+  const settled = settle(resolved.resolution, asked)
   const answer = answerOf(settled)
 
   const reply = await deps
@@ -111,11 +116,11 @@ export async function turn(
     return { reply: DELEGATE, resolution: escalate('ambiguous'), state: { ...state, escalated: true } }
   }
 
-  if (!amountsHold(reply, answer, fenced, settled, state.amounts, resolved.attributes)) {
+  if (!amountsHold(reply, answer, fenced, settled, state.amounts, stated)) {
     return silence({ ...state, escalated: true })
   }
 
-  return { reply, resolution: settled, state: nextState(state, settled, resolved, answer) }
+  return { reply, resolution: settled, state: nextState(state, settled, resolved, answer, asked, stated) }
 }
 
 function silence(state: TurnState): TurnResult {
@@ -176,8 +181,16 @@ async function resolve(
       // answering one question must not unsay the three answers they gave before it. The family
       // is remembered the same way: "A4 color" after "cuánto 2 talonarios" names no family, and
       // asking which product again is the loop a conversation dies of.
-      const attributes = { ...kept, ...intent.attributes }
       const slug = intent.family ?? state.family
+      // A new family is a new job. `quantity` and `sides` are declared by the cards family and
+      // by folletos, and 500 and 1000 are values both carry, so the bag kept from the last
+      // product answers this one's questions with the last one's job and the customer is
+      // quoted a number they never said. An attribute is a property the family declares, so
+      // what answers it is answered for that family and for no other.
+      //
+      // Only a switch clears it. A conversation that had no family yet is one that was asked
+      // which product, and the quantity said in the same breath is still this job's.
+      const attributes = { ...(switched(state.family, slug) ? {} : kept), ...intent.attributes }
 
       // A message that names no family, in a conversation that has not named one either. With
       // one family this was an assumption the engine made silently. With three it is a question.
@@ -254,9 +267,26 @@ function stated(attributes: unknown): Record<string, string | number> {
   ) as Record<string, string | number>
 }
 
-function settle(resolution: Resolution, state: TurnState): Resolution {
+/** True when the conversation was about one family and this message names another. */
+function switched(was: string | null, now: string | null): boolean {
+  return was !== null && now !== null && was !== now
+}
+
+/**
+ * The names already asked, against the family the message settled on.
+ *
+ * `asked` is what makes a second ask an escalation, and that guard is about one family's quote:
+ * "I asked you this and you did not answer". Carried across a switch, the first honest question
+ * about the new product is the second time `sides` was asked, and ADR 0011 ends the
+ * conversation on the customer's second product.
+ */
+function askedFor(state: TurnState, resolved: Resolved): string[] {
+  return switched(state.family, resolved.family ?? state.family) ? [] : state.asked
+}
+
+function settle(resolution: Resolution, asked: string[]): Resolution {
   if (resolution.kind !== 'ask') return resolution
-  if (!resolution.missing.some((name) => state.asked.includes(name))) return resolution
+  if (!resolution.missing.some((name) => asked.includes(name))) return resolution
 
   return escalate('missing_attribute')
 }
@@ -283,15 +313,18 @@ function nextState(
   resolution: Resolution,
   resolved: Resolved,
   answer: string,
+  asked: string[],
+  stated: string[],
 ): TurnState {
   return {
     ...state,
     attributes: resolved.attributes,
+    stated,
     family: resolved.family ?? state.family,
     amounts: [...new Set([...state.amounts, ...amountsIn(answer)])],
     introduced: true,
     escalated: resolution.kind === 'escalate',
-    asked: resolution.kind === 'ask' ? [...new Set([...state.asked, ...resolution.missing])] : state.asked,
+    asked: resolution.kind === 'ask' ? [...new Set([...asked, ...resolution.missing])] : asked,
   }
 }
 
@@ -337,7 +370,7 @@ function amountsHold(
   fenced: string,
   resolution: Resolution,
   earlier: string[],
-  stated: Record<string, string | number>,
+  stated: string[],
 ): boolean {
   // A pesos sign may only ever come from the engine: this turn's answer, or an amount it
   // already gave this conversation. Nothing the customer said widens this set.
@@ -349,11 +382,14 @@ function amountsHold(
   // never repeats the number, and without this the reply is refused and the customer hears
   // nothing. An attribute is the customer's own word, read under a strict schema, and repeating
   // it invents no price.
+  //
+  // Their words across the whole conversation, not the family's pricing bag: a conversation that
+  // moves to another product clears the bag and does not unsay what was said before it.
   const given = new Set([
     ...numbersIn(answer),
     ...numbersIn(said(fenced)),
     ...numbersIn(earlier.join(' ')),
-    ...numbersIn(Object.values(stated).join(' ')),
+    ...numbersIn(stated.join(' ')),
   ])
   if (numbersIn(reply).some((number) => Number(number) >= FLOOR && !given.has(number))) return false
 

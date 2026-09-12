@@ -288,6 +288,17 @@ export type TurnState = {
    */
   attributes: Record<string, string | number>
   /**
+   * Every value the customer has stated, in any message and for any family, as words.
+   *
+   * Not the same thing as `attributes`, though they were one object until the bag became family
+   * scoped. `attributes` is what prices the family being quoted and is cleared when the
+   * conversation moves to another one. This is what the customer has said, which no later
+   * message unsays: the ADR 0010 guard lets a reply repeat their own word, and a writer with a
+   * memory says "las 1000 tarjetas" in a turn about folletos. Reading that off the pricing bag
+   * refused the reply, and a refused reply ends the conversation.
+   */
+  stated: string[]
+  /**
    * Every amount the engine has given this conversation, written as the customer read it.
    *
    * The guard used to allow only this turn's own answer, which held while the writer had no

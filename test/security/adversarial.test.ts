@@ -118,7 +118,7 @@ function delivery(text: string, senderId: string, updateId = 1): Request {
 }
 
 function fresh(conversationId: ConversationId): TurnState {
-  return { conversationId, asked: [], escalated: false, introduced: true, family: null, attributes: {}, amounts: [] }
+  return { conversationId, asked: [], escalated: false, introduced: true, family: null, attributes: {}, stated: [], amounts: [] }
 }
 
 /**

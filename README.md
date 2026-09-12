@@ -117,9 +117,10 @@ from the first deploy; the reasoning is in ADR 0001.
 | `seed/facturas.json` | Facturas: twenty eight rows, and every modifier a percentage |
 | `src/catalog/families.ts` | The registry. Every family the process quotes from, keyed by slug |
 | `seed/facts.json` | What the shop may say about itself. A row with no value escalates |
-| `scripts/parse-price-list.ts` | Reads the list and audits a seed's amounts against it, `bun run parse:list` |
+| `scripts/parse-price-list.ts` | Reads the list, and audits one seed against it with `bun run parse:list <family>` |
 | `scripts/eval-flows.ts` | The three flows the shop sells on, driven through the real route with real models |
 | `scripts/eval-families.ts` | The two newer families through the same route, `bun run eval:families` |
+| `scripts/eval-demo.ts` | The live demo, action by action, `bun run eval:demo` |
 
 The long product plan and the domain glossary live in the client repo. The ADRs here cover
 only this repo's own decisions.
@@ -171,8 +172,14 @@ two loaded families, the compounding percentages, and the three ways a message c
 one family. `bun run eval:demo` is the live demo, action by action. They need the keys and they
 spend money. Run them before a deploy that touches a prompt, an intent, a seed or the turn.
 
-There is no migration step. Every store creates its own table with `CREATE TABLE IF NOT
-EXISTS` the first time it is used, so the schema arrives with the code that needs it.
+Tables arrive with the code that needs them: every store creates its own with `CREATE TABLE IF
+NOT EXISTS` the first time it is used. What that shape cannot express is a rename, because it
+keeps whatever column a deployed volume already has. `src/storage/migrate.ts` runs the few
+statements that need a volume to change, guarded so every boot can run them again.
+
+`DATA_DIR` is the directory holding `dante.db`, and it has to exist and be set. Left empty the
+database lands at `/dante.db`, outside the Fly volume, and every write is lost on the next
+deploy. On Fly it is the volume mount.
 
 Deploy with `fly deploy`. Secrets are set once on Fly with `fly secrets set` and are never
 imported from a laptop, so nobody's stale `.env` can unset someone else's key. `.env` holds

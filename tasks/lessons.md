@@ -284,3 +284,25 @@ behind a green suite. Nothing could catch it: every test asserted the number the
 When an ADR names a premise and says it needs confirming, go and get it before writing the
 decision, especially when the client repo holds the document that settles it. And notice what
 the reasoning is made of: "usually true about shops like this" is a guess with a citation voice.
+
+## A recommendation about words needs the words in front of you
+
+2026-09-12. `namesFamily` refused "subime las tarjetas full color" because the folletos label
+carries "full" and "color". I proposed fixing it by dropping from each label any word another
+label also has. No two of the three labels share a word, so the fix would have changed nothing.
+The overlap was between the message and a label, never between labels.
+
+I had read the three labels earlier in the same session and reasoned about them from memory.
+Print the strings and run the comparison before recommending a rule over them: a rule about text
+is cheap to test and the test is what tells you which strings actually collide.
+
+## `cat > file` is not a way to create a file
+
+2026-09-12. Writing a new test with `cat > test/storage/sqlite.test.ts` overwrote a file that
+already held two foreign-key tests. The suite went green and the count went up, because the two
+new tests outnumbered what they replaced, so nothing said anything was gone. Only `git diff
+--stat` showing deletions on a file I believed was new caught it.
+
+Check the path exists before writing to it, and read a diffstat for deletions in files you meant
+only to add to. A passing suite does not prove you did not delete a test: it proves the tests
+that are still there pass.

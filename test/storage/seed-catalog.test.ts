@@ -107,6 +107,34 @@ describe('seedCatalog', () => {
   })
 })
 
+/**
+ * The storage path does not hold every family the process quotes from, and this is where that
+ * is written down rather than found later.
+ *
+ * `loadCatalog` grew `chargeOf` for ADR 0022: an add-on may carry a rate instead of an amount,
+ * and facturas states every one of its modifiers as a percentage. `seedItemSchema` did not,
+ * so `seed/facturas.json` cannot be written to the database at all. Nothing breaks today
+ * because the runtime reads `src/catalog/families.ts` and nothing calls `seedCatalog` outside
+ * this file, but two of the three loaded families are not the same catalog in both places.
+ *
+ * ponytail: the fix is not a column. A rate has no pesos, and `price_versions` is what keeps
+ * the audio that caused each price change, so holding one needs a decision about what a
+ * version of a percentage is. Until someone makes it, this test is the record.
+ */
+describe('a family the database cannot hold yet', () => {
+  it('takes folletos láser, which prices every row as an amount', async () => {
+    await expect(
+      seedCatalog(client, await Bun.file('seed/folletos-laser.json').json(), RECORDED_AT),
+    ).resolves.toBeUndefined()
+  })
+
+  it('refuses facturas, whose add-ons carry a rate and no price', async () => {
+    await expect(
+      seedCatalog(client, await Bun.file('seed/facturas.json').json(), RECORDED_AT),
+    ).rejects.toThrow()
+  })
+})
+
 describe('a catalog that cannot be trusted', () => {
   it('leaves nothing behind when a row fails halfway', async () => {
     const seed = await Bun.file('seed/business-cards.json').json()

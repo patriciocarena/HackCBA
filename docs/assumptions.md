@@ -6,11 +6,13 @@ data point changes later. None of them needs a refactor.
 
 ## 1. Catalog load order
 
-Assumption: business cards first, and only business cards.
+Assumption: business cards first, then folletos láser and facturas.
 
 Missing: the query volume per family, which the three people answering WhatsApp know. The
-plan bets that cards and large format banners take over half. Cards are enough for the
-vertical because the family has a module, add-ons and discounts.
+plan bets that cards and large format banners take over half. Cards were enough for the
+vertical because the family has a module, add-ons and discounts. The two that followed were
+chosen for what they break rather than for their volume: folletos láser has no module and no
+add-ons, and facturas states every modifier as a percentage and none as an amount.
 
 ## 2. Module formula
 

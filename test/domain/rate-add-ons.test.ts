@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
 import { priceFor, type CatalogRow, type PriceForConfig } from '../../src/domain/price-for'
+import { quoteText } from '../../src/domain/quote-text'
 import type { FamilyContract, QuoteIntent } from '../../src/domain/types'
 
 /**
@@ -107,6 +108,35 @@ describe('an add-on may carry a rate instead of an amount', () => {
     // 26.000 x 1.40 x 1.60 = 58.240 net, grossed once. Summed would be 26.000 x 2.0.
     expect(totalOf(resolution.breakdown)).toBe(ars(70_470))
     expect(totalOf(resolution.breakdown)).not.toBe(ars(62_920))
+  })
+
+  /**
+   * The customer asked for it, so the quote says it is in there. A rate add-on used to reach
+   * `rates` and nothing else, and `addOnSentence` reads `addOns`, so "1 talonario por
+   * triplicado" and "1 talonario" came back in the same words 40% apart. What the sentence
+   * never says is the percentage: the breakdown keeps that for whoever audits the amount, and
+   * a customer reads what the job includes rather than how it was worked out.
+   */
+  test('the quote names it, the way it names an add-on that costs an amount', () => {
+    const resolution = quote(['facturas:triplicate'])
+
+    if (resolution.kind !== 'price') throw new Error(resolution.kind)
+    const text = quoteText(resolution.breakdown, resolution.validityDays)
+
+    expect(text).toContain('Incluye Por triplicado.')
+    expect(text).not.toContain('40')
+  })
+
+  test('and names both when two of them apply', () => {
+    const resolution = quote(['facturas:triplicate', 'facturas:carbonless'])
+
+    if (resolution.kind !== 'price') throw new Error(resolution.kind)
+
+    // The label the customer reads is the part before the comma, which is the row's own name.
+    // "Con papel químico, 1/2 oficio" tells the owner which of two rows he is reading.
+    expect(quoteText(resolution.breakdown, resolution.validityDays)).toContain(
+      'Incluye Por triplicado y Con papel químico.',
+    )
   })
 
   test('a rate keyed to another format is not this job, and escalates', () => {

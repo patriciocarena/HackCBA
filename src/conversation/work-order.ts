@@ -69,10 +69,33 @@ export function workOrderText(
     `ORDEN ${oneLine(order.id)}`,
     '',
     `Imprimir: ${jobLine(order, rows, families)}`,
+    addOnLine(order),
     `Cobrado: ${pesos(totalOf(order.breakdown))}, seña confirmada.`,
     `Cliente: ${chatOf(order.conversationId)}`,
     `Cotizado: ${onlyTheDay(order.quotedAt)}`,
-  ].join('\n')
+  ]
+    .filter((line) => line !== null)
+    .join('\n')
+}
+
+/**
+ * What he has to do to the paper, on its own line and in the list's own words.
+ *
+ * A rate add-on counts the same as one that costs an amount: "Por triplicado" is 40% of the
+ * price and three copies of the paper, and an order that priced it without saying it is one he
+ * fills as a duplicado. The whole label, not the customer's half of it, because the part after
+ * the comma is what tells him which of two papel químico rows he is reading.
+ *
+ * Its own line rather than appended to `Imprimir:`, where a copy count reads as one more
+ * attribute in a comma list and is the easiest thing on the sheet to skim past.
+ */
+function addOnLine(order: Order): string | null {
+  const named = [
+    ...order.breakdown.addOns.map((line) => line.label),
+    ...order.breakdown.rates.flatMap((rate) => (rate.label === undefined ? [] : [rate.label])),
+  ]
+
+  return named.length === 0 ? null : `Con: ${named.map(oneLine).join(' + ')}`
 }
 
 function jobLine(order: Order, rows: CatalogRow[], families: readonly FamilyContract[]): string {

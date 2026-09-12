@@ -21,6 +21,18 @@ describe('dbUrl', () => {
 
     expect(dbUrl()).toBe('file:./dante.db')
   })
+
+  /**
+   * `.env.example` ships `DATA_DIR=` and the README's first step is to copy it, so the empty
+   * string is the value a fresh checkout actually runs with. `??` falls back only on undefined,
+   * so it read as the filesystem root: the database opened at `/dante.db`, which on the Fly
+   * machine is outside the volume and loses every write on the next deploy.
+   */
+  it('falls back the same way when it is set and empty, which is what .env.example ships', () => {
+    process.env.DATA_DIR = ''
+
+    expect(dbUrl()).toBe('file:./dante.db')
+  })
 })
 
 describe('the client we pin', () => {

@@ -30,6 +30,7 @@ function state(overrides: Partial<TurnState> = {}): TurnState {
     introduced: true,
     family: null,
     attributes: {},
+    stated: [],
     amounts: [],
     ...overrides,
   }
@@ -125,6 +126,113 @@ describe('a turn over more than one family', () => {
     // Facturas declares quantity, format and ink. A key it does not declare is not part of its
     // identity, so the row still matches: the value is ignored, not interpolated.
     expect(result.resolution.breakdown.base.slug).toBe('fa_a4_1_color')
+  })
+
+  /**
+   * The attribute bag is the conversation's, and the family it answers is not. `quantity` and
+   * `sides` are declared by the cards family and by folletos, and 500 and 1000 are values both
+   * carry, so a bag kept across a switch answers the new family's questions with the old
+   * family's job. The customer is quoted a number they never said for the product they asked
+   * about, which is rule 2 broken one level above the row.
+   */
+  test('a new family does not inherit the attributes the last one was quoted on', async () => {
+    const first = await turn(
+      deps({
+        ...QUOTE,
+        family: 'business_cards',
+        attributes: {
+          quantity: 1000,
+          paper: 'illustration_350',
+          sides: 'front_and_back',
+          finish: 'opp_both_sides',
+        },
+      }),
+      message('1000 tarjetas ilustración 350 frente y dorso con OPP'),
+      state(),
+    )
+
+    expect(first.resolution?.kind).toBe('price')
+
+    // He names a new product and nothing else about it.
+    const second = await turn(
+      deps({ ...QUOTE, family: 'folletos_laser', attributes: {} }),
+      message('y folletos láser?'),
+      first.state,
+    )
+
+    expect(second.resolution).toEqual({
+      kind: 'ask',
+      missing: ['quantity', 'coverage', 'sides'],
+    })
+    expect(second.state.attributes).toEqual({})
+  })
+
+  /**
+   * The other half of the turn's memory. `settle` escalates an attribute asked twice, and with
+   * `asked` kept across a switch the first honest question about the new family is the second
+   * time that name was asked. ADR 0011 makes that escalation the end of the conversation, so
+   * the customer's second product ends the chat.
+   */
+  test('and does not count the last family ask against the new family', async () => {
+    const asked = await turn(
+      deps({ ...QUOTE, family: 'business_cards', attributes: { quantity: 1000 } }),
+      message('cuánto 1000 tarjetas'),
+      state(),
+    )
+
+    expect(asked.state.asked).toContain('paper')
+
+    const switched = await turn(
+      deps({ ...QUOTE, family: 'folletos_laser', attributes: {} }),
+      message('mejor folletos láser'),
+      asked.state,
+    )
+
+    expect(switched.resolution?.kind).toBe('ask')
+    expect(switched.state.escalated).toBe(false)
+  })
+
+  /**
+   * What the customer has said and what prices this family are two different things, and they
+   * were one object until the bag became family scoped.
+   *
+   * The ADR 0010 guard lets a reply repeat a bare number the customer stated themselves, on the
+   * grounds that repeating their own word invents no price. It read that off the pricing bag, so
+   * clearing the bag on a switch took "1000" out of the writer's vocabulary while the writer's
+   * own memory still had it. The reply is refused, and a refused reply ends the conversation.
+   */
+  test('a reply may still repeat a number the customer said before the switch', async () => {
+    const recalls = (extracted: object): TurnDeps => ({
+      ...deps(extracted),
+      write: async ({ user }) =>
+        `Igual que las 1000 tarjetas, ahora en folletos: ${user.match(/<respuesta:[0-9a-f]{32}>([\s\S]*)<\/respuesta:/)![1]!}`,
+    })
+
+    const first = await turn(
+      recalls({
+        ...QUOTE,
+        family: 'business_cards',
+        attributes: {
+          quantity: 1000,
+          paper: 'illustration_350',
+          sides: 'front_and_back',
+          finish: 'opp_both_sides',
+        },
+      }),
+      message('1000 tarjetas ilustración 350 frente y dorso con OPP'),
+      state(),
+    )
+
+    expect(first.resolution?.kind).toBe('price')
+
+    const second = await turn(
+      recalls({ ...QUOTE, family: 'folletos_laser', attributes: {} }),
+      message('y folletos láser?'),
+      first.state,
+    )
+
+    expect(second.reply).toContain('1000 tarjetas')
+    expect(second.state.escalated).toBe(false)
   })
 
   test('a family nobody loaded escalates instead of finding the nearest one', async () => {

@@ -89,20 +89,41 @@ type MatchedLines =
 const DEFAULT_MAX_MODULES = 50
 
 /**
- * Every loaded family whose label shares a word with what the owner said.
+ * Every loaded family the owner's sentence names, by the one word in each label that decides.
  *
- * A list rather than a boolean, because a shared word cannot decide between two families that
- * share it: "color" is in the folletos label as well as in a message about facturas. The
- * caller escalates on none and on more than one, which is the only honest answer when the
- * next step reprices a list the owner signs for.
+ * A label's head word is the product noun the list names the family by: tarjetas, folletos,
+ * facturas. The words after it describe the job, and matching on any of them let a description
+ * answer for a family nobody said. "Folletos full color láser" carries "full" and "color", so
+ * "subime las tarjetas full color" named folletos too and the owner's own wording for the cards
+ * rows could not make the edit at all. No two loaded labels share a word, so counting how many
+ * matched does not separate them either: that case is two against two.
+ *
+ * The rest of the label is what tells apart families that share a head, and four groups of the
+ * thirty eight do: "folletos" alone stops deciding once the offset family loads, and "folletos
+ * láser" still resolves. A tie names them all, and the caller refuses.
+ *
+ * A list rather than a boolean, because the caller escalates on none and on more than one,
+ * which is the only honest answer when the next step reprices a list the owner signs for.
  *
  * ponytail: row level targeting, "subi las de 100". It lives here beside the slug match
  * priceFor does, so the two rules cannot drift into two directories.
  */
 export function namesFamily(text: string, families: readonly FamilyContract[]): FamilyContract[] {
   const said = words(text)
+  const named = families.flatMap((family) => {
+    const [head, ...rest] = words(family.label)
 
-  return families.filter((family) => words(family.label).some((word) => said.includes(word)))
+    if (head === undefined || !said.includes(head)) return []
+
+    return [{ family, describes: rest.filter((word) => said.includes(word)).length }]
+  })
+
+  if (named.length <= 1) return named.map((one) => one.family)
+
+  const most = Math.max(...named.map((one) => one.describes))
+  const best = named.filter((one) => one.describes === most)
+
+  return best.length === 1 ? [best[0]!.family] : named.map((one) => one.family)
 }
 
 const WORD = /[a-z0-9]+/g

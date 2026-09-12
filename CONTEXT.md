@@ -6,11 +6,12 @@ the terms this repo decides.
 ## Language
 
 **Family**:
-A group of products the shop prices as one table, such as business cards. A family declares the
-ordered list of attributes a quote needs. It may declare a module, and most do not. A unit
-belongs to the item rather than the family, because the list prices square metres, linear metres,
-units and sets in one table; the contract carries it on the family today because every loaded
-family happens to have one unit.
+A group of products the shop prices as one table, such as business cards. The first word of its
+label is the one that names it: the words after it describe the job, and a description is not a
+name. A family declares the ordered list of attributes a quote needs. It may declare a module,
+and most do not. A unit belongs to the item rather than the family, because the list prices
+square metres, linear metres, units and sets in one table; the contract carries it on the family
+today because every loaded family happens to have one unit.
 _Avoid_: Category, product type
 
 **Format**:
@@ -106,13 +107,16 @@ _Avoid_: Request, query, command
 
 **Attribute**:
 A property of a quote the family declares, such as paper. The family also declares the
-allowed values, so an attribute no family declares cannot be extracted at all.
+allowed values, so an attribute no family declares cannot be extracted at all. What answers
+one is answered for that family and for no other: two families both declare a quantity, and
+a thousand tarjetas is not a thousand folletos.
 _Avoid_: Field, parameter, option
 
 **Ask**:
 The outcome where the engine knows which attributes the family still needs. Dante asks for
-all of them in one message, in the family's order, and never re-asks one already answered.
-An attribute still missing after the ask escalates.
+all of them in one message, in the family's order, and never re-asks one this family already
+had answered. An attribute still missing after the ask escalates. A conversation that names a
+new family asks again from the start, because the answers it has belong to the last one.
 _Avoid_: Clarify, follow up, prompt
 
 **Breakdown**:
@@ -149,8 +153,12 @@ holds two conversations, and neither can read the other.
 _Avoid_: Thread, session, chat
 
 **Turn**:
-One customer message and Dante's reply to it. The turn remembers what was already asked and
-whether the conversation escalated. The engine remembers nothing.
+One customer message and Dante's reply to it. The turn remembers what the conversation is
+about and what it has already been told: the family, the attributes answered for it, what was
+asked, everything the customer has said, every amount given, and whether the conversation
+escalated. The engine remembers nothing, so everything a later message leans on is remembered
+here. What the customer said and what prices the family are two of those things and not one: a
+new family clears the second and never the first.
 _Avoid_: Exchange, round, interaction
 
 **Untrusted text**:
