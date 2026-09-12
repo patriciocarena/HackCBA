@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test'
+import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
 import { acceptQuote, advanceOrder, quoteFrom, type Actor } from '../../src/domain/order'
 import { priceFor } from '../../src/domain/price-for'
 import { conversationId, type Order, type Quote, type Resolution } from '../../src/domain/types'
-import { baseConfig, catalogRows, intent, OFFSET_1000 } from '../support/catalog'
+import { intent, OFFSET_1000 } from '../support/fixtures'
 
 const quotedAt = '2026-09-12T10:00:00.000Z'
 const conversation = conversationId('telegram', '55512345', 'customer')
@@ -37,6 +38,22 @@ function advancedTo(...states: Order['state'][]): Order {
 }
 
 describe('the order copies the price instead of pointing at it', () => {
+  test('a breakdown edited after the quote does not move the order', () => {
+    const live: Resolution = priceFor(intent({ attributes: OFFSET_1000 }), catalogRows, baseConfig)
+    if (live.kind !== 'price') throw new Error('expected a price')
+
+    const made = quoteFrom({ id: 'qt_9', conversationId: conversation, resolution: live, now: quotedAt })
+    if (!made.ok) throw new Error(`expected a quote, got ${made.reason}`)
+
+    const accepted = acceptQuote(made.quote, { id: 'ord_9', now: quotedAt })
+    if (!accepted.ok) throw new Error(`expected an order, got ${accepted.reason}`)
+
+    const agreed = totalOf(accepted.order.breakdown)
+    live.breakdown.base.amount = ars(99999)
+
+    expect(totalOf(accepted.order.breakdown)).toBe(agreed)
+  })
+
   test('it is born quoted, carrying the breakdown it was quoted from', () => {
     const order = anOrder()
 

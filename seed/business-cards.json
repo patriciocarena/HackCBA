@@ -255,7 +255,7 @@
     { "from_modules": 13, "to_modules": null, "rate": 0.25 }
   ],
   "rules": [
-    "Prices are net. VAT is added by the engine, and Dante says one final gross number.",
+    "Prices are final, VAT included. The engine adds nothing, and Dante says that one number.",
     "Quantities are the ones in the tables. The customer picks among them. No intermediate quantity is quoted.",
     "A piece larger than the module uses several modules and the excess is cut. Multiply the module price by the module count, then apply the module discount.",
     "When more than one percentage applies, they compound. They are not summed.",

@@ -13,8 +13,6 @@ export type InboundMessage = {
 
 export type IsAdmin = (telegramUserId: string) => boolean
 
-export type Fence = (text: string) => UntrustedText
-
 export type Turn = (message: InboundMessage) => Promise<void>
 
 export type InboundLog = {
@@ -23,11 +21,12 @@ export type InboundLog = {
 
 export const denyEveryone: IsAdmin = () => false
 
-export const localFence: Fence = (text) => text as UntrustedText
-
 export const silentTurn: Turn = async () => {}
 
-// ponytail: in memory, A3's table when a record has to outlive the process
+// ponytail: in memory, A3's table when a record has to outlive the process.
+// It stores the fenced block, not the words. When A3 lands the table, record
+// update.text instead: a nonce outlives nothing, so a rotated FENCE_SECRET
+// leaves every stored row reading as a forgery.
 export function inMemoryInboundLog(): InboundLog & { messages: InboundMessage[] } {
   const messages: InboundMessage[] = []
 

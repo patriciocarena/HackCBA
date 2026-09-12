@@ -1,4 +1,5 @@
-import type { Resolution } from './types'
+import { fence } from '../security/fence'
+import type { Resolution, UntrustedText } from './types'
 
 /**
  * What the shop is allowed to say about itself.
@@ -21,9 +22,6 @@ export type Fact = {
 
 const DELEGATE_DETAIL = 'eso no lo tengo cargado, te delego con un humano'
 
-const FENCE_OPEN = '<facts>'
-const FENCE_CLOSE = '</facts>'
-
 export function answerFromFacts(key: string, facts: Fact[]): Resolution {
   const fact = facts.find((candidate) => candidate.key === key)
 
@@ -35,27 +33,23 @@ export function answerFromFacts(key: string, facts: Fact[]): Resolution {
 }
 
 /**
- * The block handed to the turn. Only loaded facts go in, and nothing a value contains can
- * add a line to it or end it. Deterministic on purpose: the same facts always produce the
- * same block.
- *
- * The project wide fencing of untrusted text is ticket D1. When it lands, neutralise() is
- * the single line to swap.
+ * The block handed to the turn. Only loaded facts go in, one fact per line, and D1's fence
+ * carries the delimiter a value cannot guess. Deterministic on purpose: the same facts
+ * always produce the same block.
  */
-export function factsBlock(facts: Fact[]): string {
+export function factsBlock(facts: Fact[]): UntrustedText {
   const loaded = facts
     .filter((fact) => fact.value !== null)
-    .map((fact) => `${neutralise(fact.label)}: ${neutralise(fact.value as string)}`)
+    .map((fact) => `${oneLine(fact.label)}: ${oneLine(fact.value as string)}`)
 
-  return [FENCE_OPEN, ...loaded, FENCE_CLOSE].join('\n')
+  return fence(loaded.join('\n'), 'facts')
 }
 
 /**
- * Closing the fence was never the only attack. One newline in a value writes a second line
- * inside the block, and a line inside the block is a fact, so a value can hand Dante a
- * branch the shop does not have. Angle brackets go with it: no fact the shop loads needs
- * one, and removing the characters beats matching the tokens they spell.
+ * A line inside the block is a fact, so one newline in a value would write a second one.
+ * That is how the bot this replaces invented branches. Nothing else is touched: the fence
+ * around the block is what keeps the payload from ending it.
  */
-function neutralise(value: string): string {
-  return value.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim()
+function oneLine(value: string): string {
+  return value.replace(/\s+/g, ' ').trim()
 }

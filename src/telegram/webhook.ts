@@ -1,11 +1,10 @@
 import { timingSafeEqual } from 'node:crypto'
 import { conversationId, type Role } from '../domain/types'
+import { fence } from '../security/fence'
 import {
   denyEveryone,
   inMemoryInboundLog,
-  localFence,
   silentTurn,
-  type Fence,
   type InboundLog,
   type IsAdmin,
   type InboundMessage,
@@ -20,7 +19,6 @@ const SECRET_HEADER = 'X-Telegram-Bot-Api-Secret-Token'
 export type WebhookDeps = {
   secret: string
   isAdmin?: IsAdmin
-  fence?: Fence
   seenUpdates?: SeenUpdates
   log?: InboundLog
   turn?: Turn
@@ -31,7 +29,6 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
   const {
     secret,
     isAdmin = denyEveryone,
-    fence = localFence,
     seenUpdates = inMemorySeenUpdates(),
     log = inMemoryInboundLog(),
     turn = silentTurn,
@@ -55,7 +52,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
       role,
       chatId: update.chatId,
       senderId: update.senderId,
-      text: update.text === null ? null : fence(update.text),
+      text: update.text === null ? null : fence(update.text, 'message'),
       mediaId: update.mediaId,
       receivedAt: now(),
     }

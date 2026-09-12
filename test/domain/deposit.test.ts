@@ -10,7 +10,8 @@ import { acceptQuote, advanceOrder, quoteFrom, type Actor } from '../../src/doma
 import { priceFor } from '../../src/domain/price-for'
 import type { IsAdmin } from '../../src/security/allowlist'
 import { conversationId, type Order, type Resolution, type UntrustedText } from '../../src/domain/types'
-import { baseConfig, catalogRows, intent, OFFSET_1000 } from '../support/catalog'
+import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
+import { intent, OFFSET_1000 } from '../support/fixtures'
 
 const now = '2026-09-12T13:00:00.000Z'
 const conversation = conversationId('telegram', '55512345', 'customer')
@@ -192,7 +193,7 @@ describe('only an admin confirms, and confirming never shows the receipt', () =>
 
   test('the store type has one member, so no reader can be added without failing typecheck', () => {
     // Compile time, not runtime. Naming a key would only guard that name; this fails on any
-    // added member whatever it is called, which is what ADR 0012 claims.
+    // added member whatever it is called, which is what ADR 0013 claims.
     const writeOnly: keyof ReceiptStore extends 'record' ? true : never = true
 
     expect(writeOnly).toBe(true)
