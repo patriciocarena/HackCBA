@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
+import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { priceFor, type CatalogRow } from '../../src/domain/price-for'
 import type { QuoteIntent, Resolution } from '../../src/domain/types'
-import { baseConfig, catalogRows, intent, OFFSET_1000, rowFor, SPECIAL_100 } from '../support/catalog'
+import { intent, OFFSET_1000, rowFor, SPECIAL_100 } from '../support/fixtures'
 
 const quote = (overrides: Partial<QuoteIntent>, rows: CatalogRow[] = catalogRows): Resolution =>
   priceFor(intent({ attributes: OFFSET_1000, ...overrides }), rows, baseConfig)
