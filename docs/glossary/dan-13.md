@@ -10,10 +10,16 @@ ADR 0008.
 _Avoid_: Wrap, escape, sanitise, quote
 
 **Nonce**:
-The digest of the label and the text, carried by both delimiters of a fence. It is what
-makes the delimiter unguessable while keeping the fence deterministic, because the text
-that would have to forge it is the text it is derived from.
-_Avoid_: Token, salt, key, marker
+The keyed digest of the label and the text, carried by both delimiters of a fence. The key
+is what makes it unforgeable: without it a customer can compute the delimiter of any block
+they like, including one labelled `facts`. A wrong nonce is a visible forgery, a right one
+is not a forgery at all.
+_Avoid_: Token, salt, marker
+
+**Fence secret**:
+The process key the nonce is derived under, `FENCE_SECRET` or thirty two random bytes when
+it is unset. It never appears in a block, only in the digest of one.
+_Avoid_: Password, token
 
 **Label**:
 The word a fence names its contents with, such as `message`, `transcript` or `facts`. One
