@@ -23,7 +23,7 @@ export type InboundLog = {
 
 export const denyEveryone: IsAdmin = () => false
 
-export const localFence: Fence = (text) => text.replaceAll(/[<>]/g, '') as UntrustedText
+export const localFence: Fence = (text) => text as UntrustedText
 
 export const silentTurn: Turn = async () => {}
 

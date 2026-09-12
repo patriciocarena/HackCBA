@@ -51,8 +51,11 @@ deduped, and the error stays in the log instead of being swallowed into a 200.
 
 Every dependency this route does not own is an injected function with a type declared here
 and a default that fails closed: `IsAdmin` denies everyone, `Turn` says nothing, the fence
-strips the angle brackets a real fence is delimited with before branding, and the inbound
-log and the claim set are in memory. The orchestrator swaps each default for the lane that owns it. This branch imports
+brands and changes nothing, and the inbound log and the claim set are in memory. A fence
+delimits, it does not edit, and a default that stripped characters would corrupt the text
+it is supposed to carry: "tarjetas <5cm y >2cm" is a size constraint, not markup. D1's
+fence delimits with a digest, which is what makes it unclosable. The orchestrator swaps
+each default for the lane that owns it. This branch imports
 nothing from `src/domain/` except the `UntrustedText` and `ConversationId` types.
 
 ## Consequences
