@@ -13,4 +13,40 @@ describe('loadCatalog', () => {
     expect(config.family.vatIncluded).toBe(true)
     expect(config.family.module).toEqual({ widthCm: 8.5, heightCm: 5 })
   })
+
+  it('maps every seed item into a catalog row', () => {
+    const { rows } = loadCatalog(seed)
+
+    expect(rows).toHaveLength(seed.items.length)
+    expect(rows.filter((row) => row.kind === 'sale')).toHaveLength(14)
+    expect(rows.filter((row) => row.kind === 'add_on')).toHaveLength(11)
+    expect(rows.filter((row) => row.kind === 'discount')).toHaveLength(2)
+  })
+
+  it('carries the fields the engine reads off a row', () => {
+    const { rows } = loadCatalog(seed)
+
+    expect(rows.find((row) => row.slug === 'bc_special_100_front')).toEqual({
+      slug: 'bc_special_100_front',
+      kind: 'sale',
+      label: '100 tarjetas color sólo frente',
+      group: undefined,
+      provisional: undefined,
+      attributes: { quantity: 100, paper: 'special', sides: 'front', finish: 'none' },
+      appliesTo: undefined,
+      appliesToFamily: undefined,
+      price: 12100,
+    })
+  })
+
+  it('carries group, appliesTo and provisional where the seed sets them', () => {
+    const { rows } = loadCatalog(seed)
+    const lamination = rows.find((row) => row.slug === 'bc_addon_lamination_special_100_front')
+    const discount = rows.find((row) => row.slug === 'bc_discount_illustration_plain_100')
+
+    expect(lamination?.group).toBe('lamination')
+    expect(lamination?.appliesTo).toEqual(['bc_special_100_front'])
+    expect(rows.find((row) => row.slug === 'bc_addon_design')?.appliesToFamily).toBe(true)
+    expect(discount?.provisional).toBe(true)
+  })
 })

@@ -1,5 +1,18 @@
-import type { PriceForConfig } from '../domain/price-for'
+import { ars } from '../domain/money'
+import type { CatalogItemKind, CatalogRow, PriceForConfig } from '../domain/price-for'
 import { unitSchema, type FamilyContract } from '../domain/types'
+
+export type CatalogSeedItem = {
+  id: string
+  kind: string
+  label: string
+  group?: string
+  provisional?: boolean
+  attributes?: Record<string, string | number>
+  applies_to?: string[]
+  applies_to_family?: boolean
+  price: number
+}
 
 export type CatalogSeed = {
   vat_rate: number
@@ -13,13 +26,17 @@ export type CatalogSeed = {
     attributes: string[]
     ask_order: string[]
   }
+  items: CatalogSeedItem[]
 }
 
 export type Catalog = {
+  rows: CatalogRow[]
   config: PriceForConfig
 }
 
 export function loadCatalog(seed: CatalogSeed): Catalog {
+  const rows = seed.items.map(catalogRow)
+
   const family: FamilyContract = {
     slug: seed.family.slug,
     label: seed.family.label,
@@ -35,5 +52,19 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
     addOns: [],
   }
 
-  return { config: { family, quoteValidityDays: seed.quote_validity_days } }
+  return { rows, config: { family, quoteValidityDays: seed.quote_validity_days } }
+}
+
+function catalogRow(item: CatalogSeedItem): CatalogRow {
+  return {
+    slug: item.id,
+    kind: item.kind as CatalogItemKind,
+    label: item.label,
+    group: item.group,
+    provisional: item.provisional,
+    attributes: item.attributes,
+    appliesTo: item.applies_to,
+    appliesToFamily: item.applies_to_family,
+    price: ars(item.price),
+  }
 }
