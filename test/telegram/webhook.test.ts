@@ -53,9 +53,11 @@ describe('telegramWebhook', () => {
       conversationId: 'telegram:42:customer',
       role: 'customer',
       senderId: '42',
-      text: 'subí las tarjetas un 20%',
       mediaId: null,
     })
+    // The default fence (D1) wraps the text; a caller reading `.text` gets a fenced
+    // block, not the raw message, so the raw string never reaches a prompt unfenced.
+    expect(String(turns[0]?.text)).toMatch(/^<message:[0-9a-f]+>\nsubí las tarjetas un 20%\n<\/message:[0-9a-f]+>$/)
   })
 
   it('reads the role off the sender, so an allowlisted one holds its own conversation', async () => {
