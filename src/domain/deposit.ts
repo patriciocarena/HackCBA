@@ -1,5 +1,5 @@
 import { advanceOrder, type Actor, type OrderRefusal } from './order'
-import type { Order } from './types'
+import type { Order, UntrustedText } from './types'
 
 /**
  * The deposit is where the conversation stops being a conversation and money moves, so every
@@ -35,4 +35,59 @@ export function requestDeposit(order: Order, input: RequestInput): DepositOutcom
   }
 
   return { ok: true, order: { ...asked.order, depositAlias: alias } }
+}
+
+export type Receipt = {
+  orderId: string
+  mediaId: string | null
+  text: UntrustedText | null
+  receivedAt: string
+}
+
+/**
+ * One member, and it writes. A receipt is kept so a dispute has an answer, not so the person
+ * confirming can look at it: a forged photo that looks right is the threat this ticket names,
+ * and a human who checks the picture instead of the bank is how it wins. `confirmDeposit`
+ * therefore takes no store, and a store with no reader means there is no expression the
+ * confirmation path could write to reach one.
+ */
+export type ReceiptStore = {
+  record(receipt: Receipt): Promise<void>
+}
+
+export type ReceiptRefusal = 'no_deposit_pending' | 'empty_receipt'
+
+export type ReceiptOutcome = { ok: true; notice: string } | { ok: false; reason: ReceiptRefusal }
+
+export type ReceiptInput = {
+  mediaId: string | null
+  text: UntrustedText | null
+  receivedAt: string
+}
+
+export async function recordReceipt(
+  order: Order,
+  input: ReceiptInput,
+  store: ReceiptStore,
+): Promise<ReceiptOutcome> {
+  if (order.state !== 'deposit_pending') {
+    // Nothing is lost by refusing: A4's inbound log already kept the message and its media.
+    return { ok: false, reason: 'no_deposit_pending' }
+  }
+
+  if (input.mediaId === null && input.text === null) {
+    return { ok: false, reason: 'empty_receipt' }
+  }
+
+  await store.record({ orderId: order.id, ...input })
+
+  return { ok: true, notice: noticeFor(order) }
+}
+
+/**
+ * Everything this module ever says out loud about a receipt. It names the order, says one
+ * arrived, and points the reader at the only copy that cannot be forged.
+ */
+function noticeFor(order: Order): string {
+  return `Llegó un comprobante para el pedido ${order.id}. Verificá el banco antes de confirmar.`
 }
