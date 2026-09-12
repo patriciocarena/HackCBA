@@ -80,4 +80,16 @@ describe('the customer sends a transfer', () => {
     expect(store.written).toEqual([])
     expect(notifier.sent).toEqual([])
   })
+  test('an admin message is never the customer half of the money path', async () => {
+    const store = aStore()
+    const notifier = aNotifier()
+    // findOrder answers whatever it is asked, which is what a wiring mistake looks like.
+    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: notifier.notify })
+
+    const got = await read(aMessage({ role: 'admin', media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(got).toBeNull()
+    expect(store.written).toEqual([])
+    expect(notifier.sent).toEqual([])
+  })
 })

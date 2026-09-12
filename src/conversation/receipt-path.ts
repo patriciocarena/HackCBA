@@ -18,6 +18,11 @@ export function readReceipt(deps: ReceiptPathDeps): (message: InboundMessage) =>
   const { findOrder, store, notify } = deps
 
   return async (message) => {
+    // The conversation id already carries the role, so an admin's id would not find a
+    // customer's order. Checked anyway: findOrder belongs to another module, and a receipt is
+    // on the money path, where a wiring mistake has to fail closed rather than quietly.
+    if (message.role !== 'customer') return null
+
     const order = await findOrder(message.conversationId)
     if (order === null) return null
 
