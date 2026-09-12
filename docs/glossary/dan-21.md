@@ -17,7 +17,7 @@ _Avoid_: Diff row, delta, change
 **Review**:
 The outcome when the model answered and the answer was not actionable: a vague quantity, a
 target the list does not carry, an amount that is not whole pesos. It is flagged on the
-intent and stored nowhere. See `docs/adr/0010-an-ambiguous-amount-is-not-a-row.md`.
+intent and stored nowhere. See `docs/adr/0015-an-ambiguous-amount-is-not-a-row.md`.
 _Avoid_: Rejected, invalid, error
 
 **Failure**:
