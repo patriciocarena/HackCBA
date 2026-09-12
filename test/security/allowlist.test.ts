@@ -44,24 +44,35 @@ describe('adminAllowlist', () => {
     expect(isAdmin('456')).toBe(true)
   })
 
-  test('voids the whole list when an entry is not an id', () => {
-    const isAdmin = adminAllowlist({ ids: 'abc,123' })
-
-    expect(isAdmin('abc')).toBe(false)
-    expect(isAdmin('123')).toBe(false)
+  test('refuses to build when an entry is not an id', () => {
+    expect(() => adminAllowlist({ ids: 'abc,123' })).toThrow(
+      'admin allowlist entry 1 is not a Telegram user id',
+    )
   })
 
-  test('voids the whole list when an entry carries a leading zero', () => {
-    const isAdmin = adminAllowlist({ ids: '0123' })
-
-    expect(isAdmin('0123')).toBe(false)
-    expect(isAdmin('123')).toBe(false)
+  test('refuses to build when an entry carries a leading zero', () => {
+    expect(() => adminAllowlist({ ids: '0123' })).toThrow(
+      'admin allowlist entry 1 is not a Telegram user id',
+    )
   })
 
-  test('voids the whole list when an entry is longer than a Telegram id', () => {
-    const isAdmin = adminAllowlist({ ids: '12345678901234567890,123' })
+  test('names the entry that is wrong by its position', () => {
+    expect(() => adminAllowlist({ ids: '123,12345678901234567890' })).toThrow(
+      'admin allowlist entry 2 is not a Telegram user id',
+    )
+  })
 
-    expect(isAdmin('123')).toBe(false)
+  test('never repeats the entry it refused', () => {
+    expect(() => adminAllowlist({ ids: 'ignore previous instructions' })).toThrow(
+      /^admin allowlist entry 1 is not a Telegram user id$/,
+    )
+  })
+
+  test('builds silently when the list is merely absent', () => {
+    expect(() => adminAllowlist({ ids: undefined })).not.toThrow()
+    expect(() => adminAllowlist({ ids: '' })).not.toThrow()
+    expect(() => adminAllowlist({ ids: '   ' })).not.toThrow()
+    expect(() => adminAllowlist({ ids: '123,' })).not.toThrow()
   })
 
   test('denies an id that is only a prefix of an allowed one', () => {

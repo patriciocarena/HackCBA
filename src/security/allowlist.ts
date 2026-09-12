@@ -20,7 +20,8 @@ function parse(ids: string | undefined): ReadonlySet<string> {
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0)
 
-  if (!entries.every(isTelegramUserId)) return new Set()
+  const wrong = entries.findIndex((entry) => !isTelegramUserId(entry))
+  if (wrong >= 0) throw new Error(`admin allowlist entry ${wrong + 1} is not a Telegram user id`)
 
   return new Set(entries)
 }

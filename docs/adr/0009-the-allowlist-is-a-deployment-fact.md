@@ -38,9 +38,21 @@ that answers false to every sender.
 
 Entries are trimmed and empty segments are dropped, because a trailing comma is punctuation
 and not intent. An entry that survives trimming and is not a positive decimal integer, with no
-leading zero and at most the nineteen digits Telegram reserves, voids the whole list. Partial
-trust in a security list is not trust, and a typo that silently drops one admin looks like a
-list that worked.
+leading zero and at most nineteen digits, is an operator error and throws at construction.
+Partial trust in a security list is not trust, and a typo that silently drops one admin looks
+like a list that worked.
+
+Absent and unreadable are different states and they get different answers. Absent is a valid
+deployment: unset, empty and whitespace build a predicate that denies everyone and say nothing,
+because a shop with no admin configured is a shop that has not configured one yet. Unreadable
+is a mistake someone made, and a mistake that denies every admin forever with no signal is
+found when the owner reports the bot ignoring him. It throws, naming the position of the entry
+and never the entry itself, so an operator can find the typo without the message repeating
+whatever the variable held.
+
+The throw belongs at construction, which means the predicate is built once at boot and not per
+request. Built at boot, a typo is a deployment that refuses to start. Built per request, the
+same typo is an error on every update.
 
 Membership is set equality against the string the caller passed. We trim what the owner typed
 because it is configuration. We never trim, pad or otherwise normalise what arrives from
