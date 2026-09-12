@@ -72,6 +72,14 @@ export function adminAudioTurn(deps: AdminAudioDeps): Turn {
 
 const API = 'https://api.telegram.org'
 
+// Telegram chooses the path and we paste it into a URL carrying the bot token, so it is
+// outside text like any other: one segment of word characters, and never a climb.
+const FILE_PATH = /^[\w.-]+(\/[\w.-]+)*$/
+
+function readable(path: unknown): path is string {
+  return typeof path === 'string' && FILE_PATH.test(path) && !path.split('/').includes('..')
+}
+
 export function telegramAudio(token: string, fetchImpl: FetchLike = fetch): FetchAudio {
   return async (mediaId) => {
     try {
@@ -79,8 +87,8 @@ export function telegramAudio(token: string, fetchImpl: FetchLike = fetch): Fetc
       if (!located.ok) return null
 
       const body = (await located.json()) as { ok?: boolean; result?: { file_path?: unknown } }
-      const path = body.ok === true && typeof body.result?.file_path === 'string' ? body.result.file_path : null
-      if (path === null) return null
+      const path = body.result?.file_path
+      if (body.ok !== true || !readable(path)) return null
 
       const download = await fetchImpl(`${API}/file/bot${token}/${path}`)
       if (!download.ok) return null

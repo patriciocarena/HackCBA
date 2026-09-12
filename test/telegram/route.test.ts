@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test'
+import { afterEach, describe, expect, it } from 'bun:test'
 import { telegramWebhookRoute } from '@/telegram/route'
 import type { InboundMessage } from '@/telegram/inbound'
 
@@ -53,8 +53,9 @@ describe('telegramWebhookRoute', () => {
 })
 
 describe('telegramWebhookRoute, on who counts as the owner', () => {
+  afterEach(() => { delete process.env.TELEGRAM_ADMIN_IDS })
+
   it('reads the allowlist from the deployment, so an unconfigured one admits nobody', async () => {
-    delete process.env.TELEGRAM_ADMIN_IDS
     const turns: InboundMessage[] = []
     const route = telegramWebhookRoute({ turn: async (message) => { turns.push(message) } })
 
@@ -72,6 +73,5 @@ describe('telegramWebhookRoute, on who counts as the owner', () => {
     await handle(route, privateDelivery(42))
 
     expect(turns.map((message) => message.role)).toEqual(['admin', 'customer'])
-    delete process.env.TELEGRAM_ADMIN_IDS
   })
 })

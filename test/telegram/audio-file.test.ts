@@ -43,6 +43,15 @@ describe('telegramAudio', () => {
     expect(stub.urls[0]).toEndWith('getFile?file_id=voice-1%26offset%3D9')
   })
 
+  it('returns nothing for a file path that would climb out of the file endpoint', async () => {
+    for (const path of ['../bot-token/getUpdates', 'voice/../../x', 'voice/file 1.oga', 'https://elsewhere/x']) {
+      const stub = responses(file(path), new Response(new Uint8Array([1])))
+
+      expect(await telegramAudio(TOKEN, stub.fetch)(`voice-1`)).toBeNull()
+      expect(stub.urls).toHaveLength(1)
+    }
+  })
+
   it('returns nothing when Telegram will not say where the file is', async () => {
     const stub = responses(Response.json({ ok: false, description: 'file not found' }, { status: 400 }))
 

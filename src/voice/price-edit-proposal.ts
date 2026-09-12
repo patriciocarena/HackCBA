@@ -46,6 +46,9 @@ export function proposePriceEdit(input: ProposeInput): Proposal {
   }
 
   const lines = rows.filter((row) => row.kind === 'sale').map((row) => lineOf(row, operation))
+  if (lines.length === 0) {
+    return { ok: false, review: { reason: 'no_match', detail: `${intent.target} has no price to change` } }
+  }
 
   return {
     ok: true,
@@ -86,7 +89,7 @@ function operationOf(change: PriceChange): PriceEditOperation | null {
     return { op: 'percent', direction: change.direction, rate: change.value / 100 }
   }
 
-  if (!Number.isSafeInteger(change.amount)) return null
+  if (!Number.isSafeInteger(change.amount) || change.amount < 0) return null
 
   return { op: 'absolute', amount: ars(change.amount) }
 }

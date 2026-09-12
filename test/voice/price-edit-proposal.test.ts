@@ -44,6 +44,17 @@ describe('proposePriceEdit, when the target names nothing loaded', () => {
     expect(result).toMatchObject({ ok: false, review: { reason: 'no_match' } })
   })
 
+  it('refuses when the family it named carries no sale row, because that edit changes nothing', () => {
+    const result = proposePriceEdit({
+      intent: raise(20),
+      rows: catalogRows.filter((row) => row.kind !== 'sale'),
+      family: businessCards,
+      ...CONTEXT,
+    })
+
+    expect(result).toMatchObject({ ok: false, review: { reason: 'no_match' } })
+  })
+
   it('reads past accents and articles, because speech to text spells the family loosely', () => {
     for (const target of ['las tarjetas', 'TARJETAS personales', 'tarjétas']) {
       expect(propose(raise(20, target)).ok).toBeTrue()
@@ -64,13 +75,11 @@ describe('proposePriceEdit, on an amount it was never given', () => {
   })
 
   it('refuses an absolute amount that is not whole pesos, because rounding it would invent one', () => {
-    const intent: PriceEditIntent = {
-      kind: 'edit',
-      target: 'las tarjetas',
-      change: { kind: 'absolute', amount: 15000.5 },
-    }
+    for (const amount of [15000.5, -1, Number.MAX_SAFE_INTEGER + 2]) {
+      const intent: PriceEditIntent = { kind: 'edit', target: 'las tarjetas', change: { kind: 'absolute', amount } }
 
-    expect(propose(intent)).toMatchObject({ ok: false, review: { reason: 'ambiguous' } })
+      expect(propose(intent)).toMatchObject({ ok: false, review: { reason: 'ambiguous' } })
+    }
   })
 })
 
