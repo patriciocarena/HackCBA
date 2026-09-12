@@ -87,6 +87,18 @@ reads the pragma back and asserts a foreign key violation is refused, and it fai
 upgrade ever changes that default. If it does, set `PRAGMA foreign_keys = ON` where the
 client is created, which is per connection and not once per database.
 
+Re-seeding is safe to repeat and does not undo. `seedCatalog` upserts families and items and
+never deletes either, so an item dropped from the seed keeps its row, keeps its latest price
+and keeps being returned by `catalog_items`, which means it stays quotable after the owner has
+stopped selling it. Only `item_applications` is rebuilt, deleted and reinserted per item, so a
+withdrawn add-on target does disappear. A price that changed in the seed appends a version
+whose `price_edit_id` is null, which reads the same as an edit nobody signed.
+
+Running it twice on an unchanged seed changes nothing: `recordPrice` inserts only when the
+price differs from the current one. The limit is a seed that shrinks or is edited by hand, not
+a seed that is loaded again. Withdrawing an item needs a statement that says so, and that
+belongs with whatever first reads these tables back.
+
 Replication stays where ADR 0001 left it. Durability is the Fly volume and its snapshots, and
 a replica is lane A1's deployment decision, not this schema's.
 
