@@ -20,6 +20,7 @@
  */
 import '../src/config/load-env'
 import { requireEnv } from '../src/config/env'
+import { amountOf } from '../src/domain/price-for'
 import { pesos } from '../src/domain/quote-text'
 import type { QuoteIntent } from '../src/domain/types'
 import { bench, photo, press, text, to, voice, CLIENT, OWNER, type Sent } from './bench'
@@ -85,11 +86,31 @@ function settles(): Promise<void> {
 }
 
 const demo = bench()
-const listed = demo.priced(ASKED_FOR)
-const raised = Math.round(listed * 1.2)
+
+/** What the client is told, and what he is told after the raise. Final prices, VAT applied. */
+const quoted = demo.priced(ASKED_FOR)
+const raisedQuote = Math.round(quoted * 1.2)
+
+/**
+ * The same row as the owner sees it in the diff he signs: a list price, net.
+ *
+ * Two numbers for one row, which is what ADR 0020 made of it. This check read the final price
+ * out of a diff of list prices for a run, and passed the whole demo with one FAIL that named
+ * neither number.
+ */
+const listed = amountOf(rowOf('bc_offset_1000_4_1'))
+const raisedList = Math.round(listed * 1.2)
+
+function rowOf(slug: string) {
+  const row = demo.catalog.rows().find((candidate) => candidate.slug === slug)
+  if (row === undefined) throw new Error(`the eval asks about ${slug}, which the catalog does not carry`)
+
+  return row
+}
 
 console.log(`model: ${requireEnv('OPENROUTER_MODEL')}`)
-console.log(`list: ${pesos(listed)}, after a 20% raise: ${pesos(raised)}\n`)
+console.log(`quote: ${pesos(quoted)}, after a 20% raise: ${pesos(raisedQuote)}`)
+console.log(`the same row in his diff: ${pesos(listed)} → ${pesos(raisedList)}\n`)
 
 console.log('action 1: the client asks for a price')
 
@@ -113,8 +134,8 @@ console.log('action 1: the client asks for a price')
   const answered = await demo.deliver(text(CLIENT, ANSWERS))
   check('the answer is acknowledged', answered === 200, `webhook ${answered}`)
 
-  const quoted = to(demo.sent, CLIENT).at(-1)
-  check('the client is quoted the engine price', (quoted?.text ?? '').includes(pesos(listed)), `expected ${pesos(listed)}, got ${said(quoted)}`)
+  const reply = to(demo.sent, CLIENT).at(-1)
+  check('the client is quoted the engine price', (reply?.text ?? '').includes(pesos(quoted)), `expected ${pesos(quoted)}, got ${said(reply)}`)
   check('the price is reached in two turns', to(demo.sent, CLIENT).length === 2, `${to(demo.sent, CLIENT).length} replies`)
   check('no button ever reaches a client', to(demo.sent, CLIENT).every((one) => one.button === null), 'none')
 }
@@ -128,7 +149,7 @@ console.log('\naction 2: the client accepts, and the agent confirms the money')
   const reserved = to(demo.sent, CLIENT).at(-1)
 
   check('the acceptance is acknowledged', accepted === 200, `webhook ${accepted}`)
-  check('the order is reserved at the quoted price', (reserved?.text ?? '').includes(pesos(listed)), said(reserved))
+  check('the order is reserved at the quoted price', (reserved?.text ?? '').includes(pesos(quoted)), said(reserved))
   check('the client is given the alias', (reserved?.text ?? '').includes(ALIAS), said(reserved))
 
   const replies = to(demo.sent, CLIENT).length
@@ -150,7 +171,7 @@ console.log('\naction 2: the client accepts, and the agent confirms the money')
 
   check('the agent confirmed it with nobody pressing anything', verdict !== undefined, said(verdict))
   check('the owner gets the work order', order !== undefined, said(order))
-  check('the work order carries the agreed price', (order?.text ?? '').includes(pesos(listed)), said(order))
+  check('the work order carries the agreed price', (order?.text ?? '').includes(pesos(quoted)), said(order))
   check('the work order says the deposit is confirmed', /seña confirmada/i.test(order?.text ?? ''), said(order))
 
   // Both screens move now. The client's line is fixed text from the receipt path, so it is
@@ -173,8 +194,8 @@ console.log('\naction 3: the owner raises prices by voice')
 
   check('the voice note is acknowledged', spoken === 200, `webhook ${spoken}`)
   check('the owner is asked to confirm', proposal?.button != null, said(proposal))
-  check('the proposal shows the row from action 1', (proposal?.text ?? '').includes(`${pesos(listed)} → ${pesos(raised)}`), said(proposal))
-  check('nothing moved before he pressed', demo.priced(ASKED_FOR) === listed, `${pesos(listed)} -> ${pesos(demo.priced(ASKED_FOR))}`)
+  check('the proposal shows the row from action 1', (proposal?.text ?? '').includes(`${pesos(listed)} → ${pesos(raisedList)}`), said(proposal))
+  check('nothing moved before he pressed', demo.priced(ASKED_FOR) === quoted, `${pesos(quoted)} -> ${pesos(demo.priced(ASKED_FOR))}`)
 
   button = proposal?.button ?? null
 }
@@ -189,11 +210,11 @@ console.log('\naction 4: the owner confirms, and the sold order holds its price'
     const after = demo.priced(ASKED_FOR)
 
     check('the press is acknowledged', pressed === 200, `webhook ${pressed}`)
-    check('the raise reached the catalog', after === raised, `expected ${pesos(raised)}, got ${pesos(after)}`)
+    check('the raise reached the catalog', after === raisedQuote, `expected ${pesos(raisedQuote)}, got ${pesos(after)}`)
   }
 
-  check('the sold order still reads the old price', workOrder.includes(pesos(listed)), `expected ${pesos(listed)} in the work order`)
-  check('the sold order never reads the new one', !workOrder.includes(pesos(raised)), `${pesos(raised)} must not appear`)
+  check('the sold order still reads the old price', workOrder.includes(pesos(quoted)), `expected ${pesos(quoted)} in the work order`)
+  check('the sold order never reads the new one', !workOrder.includes(pesos(raisedQuote)), `${pesos(raisedQuote)} must not appear`)
 }
 
 console.log('\nthe close: what the shop knows, and what it does not')

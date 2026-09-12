@@ -9,7 +9,7 @@
 import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { baseConfig, catalogRows } from '../src/catalog/business-cards'
+import { ALL_ROWS, configFor } from '../src/catalog/families'
 import { agentWrite, danteAgent } from '../src/conversation/agent'
 import { liveCatalog, type LiveCatalog } from '../src/catalog/live-catalog'
 import { requireEnv } from '../src/config/env'
@@ -98,7 +98,10 @@ export function bench(): Bench {
     return Response.json({ ok: true })
   }
 
-  const catalog = liveCatalog(catalogRows)
+  // Every loaded family, the way the process loads them. Cards-only rows behind a route that
+  // offers three families is a quote that escalates for a reason no check can name: the
+  // family resolves, and then its list is not in the array.
+  const catalog = liveCatalog(ALL_ROWS)
   // The real agent, with its real Observational Memory, because a stubbed writer is exactly
   // what this script exists to stop trusting. It calls OpenRouter itself and ignores fetchImpl.
   const route = telegramWebhookRoute(
@@ -117,7 +120,10 @@ export function bench(): Bench {
     sent,
     catalog,
     priced(intent) {
-      const answer = priceFor(intent, catalog.rows(), baseConfig)
+      const config = configFor(intent.family ?? '')
+      if (config === undefined) throw new Error(`the eval asks for a family nobody loaded: ${intent.family}`)
+
+      const answer = priceFor(intent, catalog.rows(), config)
       if (answer.kind !== 'price') throw new Error(`the eval's own question does not price: ${answer.kind}`)
 
       return totalOf(answer.breakdown)

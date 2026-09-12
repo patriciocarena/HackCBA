@@ -31,6 +31,8 @@ Set reason, and kind "other", when the message is one of these, whatever else it
 
 Leave reason null for everything else. These four are the only values it takes.
 
+family names the product line the message asks about, and it takes only the values the schema offers. Leave it null unless the message itself names the product. A paper, a size, a colour or a quantity does not name it: several product lines are printed on the same paper, and a message answering a question the shop asked ("1000, ilustración 350, sin terminación") usually names no product at all. Null is how you say the message did not name one, and the shop already knows which product it was asking about.
+
 factKey names which fact the message asked about, and it takes only the values the schema offers. If the message asks about the shop and none of those values is what it asked about, leave factKey null: a key that is close is the wrong key.
 
 Report only what the message says. Never infer, round, complete or assume an attribute, a size or an add-on the message does not state: leave it null. A field you fill in for the customer is a wrong price. The shop would rather ask again than guess.`
