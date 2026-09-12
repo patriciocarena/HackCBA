@@ -72,6 +72,11 @@ work against rather than a rule to remember.
 `update_id` is the key on its own. It is unique per bot, and PLAN.md section 2 leaves
 multi tenancy out, so nothing else needs to be mixed into it.
 
+The signature cannot express the atomicity it needs, so a test carries it instead.
+`test/telegram/seen-updates.test.ts` awaits three concurrent claims of one id and demands
+exactly one of them come back unclaimed. A read followed by a write satisfies the types and
+fires two turns, so that test is the contract, and the table that fills this seam runs it.
+
 The route reads `TELEGRAM_WEBHOOK_SECRET` when it is built, so a boot without it fails at
 once rather than serving a webhook that admits anybody. `set-webhook.ts` already requires
 the same variable, and `.env.example` lists it.

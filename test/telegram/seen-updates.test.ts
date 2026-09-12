@@ -16,6 +16,14 @@ describe('inMemorySeenUpdates', () => {
     expect(await seenUpdates.seen(71)).toBeFalse()
   })
 
+  it('lets exactly one of three concurrent deliveries through, which any implementation of this seam owes', async () => {
+    const seenUpdates = inMemorySeenUpdates()
+
+    const answers = await Promise.all([seenUpdates.seen(70), seenUpdates.seen(70), seenUpdates.seen(70)])
+
+    expect(answers.filter((already) => !already)).toHaveLength(1)
+  })
+
   it('forgets the oldest claim past its capacity, so a long lived process is bounded', async () => {
     const seenUpdates = inMemorySeenUpdates(2)
     await seenUpdates.seen(70)
