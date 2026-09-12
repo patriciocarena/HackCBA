@@ -70,7 +70,7 @@ function customerLabel(label: string): string {
   return label.split(',')[0]
 }
 
-function pesos(amount: number): string {
+export function pesos(amount: number): string {
   return `$${amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`
 }
 
