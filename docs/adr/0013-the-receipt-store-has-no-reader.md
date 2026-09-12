@@ -1,0 +1,99 @@
+# 12. The receipt store has no reader, so confirmation cannot be shown a receipt
+
+Date: 2026-09-12
+
+## Status
+
+Accepted.
+
+## Context
+
+A customer accepts a quote, Dante sends the transfer alias, the customer sends a receipt, and
+a person confirms the deposit. `TICKETS.md` A8 gives the done-when as one clause: the receipt
+is stored and is never shown to whoever confirms.
+
+The bot this replaces is not the threat here. A forged receipt is. `docs/amenazas.md` is about
+someone arriving from a number that is not the owner's, and a photo is the cheapest thing in
+this flow to fake: a screenshot with the right alias, the right amount and the right date
+costs nothing and is indistinguishable from a real one at the size Telegram renders it.
+
+The failure is not that the system believes the photo. It is that a person does. Put a receipt
+next to a confirm button and it gets looked at, and looking at it is the one check that does
+not work. The only account of a transfer that cannot be forged is the bank's.
+
+So the receipt has to be kept, because a dispute weeks later needs an answer, and it has to be
+unavailable to the person confirming, because availability is what invites the wrong check.
+
+## Decision
+
+`ReceiptStore` has one member and it writes:
+
+```ts
+export type ReceiptStore = {
+  record(receipt: Receipt): Promise<void>
+}
+```
+
+`confirmDeposit` does not take a store. Not an empty one, not a restricted one, none. With no
+reader on the port and no store in the signature, there is no expression a confirmation path
+can write that reaches a receipt. The property holds because of what the types make
+impossible, not because a later lane remembers a rule.
+
+The only thing `src/domain/deposit.ts` ever emits about a receipt is one sentence naming the
+order and sending the reader to the bank. The receipt is not in it.
+
+Confirmation is not gated on a receipt having arrived. Gating would require the store to
+answer a question, even a boolean one, and a port that answers one question is a port that can
+be asked to answer a second. A transfer that lands with no photo is a real transfer, and the
+admin confirming it is reading the bank either way, so the gate would buy nothing and cost the
+guarantee.
+
+Recording a receipt changes no state. Evidence is not a transition. The order waits in
+`deposit_pending` until a person moves it, which is `advanceOrder`'s decision and stays there.
+
+`confirmDeposit` refuses an order whose `depositAlias` is null or blank. `advanceOrder` is
+public, so an order can reach `deposit_pending` without passing through `requestDeposit` and
+without ever naming where the money was meant to go; confirming that is confirming a transfer
+to nothing. Checking the admin and the edge but not the destination was the hole a staff
+review found. Blank is the same hole one step to the right: `requestDeposit` already refuses a
+blank alias, and A3 is the producer that makes one, because an order round-tripping through a
+TEXT column comes back `''` rather than null.
+
+## Consequences
+
+Nobody can build a confirmation screen that previews the receipt without first widening
+`ReceiptStore`, which is a visible change to a type whose comment says why it is narrow. A
+test asserts the shape rather than a name:
+
+```ts
+const writeOnly: keyof ReceiptStore extends 'record' ? true : never = true
+```
+
+so adding any reader fails `bun run typecheck` rather than passing review quietly. The first
+version of this guard was a `@ts-expect-error` on `store.find`, which guarded that one name: a
+reader called `get` compiled and ran green, and the claim in this paragraph was false for as
+long as it stood.
+
+A receipt for an order that is not awaiting a deposit is refused and not written. Nothing is
+lost: A4's inbound log already keeps every message with its media id, so the evidence survives
+in the transport record even when the domain declines it.
+
+Reading receipts back, when an operator genuinely needs one for a dispute, is a separate path
+with its own audit trail and its own ticket. It is deliberately not this module, and it is not
+the screen used to confirm.
+
+`by.id` reaches the allowlist unchanged. Normalising a channel prefix inside an admin check
+would be a rule invented at a trust boundary; a wiring mistake that denies everyone fails in
+the direction we want.
+
+There is no default store. An in-memory one existed and was deleted: nothing in `src/`
+imports this module yet, so its only caller was the test that has since gone. A3 supplies the
+implementation, and the port is what every caller is typed against.
+
+The order handed to `confirmDeposit` is trusted as given, and both the amount and the alias
+can move between `requestDeposit` and `confirmDeposit`: mutating `breakdown.base.amount`
+between the two calls takes the total from 45000 to 1 and the confirmation still succeeds, and
+`depositAlias` can be swapped for an attacker's. That is the caller's problem by construction
+and this module does not claim otherwise. Whoever wires A8 to a Telegram callback must re-read
+the order from storage by its id, and must not trust an amount or an alias carried in callback
+data. Callback data is attacker-controlled: it round-trips through the client.
