@@ -60,11 +60,13 @@ const audit = auditAgainstList(seed.items.map((item) => ({ id: item.id, price: i
 console.log(`audit: ${seed.items.length} seed items against ${family.label}\n`)
 
 for (const item of audit.wrong) {
-  console.log(`  WRONG      ${item.id} carries ${pesos(item.price)}, which the list never states`)
+  const carried = 'rate' in item ? percent(item.rate) : pesos(item.price)
+  console.log(`  WRONG      ${item.id} carries ${carried}, which the list never states`)
 }
 
-for (const price of audit.unclaimed) {
-  console.log(`  UNCLAIMED  the list states ${pesos(price)} and no seed item carries it`)
+for (const claim of audit.unclaimed) {
+  const stated = typeof claim === 'number' ? pesos(claim) : percent(claim.rate)
+  console.log(`  UNCLAIMED  the list states ${stated} and no seed item carries it`)
 }
 
 if (audit.wrong.length === 0 && audit.unclaimed.length === 0) {
@@ -87,8 +89,15 @@ function summary(family: PriceListFamily): string {
 function cell(price: PriceCell): string {
   if (price === null) return 'not offered'
   if (price === 'on_request') return 'a consultar'
+  // ADR 0022. This used to print `40%` as `$40`, which is how eighteen rates in the list read
+  // as amounts for a day without anybody seeing it.
+  if (typeof price === 'object') return percent(price.rate)
 
   return pesos(price)
+}
+
+function percent(rate: number): string {
+  return `${rate > 0 ? '+' : ''}${(rate * 100).toLocaleString('es-AR')}%`
 }
 
 function pesos(amount: number): string {

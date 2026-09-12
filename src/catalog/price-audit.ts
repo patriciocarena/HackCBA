@@ -1,4 +1,4 @@
-import type { PriceListFamily, PriceListRow } from './price-list'
+import type { PriceCell, PriceListFamily, PriceListRow } from './price-list'
 
 /**
  * The seed checked against the list it was typed from.
@@ -15,35 +15,63 @@ import type { PriceListFamily, PriceListRow } from './price-list'
 
 export type AuditedFamily = PriceListFamily
 
-export type SeedItem = { id: string; price: number }
+/**
+ * A seed row as the audit sees it: an amount, or a rate for a family whose modifiers are
+ * percentages. Exactly one of the two, because an amount and a rate are never each other
+ * however alike the digits look. That is ADR 0022 in a type.
+ */
+export type SeedItem = { id: string; price: number } | { id: string; rate: number }
 
 export type Audit = {
-  /** Items whose amount appears nowhere in the family's tables. */
+  /** Items whose amount or rate appears nowhere in the family's tables. */
   wrong: SeedItem[]
-  /** Amounts the list states that no item claims. A row nobody loaded, or a row loaded twice. */
-  unclaimed: number[]
+  /** What the list states and no item claims. A row nobody loaded, or a row loaded twice. */
+  unclaimed: Claimable[]
 }
+
+/** What an item may claim: an amount in pesos, or a rate. */
+type Claimable = number | { rate: number }
 
 export function auditAgainstList(items: readonly SeedItem[], family: AuditedFamily): Audit {
   // A multiset, because two rows priced the same are two rows and one item cannot answer for
   // both. Claiming decrements, so the second identical amount stays unclaimed until a second
-  // item claims it.
-  const available = new Map<number, number>()
+  // item claims it. The key is a tagged string rather than the number, so `40` and `40%` are
+  // two different things to claim and neither can answer for the other.
+  const available = new Map<string, number>()
 
-  for (const price of statedPrices(family)) {
-    available.set(price, (available.get(price) ?? 0) + 1)
+  for (const stated of statedPrices(family)) {
+    const key = keyOf(stated)
+    available.set(key, (available.get(key) ?? 0) + 1)
   }
 
   const wrong: SeedItem[] = []
 
   for (const item of items) {
-    const left = available.get(item.price) ?? 0
+    const key = keyOf(claimOf(item))
+    const left = available.get(key) ?? 0
 
     if (left === 0) wrong.push(item)
-    else available.set(item.price, left - 1)
+    else available.set(key, left - 1)
   }
 
-  return { wrong, unclaimed: [...available].flatMap(([price, left]) => Array(left).fill(price)) }
+  return {
+    wrong,
+    unclaimed: [...available].flatMap(([key, left]) => Array<Claimable>(left).fill(claimFrom(key))),
+  }
+}
+
+function claimOf(item: SeedItem): Claimable {
+  return 'rate' in item ? { rate: item.rate } : item.price
+}
+
+function keyOf(claim: Claimable): string {
+  return typeof claim === 'number' ? `amount:${claim}` : `rate:${claim.rate}`
+}
+
+function claimFrom(key: string): Claimable {
+  const [kind, value] = key.split(':') as [string, string]
+
+  return kind === 'rate' ? { rate: Number(value) } : Number(value)
 }
 
 /**
@@ -64,10 +92,11 @@ export function auditAgainstList(items: readonly SeedItem[], family: AuditedFami
  * a table repetition means another row; across tables it means the same row again.
  *
  * A dash is a column the row is not offered in and "a consultar" is a price only a person
- * gives, so neither is an amount anybody must claim.
+ * gives, so neither is an amount anybody must claim. A percentage is claimable, as a rate:
+ * a mistyped 0.04 for 0.4 ruins a quote exactly the way a lost digit does.
  */
-function statedPrices(family: AuditedFamily): number[] {
-  const most = new Map<string, { price: number; count: number }>()
+function statedPrices(family: AuditedFamily): Claimable[] {
+  const most = new Map<string, { price: Claimable; count: number }>()
 
   for (const table of family.tables) {
     for (const [identity, stated] of countedIn(table.rows)) {
@@ -77,17 +106,18 @@ function statedPrices(family: AuditedFamily): number[] {
     }
   }
 
-  return [...most.values()].flatMap((stated) => Array<number>(stated.count).fill(stated.price))
+  return [...most.values()].flatMap((stated) => Array<Claimable>(stated.count).fill(stated.price))
 }
 
-function countedIn(rows: readonly PriceListRow[]): Map<string, { price: number; count: number }> {
-  const counted = new Map<string, { price: number; count: number }>()
+function countedIn(rows: readonly PriceListRow[]): Map<string, { price: Claimable; count: number }> {
+  const counted = new Map<string, { price: Claimable; count: number }>()
 
   for (const row of rows) {
-    for (const price of row.prices) {
-      if (typeof price !== 'number') continue
+    for (const cell of row.prices) {
+      const price = claimable(cell)
+      if (price === null) continue
 
-      const identity = `${row.kind}|${row.label}|${price}`
+      const identity = `${row.kind}|${row.label}|${keyOf(price)}`
       const known = counted.get(identity)
 
       counted.set(identity, { price, count: (known?.count ?? 0) + 1 })
@@ -95,4 +125,12 @@ function countedIn(rows: readonly PriceListRow[]): Map<string, { price: number; 
   }
 
   return counted
+}
+
+/** An amount or a rate. A dash and "a consultar" are neither, so nobody has to claim them. */
+function claimable(cell: PriceCell): Claimable | null {
+  if (typeof cell === 'number') return cell
+  if (typeof cell === 'object' && cell !== null) return cell
+
+  return null
 }

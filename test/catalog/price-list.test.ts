@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'bun:test'
 import { parsePriceList, type PriceListRow } from '../../src/catalog/price-list'
 
+/** The one line that decides every amount in a list. `vatStatement` throws without it. */
+const VAT_NET = '<div class="rule"><b>Los precios no incluyen IVA.</b></div>'
+
 const CARDS = `
 <div class="rule">
   <b>Los precios no incluyen IVA.</b> Se cotiza siempre como precio más IVA.<br>
@@ -64,8 +67,39 @@ describe('what the list says about itself', () => {
 })
 
 describe('the families and their tables', () => {
-  it('reads one family per section, named by its heading', () => {
+  it('reads one family per heading, named by it', () => {
     expect(list.families.map((family) => family.label)).toEqual(['Tarjetas personales', 'Gigantografías'])
+  })
+
+  /**
+   * A family is an `h2`, not a `<section>`. Nineteen of the thirty eight headings in the real
+   * list share a section with a sibling, and reading only the first one folded their rows into
+   * the sibling's label: Folletos láser reported fifteen sale rows, eight of them its own and
+   * seven belonging to Volantes papel obra, which did not exist as a family at all.
+   */
+  it('splits two headings in one section into two families', () => {
+    const both = parsePriceList(`${VAT_NET}
+<section>
+  <h2>Folletos full color, láser</h2>
+  <table><tr><td>500 folletos</td><td class="p">$ 69.500</td></tr></table>
+  <h2>Volantes papel obra, a 1 color</h2>
+  <table><tr><td>1000 volantes</td><td class="p">$ 23.000</td></tr></table>
+</section>`)
+
+    expect(both.families.map((family) => family.label)).toEqual([
+      'Folletos full color, láser',
+      'Volantes papel obra, a 1 color',
+    ])
+    expect(both.families[0]!.tables.flatMap((table) => table.rows)).toHaveLength(1)
+    expect(both.families[1]!.tables[0]!.rows[0]!.label).toBe('1000 volantes')
+  })
+
+  it('names every family the real list states, and loses none to a shared section', async () => {
+    const real = parsePriceList(await Bun.file('seed/lista-precios.html').text())
+
+    expect(real.families).toHaveLength(38)
+    expect(real.families.map((family) => family.label)).toContain('Volantes papel obra, a 1 color')
+    expect(real.families.map((family) => family.label)).toContain('Laminado OPP')
   })
 
   it('keeps each table under the heading that introduces it', () => {
@@ -116,6 +150,61 @@ describe('what a row is', () => {
 
   it('reads a module discount line as a discount carrying no price', () => {
     expect(rowNamed('Módulos: 3 a 5 -10% / 6 a 8 -15%')).toMatchObject({ kind: 'discount', prices: [] })
+  })
+})
+
+/**
+ * Eighteen cells in the real list are percentages, and `priceCell` used to strip every
+ * non-digit, so `40%` came back as the number 40 and `-8%` as 8. `parse:list` printed them as
+ * pesos and `auditAgainstList` would have blessed a seed carrying $40 as an amount the list
+ * states. That is the ADR 0020 failure again: a number read wrong and then stated with
+ * confidence. ADR 0022.
+ */
+describe('a percentage is not an amount', () => {
+  const rates = parsePriceList(`${VAT_NET}
+<section>
+  <h2>Facturas</h2>
+  <table>
+    <tr><td>1 talonario</td><td class="p">$ 16.000</td><td class="p">$ 26.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Por triplicado, sumar</td><td class="p" colspan="2">40%</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>Sin laminar</td><td class="p">-8%</td></tr>
+  </table>
+</section>`).families[0]!.tables[0]!
+
+  const rowIn = (label: string): PriceListRow => rates.rows.find((row) => row.label === label)!
+
+  it('reads a surcharge percentage as a rate and not as forty pesos', () => {
+    expect(rowIn('Por triplicado, sumar').prices).toEqual([{ rate: 0.4 }])
+  })
+
+  it('keeps the sign, so a discount percentage is negative', () => {
+    expect(rowIn('Sin laminar').prices).toEqual([{ rate: -0.08 }])
+  })
+
+  it('still reads a peso cell in the same table as pesos', () => {
+    expect(rowIn('1 talonario').prices).toEqual([16000, 26000])
+  })
+
+  /**
+   * All eighteen of them, counted off the real file, because the defect was invisible: each one
+   * came back as a plausible peso amount under 100 and the list does have genuine prices under
+   * 100 (a photocopy is $63), so no sweep over the numbers could tell them apart.
+   */
+  it('reads every percentage in the real list as a rate, and there are eighteen', async () => {
+    const real = parsePriceList(await Bun.file('seed/lista-precios.html').text())
+    const rows = real.families.flatMap((f) => f.tables).flatMap((t) => t.rows)
+    const rated = rows.filter((row) => row.prices.some((cell) => typeof cell === 'object' && cell !== null))
+
+    expect(rated).toHaveLength(18)
+    expect(rated.every((row) => row.kind !== 'sale')).toBe(true)
+  })
+
+  it('does not read the sixty percent surcharge on facturas as sixty pesos', async () => {
+    const real = parsePriceList(await Bun.file('seed/lista-precios.html').text())
+    const facturas = real.families.find((family) => family.label === 'Facturas')!
+    const quimico = facturas.tables.flatMap((t) => t.rows).filter((r) => r.label.startsWith('Con papel químico'))
+
+    expect(quimico.map((row) => row.prices)).toEqual([[{ rate: 0.6 }], [{ rate: 0.7 }]])
   })
 })
 

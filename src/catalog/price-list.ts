@@ -18,8 +18,14 @@
  * and the diff against the seed is what proves the reading was right.
  */
 
-/** A price the list states, a column this row is not offered in, or a price only a person gives. */
-export type PriceCell = number | null | 'on_request'
+/** A rate the list states instead of an amount: `40%` on a surcharge, `-8%` on a discount. */
+export type PriceRate = { rate: number }
+
+/**
+ * A price the list states, a rate it states instead, a column this row is not offered in, or a
+ * price only a person gives.
+ */
+export type PriceCell = number | PriceRate | null | 'on_request'
 
 export type RowKind = 'sale' | 'add_on' | 'discount'
 
@@ -55,7 +61,7 @@ export function parsePriceList(html: string): PriceList {
     vatIncluded: vatStatement(html),
     // A section of clarifications is prose laid out in tables, and it is not a family. What
     // makes a family is a heading and at least one table that states a price.
-    families: sectionsOf(html).map(family).filter((one) => one.label !== '' && one.tables.length > 0),
+    families: sectionsOf(html).flatMap(familiesIn).filter((one) => one.label !== '' && one.tables.length > 0),
   }
 }
 
@@ -76,10 +82,27 @@ function sectionsOf(html: string): string[] {
   return [...html.matchAll(/<section\b[^>]*>([\s\S]*?)<\/section>/gi)].map((found) => found[1] as string)
 }
 
-function family(section: string): PriceListFamily {
-  const heading = /<h2\b[^>]*>([\s\S]*?)<\/h2>/i.exec(section)
+/**
+ * Every family in a section, which is usually one and is sometimes four.
+ *
+ * A family is an `h2`, not a `<section>`. The real list puts thirty eight headings in twenty
+ * sections, and reading only the first of each reported nineteen families and silently
+ * attributed the other nineteen families' rows to a sibling's label. Folletos láser came back
+ * with fifteen sale rows: eight of its own and seven belonging to Volantes papel obra, which
+ * did not exist as a family at all. Nobody noticed because only the cards family was loaded,
+ * and an attribute bag written against that output would have inherited it.
+ *
+ * Same split as `tablesOf` does on `h3`, one level up.
+ */
+function familiesIn(section: string): PriceListFamily[] {
+  return section
+    .split(/<h2\b[^>]*>/i)
+    .slice(1)
+    .map((block) => {
+      const [heading, rest] = splitOnce(block, /<\/h2>/i)
 
-  return { label: plain(heading?.[1] ?? ''), tables: tablesOf(section) }
+      return { label: plain(heading), tables: tablesOf(rest) }
+    })
 }
 
 /**
@@ -162,6 +185,17 @@ function priceCell(cell: string): PriceCell {
   const text = plain(cell)
 
   if (/consultar/i.test(text)) return 'on_request'
+
+  // A percentage before anything else. Stripping non-digits turned `40%` into forty pesos and
+  // `-8%` into eight, which is the whole of ADR 0022: eighteen cells in the list are rates, and
+  // every one of them came back as a plausible amount. The sign is part of the reading, because
+  // the list writes a discount as `-8%` and a surcharge as `+10%` or as a bare `25%`.
+  const percent = /(-|\+)?\s*([\d.,]*\d)\s*%/.exec(text)
+  if (percent !== null) {
+    const magnitude = Number(percent[2]!.replace(/\./g, '').replace(',', '.')) / 100
+
+    return { rate: percent[1] === '-' ? -magnitude : magnitude }
+  }
 
   // Argentine thousands separator. A cell with no digits at all is the dash, and a dash is a
   // finish the row is not offered in, never a zero.

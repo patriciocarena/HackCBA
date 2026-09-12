@@ -17,6 +17,50 @@ const list = `
 
 const cards = parsePriceList(list).families[0] as AuditedFamily
 
+/**
+ * A family whose modifiers are percentages rather than amounts. Facturas is the first one
+ * loaded, and a mistyped rate is the same failure a mistyped amount is: 0.4 written as 0.04
+ * quotes a surcharge at a tenth of what the shop charges, and every test that asserts the
+ * seed's own number stays green.
+ */
+const rated = parsePriceList(`
+<div class="rule"><b>Los precios no incluyen IVA.</b></div>
+<section>
+  <h2>Facturas</h2>
+  <table>
+    <tr><td>1 talonario</td><td class="p">$ 16.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Por triplicado, sumar</td><td class="p">40%</td></tr>
+  </table>
+</section>
+`).families[0] as AuditedFamily
+
+describe('a rate in the seed is checked the same way an amount is', () => {
+  it('passes an item carrying a rate the list states', () => {
+    const audit = auditAgainstList([{ id: 'a', price: 16000 }, { id: 'b', rate: 0.4 }], rated)
+
+    expect(audit.wrong).toEqual([])
+    expect(audit.unclaimed).toEqual([])
+  })
+
+  it('names an item carrying a rate the list does not state', () => {
+    const audit = auditAgainstList([{ id: 'a', price: 16000 }, { id: 'b', rate: 0.04 }], rated)
+
+    expect(audit.wrong).toEqual([{ id: 'b', rate: 0.04 }])
+  })
+
+  it('reports a rate the list states and no item claims', () => {
+    const audit = auditAgainstList([{ id: 'a', price: 16000 }], rated)
+
+    expect(audit.unclaimed).toEqual([{ rate: 0.4 }])
+  })
+
+  // An amount and a rate are never each other, whatever the digits look like.
+  it('does not let an amount claim a rate, or a rate claim an amount', () => {
+    expect(auditAgainstList([{ id: 'a', price: 40 }], rated).wrong).toEqual([{ id: 'a', price: 40 }])
+    expect(auditAgainstList([{ id: 'a', rate: 16000 }], rated).wrong).toEqual([{ id: 'a', rate: 16000 }])
+  })
+})
+
 describe('the seed is checked against the list it was typed from', () => {
   it('passes an item whose amount the list actually states', () => {
     const audit = auditAgainstList([{ id: 'a', price: 12100 }], cards)

@@ -122,3 +122,16 @@ list was written for cards the size of cards.
 
 `test/domain/review-fixes.test.ts` pins the current answer so changing it is a decision. The
 question for him: does a finish that covers the piece scale with the modules.
+
+## 11. Two ring-size ladders in one table
+
+`Anillados` prints plastic and metal ring sizes as two independent ladders inside one HTML
+table, and the metal ones carry a decimal comma: `Nº 9,5`. The parser reads that row as
+`[2700, 95, 3500]`, where the 95 is a ring size sitting in a price position. `Nº 25` appears in
+both ladders at different prices.
+
+No assumption is made. Nothing loads this family, and deciding what two ladders in one table are
+is a modelling question, not a parse. ADR 0022 records why it was left alone.
+
+The question for Javier: are plastic and metal two families, or one family with a material
+attribute? The prices say two, because the same number means a different ring.
