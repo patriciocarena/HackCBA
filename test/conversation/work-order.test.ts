@@ -10,6 +10,7 @@ import { totalOf } from '@/domain/breakdown'
 import { pesos } from '@/domain/quote-text'
 
 const OWNER = '7'
+const ALIAS = 'dante.imprenta.mp'
 const CUSTOMER = conversationId('telegram', '42', 'customer')
 const QUOTED_AT = '2026-09-12T10:00:00.000Z'
 
@@ -237,6 +238,26 @@ describe('the sale everything holds is the one that prints', () => {
     sale.accept(CUSTOMER, { kind: 'person', id: OWNER })
 
     const outcome = sale.confirmDeposit(CUSTOMER, { kind: 'person', id: OWNER }, (id) => id === OWNER)
+    await Promise.resolve()
+
+    expect(outcome.ok).toBe(true)
+    expect(wiring.sent).toHaveLength(1)
+    expect(wiring.sent[0]?.text).toContain('ORDEN')
+  })
+
+  test('the agent confirming from a receipt prints it too, which is the only confirm in production', async () => {
+    const wiring = wired()
+    const sale = printingSale(inMemorySale({ alias: ALIAS, now: () => QUOTED_AT, id: () => 'x' }), wiring.deliver)
+
+    sale.hold(CUSTOMER, PRICED)
+    sale.accept(CUSTOMER, { kind: 'person', id: OWNER })
+
+    const outcome = sale.confirmFromReceipt(CUSTOMER, {
+      looksLikeReceipt: true,
+      amount: totalOf(BREAKDOWN),
+      destination: ALIAS,
+      confidence: 0.95,
+    })
     await Promise.resolve()
 
     expect(outcome.ok).toBe(true)
