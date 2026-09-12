@@ -47,9 +47,9 @@ describe('the fence is deterministic', () => {
   })
 
   test('and identically across processes, which is what B7 and A5 cache against', () => {
-    expect(fence('cien tarjetas', 'message')).toBe(
-      '<message:4bc17516509621b0>\ncien tarjetas\n</message:4bc17516509621b0>',
-    )
+    const block: string = fence('cien tarjetas', 'message')
+
+    expect(block).toBe('<message:4bc17516509621b0>\ncien tarjetas\n</message:4bc17516509621b0>')
   })
 
   test('a different label fences under a different nonce', () => {
