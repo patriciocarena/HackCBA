@@ -12,7 +12,7 @@ const PROPOSED: PriceEditProposal = {
   state: 'proposed',
   source: 'audio',
   mediaId: 'voice_abc',
-  proposedBy: '42',
+  proposedBy: '7',
   proposedAt: '2026-09-12T10:00:00.000Z',
   resolvedBy: null,
   resolvedAt: null,
