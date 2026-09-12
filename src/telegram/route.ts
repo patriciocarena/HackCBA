@@ -14,7 +14,7 @@ import { transcriptionFromEnv, type FetchLike } from '../voice/transcription'
 import { telegramAudio } from './audio-file'
 import { confirmCallback, type RecordVersion } from './confirm-callback'
 import type { Turn } from './inbound'
-import { telegramAsk, telegramSend } from './send'
+import { telegramAnswerCallback, telegramAsk, telegramSend } from './send'
 import { telegramWebhook, type WebhookDeps } from './webhook'
 
 /**
@@ -35,6 +35,7 @@ export function telegramWebhookRoute(
   fetchImpl: FetchLike = fetch,
 ): ApiRoute {
   const isAdmin = deps.isAdmin ?? adminAllowlistFromEnv()
+  const botToken = requireEnv('TELEGRAM_BOT_TOKEN')
 
   const handle = telegramWebhook({
     ...deps,
@@ -49,6 +50,8 @@ export function telegramWebhookRoute(
         catalog: wiring.catalog,
         record: wiring.record,
         isAdmin,
+        answer: telegramAnswerCallback(botToken, fetchImpl),
+        send: telegramSend(botToken, fetchImpl),
         versionId: () => crypto.randomUUID(),
         now: () => new Date().toISOString(),
       }),

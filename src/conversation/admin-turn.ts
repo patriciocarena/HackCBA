@@ -43,7 +43,7 @@ export function adminTurn(deps: AdminTurnDeps): Turn {
  * that says "subo un 20%" and hides the arithmetic is not something he can check.
  */
 export function proposalText(proposal: PriceEditProposal): string {
-  return [headline(proposal), ...proposal.lines.map(line), '¿Lo aplico?'].join('\n')
+  return [headline(proposal), ...proposal.lines.map(editLine), '¿Lo aplico?'].join('\n')
 }
 
 function headline(proposal: PriceEditProposal): string {
@@ -56,7 +56,8 @@ function headline(proposal: PriceEditProposal): string {
   return `${verb} un ${percent(operation.rate)}:`
 }
 
-function line(entry: PriceEditProposal['lines'][number]): string {
+/** One line, both prices. Shared with the reply the owner gets after he presses. */
+export function editLine(entry: PriceEditProposal['lines'][number]): string {
   return `${entry.label}: ${pesos(entry.oldPrice)} → ${pesos(entry.newPrice)}`
 }
 

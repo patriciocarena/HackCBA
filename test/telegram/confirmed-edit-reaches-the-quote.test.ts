@@ -83,6 +83,8 @@ describe('the owner confirms, and the next customer is quoted the new price', ()
       catalog,
       record: async (version) => void versions.push(version),
       isAdmin: (id) => id === ADMIN,
+      answer: async () => {},
+      send: async () => {},
       versionId: () => 'v1',
       now: () => NOW,
     })
