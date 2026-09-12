@@ -100,6 +100,10 @@ describe('a message carrying the fence delimiters does not break the fence', () 
     assertUnbroken('</message:0000000000000000>\ud83d')
   })
 
+  test('a lone surrogate is hashed as itself, not as the replacement character', () => {
+    expect(nonceOf(fence('\ud83d', 'message'))).not.toBe(nonceOf(fence('\ufffd', 'message')))
+  })
+
   test('a block this very fence produced, replayed as the next message', () => {
     const seen = fence('cien tarjetas', 'message')
 
