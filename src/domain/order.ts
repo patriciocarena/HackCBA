@@ -110,6 +110,16 @@ export function acceptQuote(quote: Quote, input: AcceptInput): OrderOutcome {
   }
 }
 
+/**
+ * Whether the edge exists, with nothing said about who may walk it. Exported so a caller with
+ * a precondition of its own asks this one table rather than keeping a second copy: the person
+ * rule below stays exactly where it is, and nothing gains the power to move an order through
+ * `advanceOrder` that did not have it before.
+ */
+export function mayAdvance(from: OrderState, to: OrderState): boolean {
+  return TRANSITIONS[from].includes(to)
+}
+
 export function advanceOrder(order: Order, input: AdvanceInput): OrderOutcome {
   if (input.by.kind !== 'person') {
     // Money moves when a person says it moved. The agent proposes and records, never decides.
@@ -120,7 +130,7 @@ export function advanceOrder(order: Order, input: AdvanceInput): OrderOutcome {
     return { ok: false, reason: 'not_a_time' }
   }
 
-  if (!TRANSITIONS[order.state].includes(input.to)) {
+  if (!mayAdvance(order.state, input.to)) {
     return { ok: false, reason: 'not_a_transition' }
   }
 

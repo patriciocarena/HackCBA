@@ -1,5 +1,12 @@
 import { acceptQuote, quoteFrom, type Actor } from '../domain/order'
-import { confirmDeposit, requestDeposit, type DepositOutcome } from '../domain/deposit'
+import {
+  confirmDeposit,
+  confirmDepositFromReceipt,
+  requestDeposit,
+  type AutoOutcome,
+  type DepositOutcome,
+  type ReceiptReading,
+} from '../domain/deposit'
 import { pesos } from '../domain/quote-text'
 import { totalOf } from '../domain/breakdown'
 import type { IsAdmin } from '../security/allowlist'
@@ -20,6 +27,12 @@ export type Sale = {
    * authority: the person confirming reads the bank, never the photo.
    */
   confirmDeposit(conversationId: ConversationId, by: Actor, isAdmin: IsAdmin): DepositOutcome
+  /**
+   * The autonomous half. Beside `confirmDeposit`, never instead of it: an admin keeps the
+   * power they had. Both write the same map, which is why this lives here rather than in the
+   * receipt path: the port owns its orders and nothing outside it may set one.
+   */
+  confirmFromReceipt(conversationId: ConversationId, reading: ReceiptReading): AutoOutcome
 }
 
 const DELEGATE = 'te delego con un humano'
@@ -59,6 +72,24 @@ export function inMemorySale(config: SaleConfig): Sale {
 
     orderFor(conversationId) {
       return orders.get(conversationId) ?? null
+    },
+
+    confirmFromReceipt(conversationId, reading) {
+      const order = orders.get(conversationId)
+      if (order === undefined) return { ok: false, reason: 'not_a_transition' }
+
+      // Both sides of the comparison come off the order: what it owes, and the alias this
+      // customer was actually told. Neither is config.alias, which may have moved since, and
+      // neither is anything the image said.
+      const confirmed = confirmDepositFromReceipt(order, {
+        reading,
+        owed: totalOf(order.breakdown),
+        alias: order.depositAlias ?? '',
+        now: config.now(),
+      })
+      if (confirmed.ok) orders.set(conversationId, confirmed.order)
+
+      return confirmed
     },
 
     confirmDeposit(conversationId, by, isAdmin) {

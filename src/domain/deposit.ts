@@ -1,5 +1,6 @@
 import type { IsAdmin } from '../security/allowlist'
-import { advanceOrder, type Actor, type OrderRefusal } from './order'
+import { advanceOrder, mayAdvance, type Actor, type OrderRefusal } from './order'
+import type { Ars } from './money'
 import type { Order, UntrustedText } from './types'
 
 export type DepositRefusal = OrderRefusal | 'no_alias' | 'not_an_admin'
@@ -140,4 +141,84 @@ export function confirmDeposit(
   }
 
   return advanceOrder(order, { to: 'deposit_confirmed', by: input.by, now: input.now })
+}
+
+/**
+ * What a person would check on a transfer receipt, and nothing else. Every field is the
+ * model's reading of an image, so every field is untrusted: none of them may decide anything
+ * on its own, and `owed` never comes from here.
+ */
+export type ReceiptReading = {
+  looksLikeReceipt: boolean
+  amount: number | null
+  destination: string | null
+  confidence: number
+}
+
+export type ReceiptVerdict =
+  | 'not_a_receipt'
+  | 'unsure'
+  | 'no_amount'
+  | 'wrong_amount'
+  | 'wrong_destination'
+
+export type AutoRefusal = DepositRefusal | ReceiptVerdict
+
+export type AutoOutcome = { ok: true; order: Order } | { ok: false; reason: AutoRefusal }
+
+export type FromReceiptInput = {
+  reading: ReceiptReading
+  /** The order's own money, computed from its own breakdown. Never the image's. */
+  owed: Ars
+  alias: string
+  now: string
+}
+
+/** Who the record names when nobody pressed anything. Telegram user ids are digits only, so
+ * this cannot collide with a person. */
+export const AGENT = 'agent'
+
+/**
+ * The autonomous half of the deposit, beside `confirmDeposit` and not instead of it. An admin
+ * keeps the power they had; this adds a second way in for the case where a person would have
+ * had nothing to decide.
+ *
+ * The comparison is the whole point. `owed` arrives from the caller, computed off the order's
+ * own breakdown, and the reading is only ever compared against it. There is no expression here
+ * that reaches a confirmation using an amount the image supplied, which is why a receipt that
+ * says it paid a million pesos confirms nothing.
+ *
+ * It asks `mayAdvance` rather than `advanceOrder`, because `advanceOrder` refuses an agent by
+ * design and that refusal is correct for every other edge.
+ */
+export function confirmDepositFromReceipt(order: Order, input: FromReceiptInput): AutoOutcome {
+  const { reading, owed, alias, now } = input
+
+  // The order's own facts first. Nothing the image says is worth reading until the order is
+  // one that could take a deposit at all.
+  if (order.depositAlias === null) return { ok: false, reason: 'no_alias' }
+  if (!Number.isFinite(new Date(now).getTime())) return { ok: false, reason: 'not_a_time' }
+  if (!mayAdvance(order.state, 'deposit_confirmed')) return { ok: false, reason: 'not_a_transition' }
+
+  if (!reading.looksLikeReceipt) return { ok: false, reason: 'not_a_receipt' }
+  if (!(reading.confidence >= CONFIDENCE_FLOOR)) return { ok: false, reason: 'unsure' }
+  if (reading.amount === null) return { ok: false, reason: 'no_amount' }
+  if (reading.amount !== owed) return { ok: false, reason: 'wrong_amount' }
+  if (!sameDestination(reading.destination, alias)) return { ok: false, reason: 'wrong_destination' }
+
+  return {
+    ok: true,
+    order: { ...order, state: 'deposit_confirmed', depositConfirmedBy: AGENT, depositConfirmedAt: now },
+  }
+}
+
+/**
+ * Not a config value: it is the line below which we would rather a person looked, and it moves
+ * only with an argument about why. `>=` written as `!(x >= floor)` above so a NaN confidence
+ * fails rather than passing an inverted comparison.
+ */
+const CONFIDENCE_FLOOR = 0.8
+
+function sameDestination(destination: string | null, alias: string): boolean {
+  return destination !== null && destination.trim().toLowerCase() === alias.trim().toLowerCase()
 }
