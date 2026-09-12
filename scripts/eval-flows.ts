@@ -19,8 +19,12 @@
  * Needs OPENROUTER_API_KEY, OPENROUTER_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_MODEL_ID and
  * TELEGRAM_BOT_TOKEN. It spends money on every run.
  */
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import '../src/config/load-env'
 import { baseConfig, catalogRows } from '../src/catalog/business-cards'
+import { agentWrite, danteAgent } from '../src/conversation/agent'
 import { liveCatalog } from '../src/catalog/live-catalog'
 import { requireEnv } from '../src/config/env'
 import { priceFor } from '../src/domain/price-for'
@@ -35,12 +39,29 @@ const OWNER = requireEnv('OWNER_CHAT_ID')
 const CLIENT = '900000001'
 const SECRET = requireEnv('TELEGRAM_WEBHOOK_SECRET')
 const TOKEN = requireEnv('TELEGRAM_BOT_TOKEN')
+const MODEL = requireEnv('OPENROUTER_MODEL')
+
+/**
+ * A database per bench, not per run. The thread id is the chat id, so two flows that use the
+ * same customer would otherwise share a conversation: flow 3 would open with flow 1's history
+ * already behind it and stop testing what it says it tests. It also keeps the shop's own
+ * memory clear of anything an eval said.
+ */
+function scratchMemory(): string {
+  return `file:${mkdtempSync(join(tmpdir(), 'dante-eval-'))}/memory.db`
+}
 
 const ASKS_A_PRICE = 'hola, cuánto me sale 1000 tarjetas personales en papel ilustración 350, frente color y dorso gris?'
 const RAISES_A_PRICE = 'Che, subime un 20% todas las tarjetas personales, por favor'
 
 /** What a customer says when Dante asks for the one attribute the question left out. */
 const ANSWERS_THE_ASK = 'sin terminación, lisas, tamaño estándar'
+
+/**
+ * The follow up. It names a quantity and nothing else, so the paper, the caras and the
+ * terminación can only come from what the conversation already holds.
+ */
+const REFERS_BACK = '¿y en 500?'
 
 /** The attributes the sentence above names, so the eval knows the number before it asks. */
 const ASKED_FOR = {
@@ -103,9 +124,11 @@ function bench() {
   }
 
   const catalog = liveCatalog(catalogRows)
+  // The real agent, with its real Observational Memory, because a stubbed writer is exactly
+  // what this script exists to stop trusting. It calls OpenRouter itself and ignores fetchImpl.
   const route = telegramWebhookRoute(
     {},
-    { catalog, edits: inMemoryPriceEdits(), record: async () => {} },
+    { catalog, edits: inMemoryPriceEdits(), record: async () => {}, write: agentWrite(danteAgent(MODEL, scratchMemory())) },
     fetchImpl,
   )
 
@@ -114,6 +137,17 @@ function bench() {
   return {
     sent,
     catalog,
+    /** The same question at another quantity, which is what the follow up asks for. */
+    quotedFor(quantity: number): number {
+      const priced = priceFor(
+        { ...ASKED_FOR, attributes: { ...ASKED_FOR.attributes, quantity } },
+        catalog.rows(),
+        baseConfig,
+      )
+      if (priced.kind !== 'price') throw new Error(`the eval's own follow up does not price: ${priced.kind}`)
+
+      return totalOf(priced.breakdown)
+    },
     /** What the client or the owner would be charged for ASKS_A_PRICE, as the catalog is now. */
     quoted(): number {
       const priced = priceFor(ASKED_FOR, catalog.rows(), baseConfig)
@@ -176,7 +210,7 @@ function to(sent: Sent[], chatId: string): Sent[] {
 /** How an escalation reads. Not `persona`, which is inside `tarjetas personales`. */
 const DELEGATED = /delego|humano|te paso con/i
 
-console.log(`model: ${requireEnv('OPENROUTER_MODEL')}\n`)
+console.log(`model: ${MODEL}\n`)
 
 console.log('flow 1: a price inquiry is answered, whoever asks')
 
@@ -250,5 +284,28 @@ console.log('\nflow 2: a price update is the owner\'s, and only his')
   check('the owner is told, not the client', to(sent, OWNER).length > 0, `${to(sent, OWNER).length} to the owner`)
 }
 
-console.log(failures === 0 ? '\nboth flows ran' : `\n${failures} checks failed`)
+console.log('\nflow 3: the writer remembers the conversation it is in')
+
+{
+  const { sent, deliver, quoted, quotedFor } = bench()
+  const thousand = pesos(quoted())
+
+  await deliver(text(CLIENT, ASKS_A_PRICE))
+  await deliver(text(CLIENT, ANSWERS_THE_ASK))
+
+  const priced = to(sent, CLIENT).at(-1)?.text ?? ''
+  check('the client reaches the first price', priced.includes(thousand), `expected ${thousand}, got ${JSON.stringify(priced)}`)
+
+  // Nothing is restated. Only the quantity changes, and only memory can supply the rest.
+  await deliver(text(CLIENT, REFERS_BACK))
+
+  const again = to(sent, CLIENT).at(-1)?.text ?? ''
+  const five = pesos(quotedFor(500))
+
+  check('a follow up that names only the quantity is priced', again.includes(five), `expected ${five}, got ${JSON.stringify(again)}`)
+  check('the follow up is not handed to a person', !DELEGATED.test(again), JSON.stringify(again))
+  check('the follow up is not an introduction again', !/^.{0,40}soy dante/i.test(again), JSON.stringify(again.slice(0, 60)))
+}
+
+console.log(failures === 0 ? '\nall three flows ran' : `\n${failures} checks failed`)
 process.exit(failures === 0 ? 0 : 1)

@@ -81,7 +81,7 @@ describe('a voice note becomes a moved price, through the real composition root'
 
       const route = telegramWebhookRoute(
         {},
-        { catalog, edits, record: async (version) => void versions.push(version) },
+        { catalog, edits, record: async (version) => void versions.push(version), write: async () => 'una respuesta' },
         world.fetchImpl,
       )
 

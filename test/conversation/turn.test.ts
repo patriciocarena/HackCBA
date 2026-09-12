@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { amountsIn, NO_MEDIA, turn, type TurnDeps } from '@/conversation/turn'
+import { amountsIn, NO_MEDIA, turn, type TurnDeps, type TurnResult } from '@/conversation/turn'
 import { ONLY_AUDIO } from '@/conversation/admin-turn'
 import { conversationId, type Role, type TurnState } from '@/domain/types'
 import type { InboundMessage } from '@/telegram/inbound'
@@ -39,6 +39,7 @@ function state(overrides: Partial<TurnState> = {}): TurnState {
     escalated: false,
     introduced: true,
     attributes: {},
+    amounts: [],
     ...overrides,
   }
 }
@@ -64,6 +65,98 @@ function priced(addOns: string[] = []): Extract<Resolution, { kind: 'price' }> {
 
   return resolution
 }
+
+describe('an amount the engine gave earlier is still the engine\'s', () => {
+  // A fact carries no amount, so the second turn's own answer cannot be where the price
+  // came from. Without the widening the only source left is this turn's message, and the
+  // guard refuses the reply.
+  const HOURS = { key: 'hours', label: 'Horario', value: 'de lunes a viernes' }
+  const quote = priced()
+  const QUOTED = pesos(totalOf(quote.breakdown))
+
+  async function quoting(): Promise<TurnResult> {
+    return await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
+        write: async () => `Te cotizo ${QUOTED} final con IVA incluido.`,
+      }),
+      message('cuánto 1000 tarjetas'),
+      state(),
+    )
+  }
+
+  test('lets a later reply refer back to it, which is what history makes the writer do', async () => {
+    const quoted = await quoting()
+
+    const again = await turn(
+      deps({
+        facts: [HOURS],
+        extract: async () => ({ kind: 'fact', factKey: 'hours' }),
+        write: async () => `Abrimos ${HOURS.value}. Te había cotizado ${QUOTED}.`,
+      }),
+      message('a qué hora abren?'),
+      quoted.state,
+    )
+
+    expect(again.reply).toContain(QUOTED)
+    expect(again.state.escalated).toBeFalse()
+  })
+
+  test('lets the reply repeat a quantity the customer stated in an earlier turn', async () => {
+    const asked = await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: { quantity: 1000 }, size: null, addOns: [], factKey: null }),
+        write: async () => 'Decime el papel, las caras y la terminación.',
+      }),
+      message('quiero 1000 tarjetas'),
+      state(),
+    )
+
+    // The customer never repeats the quantity, and with a memory the writer names it anyway.
+    const priced = await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
+        write: async () => `Para las 1000 tarjetas te cotizo ${QUOTED} final con IVA incluido.`,
+      }),
+      message('ilustración 350, frente color dorso gris, sin terminación'),
+      asked.state,
+    )
+
+    expect(priced.reply).toContain(QUOTED)
+    expect(priced.state.escalated).toBeFalse()
+  })
+
+  test('still refuses an amount no turn of this conversation ever gave', async () => {
+    const quoted = await quoting()
+
+    const invented = await turn(
+      deps({
+        facts: [HOURS],
+        extract: async () => ({ kind: 'fact', factKey: 'hours' }),
+        write: async () => `Abrimos ${HOURS.value}. Te había cotizado $14.000.`,
+      }),
+      message('a qué hora abren?'),
+      quoted.state,
+    )
+
+    expect(invented.reply).toBeNull()
+    expect(invented.state.escalated).toBeTrue()
+  })
+})
+
+describe('the writer is told which conversation it is in', () => {
+  test('carries the conversation as the thread and the sender as the resource', async () => {
+    let asked: { thread?: string; resource?: string } = {}
+    await turn(
+      deps({ write: async (request) => { asked = request; return 'una respuesta' } }),
+      message('hola'),
+      state(),
+    )
+
+    expect(asked.thread).toBe('telegram:42:customer')
+    expect(asked.resource).toBe('42')
+  })
+})
 
 describe('a conversation remembers what it was already told', () => {
   const partial = { quantity: 1000, paper: 'illustration_350', sides: 'front_color_back_grayscale' }

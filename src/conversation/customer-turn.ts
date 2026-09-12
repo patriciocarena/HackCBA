@@ -37,5 +37,5 @@ export function customerTurn(deps: TurnDeps, send: Send, notify?: Notify): Turn 
 }
 
 function opening(conversationId: ConversationId): TurnState {
-  return { conversationId, asked: [], escalated: false, introduced: false, attributes: {} }
+  return { conversationId, asked: [], escalated: false, introduced: false, attributes: {}, amounts: [] }
 }
