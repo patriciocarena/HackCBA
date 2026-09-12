@@ -271,3 +271,88 @@ describe('what the owner is told about a reading', () => {
     expect(told).not.toContain('999')
   })
 })
+
+describe('the customer sends transfer after transfer', () => {
+  test('stops looking after the cap, so a photo loop cannot spend vision without end', async () => {
+    let looks = 0
+    const notifier = aNotifier()
+    const read = readReceipt(eyes({
+      notify: notifier.notify,
+      maxReadings: 2,
+      confirm: () => ({ ok: false, reason: 'wrong_amount' }),
+      readImage: async () => { looks += 1; return MATCHES },
+    }))
+    const photo = aMessage({ media: { kind: 'photo', id: 'AgACphoto' } })
+
+    await read(photo)
+    await read(photo)
+    const third = await read(photo)
+
+    expect(looks).toBe(2)
+    expect(third).toEqual({ orderId: 'ord_1', confirmed: false })
+  })
+
+  test('keeps the receipt past the cap, because evidence never waits on a model', async () => {
+    const store = aStore()
+    const notifier = aNotifier()
+    const read = readReceipt(eyes({
+      store,
+      notify: notifier.notify,
+      maxReadings: 1,
+      confirm: () => ({ ok: false, reason: 'wrong_amount' }),
+    }))
+    const photo = aMessage({ media: { kind: 'photo', id: 'AgACphoto' } })
+
+    await read(photo)
+    await read(photo)
+
+    expect(store.written).toHaveLength(2)
+    expect(notifier.sent[1]).toContain('una persona')
+  })
+
+  test('never fetches an image it will not read, so the cap holds the download too', async () => {
+    let fetches = 0
+    const read = readReceipt(eyes({
+      maxReadings: 1,
+      confirm: () => ({ ok: false, reason: 'wrong_amount' }),
+      fetchImage: async () => { fetches += 1; return new Uint8Array([1]) as Uint8Array<ArrayBuffer> },
+    }))
+    const photo = aMessage({ media: { kind: 'photo', id: 'AgACphoto' } })
+
+    await read(photo)
+    await read(photo)
+
+    expect(fetches).toBe(1)
+  })
+
+  test('spends the budget per order, so one customer cannot close another', async () => {
+    let looks = 0
+    const orders = [anOrder({ id: 'ord_1' }), anOrder({ id: 'ord_2' })]
+    const read = readReceipt(eyes({
+      maxReadings: 1,
+      findOrder: () => orders.shift() ?? anOrder({ id: 'ord_3' }),
+      confirm: () => ({ ok: false, reason: 'wrong_amount' }),
+      readImage: async () => { looks += 1; return MATCHES },
+    }))
+    const photo = aMessage({ media: { kind: 'photo', id: 'AgACphoto' } })
+
+    await read(photo)
+    await read(photo)
+
+    expect(looks).toBe(2)
+  })
+
+  test('a typed message costs no budget, because nothing is looked at', async () => {
+    let looks = 0
+    const read = readReceipt(eyes({
+      maxReadings: 1,
+      confirm: () => ({ ok: false, reason: 'wrong_amount' }),
+      readImage: async () => { looks += 1; return MATCHES },
+    }))
+
+    await read(aMessage({ text: fenced('ya transferí') }))
+    await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(looks).toBe(1)
+  })
+})

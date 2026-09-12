@@ -32,6 +32,12 @@ export type ReceiptPathDeps = {
   fetchImage: FetchImage
   readImage: ReadImage
   confirm: ConfirmFromReceipt
+  /**
+   * How many photos one order is worth looking at. Every photo past it is still kept, and
+   * none of them is read. Without a ceiling a customer holds a conversation open and sends
+   * receipts in a loop, and each one is a real vision call the shop pays for.
+   */
+  maxReadings?: number
 }
 
 export type Recorded = { orderId: string; confirmed: boolean }
@@ -49,7 +55,12 @@ export type ReadReceipt = (message: InboundMessage) => Promise<Recorded | null>
  * photo nobody could read is still the answer to a dispute. Only then is it looked at.
  */
 export function readReceipt(deps: ReceiptPathDeps): ReadReceipt {
-  const { findOrder, store, notify } = deps
+  const { findOrder, store, notify, maxReadings = MAX_READINGS } = deps
+
+  // ponytail: in memory, and it dies with the process, which gives a flooder their budget
+  // back on every restart. A3's orders table is where the count belongs once an order
+  // outlives the process, beside the state it is a count of.
+  const readings = new Map<string, number>()
 
   return async (message) => {
     // The conversation id already carries the role, so an admin's id would not find a
@@ -68,7 +79,13 @@ export function readReceipt(deps: ReceiptPathDeps): ReadReceipt {
     )
     if (!recorded.ok) return null
 
-    const verdict = photo === null ? 'not_a_photo' : await verdictFor(deps, message.conversationId, photo)
+    // Counted before the look and only for a photo, because a photo is the only thing that
+    // reaches the model. The count is the order's, not the conversation's: a second order is
+    // a second thing the shop wants read.
+    const spent = readings.get(order.id) ?? 0
+    if (photo !== null) readings.set(order.id, spent + 1)
+
+    const verdict = await verdictFor(deps, message.conversationId, photo, spent >= maxReadings)
 
     await notify(`${recorded.notice} ${sentenceFor(verdict)}`)
 
@@ -86,14 +103,27 @@ export function receiptTurn(deps: ReceiptPathDeps, next: Turn): Turn {
   }
 }
 
-type Verdict = 'confirmed' | 'not_a_photo' | 'no_image' | 'unreadable' | AutoRefusal
+const MAX_READINGS = 3
+
+type Verdict = 'confirmed' | 'not_a_photo' | 'too_many' | 'no_image' | 'unreadable' | AutoRefusal
 
 /**
  * Every branch that is not a match returns a reason, and no branch returns anything the image
  * said. A thrown call is `unreadable` like a silent one: fail closed means the four ways this
  * can go wrong are one answer.
+ *
+ * The two answers that cost nothing come first. Nothing to look at, and too much already
+ * looked at: neither reaches the download, let alone the model.
  */
-async function verdictFor(deps: ReceiptPathDeps, conversationId: ConversationId, photo: string): Promise<Verdict> {
+async function verdictFor(
+  deps: ReceiptPathDeps,
+  conversationId: ConversationId,
+  photo: string | null,
+  spent: boolean,
+): Promise<Verdict> {
+  if (photo === null) return 'not_a_photo'
+  if (spent) return 'too_many'
+
   const image = await deps.fetchImage(photo).catch(() => null)
   if (image === null) return 'no_image'
 
@@ -121,6 +151,8 @@ function sentenceFor(verdict: Verdict): string {
       return 'No lo confirmé: la imagen no parece un comprobante.'
     case 'not_a_photo':
       return 'No lo confirmé: lo dijo por texto y no hay nada para mirar.'
+    case 'too_many':
+      return 'No lo confirmé: ya miré varios comprobantes de este pedido, lo revisa una persona.'
     case 'unsure':
     case 'no_amount':
     case 'no_image':

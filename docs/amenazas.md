@@ -30,8 +30,14 @@ Una página. Quién ataca, qué gana, qué lo frena.
 ## 6. Spam o flood contra el webhook
 **Ataque:** requests masivos o falsos contra el endpoint de Telegram, sin pasar por un update real.
 **Qué ganaría:** saturar el bot o forzar dobles respuestas por updates duplicados.
-**Qué lo frena:** `D8` — secret en header, dedupe y límite de tasa antes de que el request llegue a la lógica de negocio.
+**Qué lo frena:** `D8` — secret en header, dedupe y límite de tasa antes de que el request llegue a la lógica de negocio. El límite es por remitente, veinte por minuto (`src/telegram/rate-limit.ts`), y se pregunta antes del dedupe y antes del log: lo que se tira no engorda ninguno de los dos. Responde 200, porque cualquier otro estado hace que Telegram reintente.
+
+## 7. Costo por conversación: comprobantes en loop
+**Ataque:** un cliente con un pedido en `deposit_pending` manda fotos de comprobante una atrás de otra. Cada una es una llamada de visión que paga la imprenta.
+**Qué ganaría:** gasto sin techo, y el dueño enterrado en avisos.
+**Qué lo frena:** tres lecturas por pedido (`src/conversation/receipt-path.ts`). Pasado el tope el comprobante se sigue guardando como evidencia y no se mira; al dueño se le dice que lo revise una persona.
 
 ## Riesgo aceptado (no mitigado en este sprint)
-- **Rate limiting a nivel de volumen sostenido (DoS real, no solo webhook):** `D8` filtra requests inválidos, pero no hay defensa dedicada contra un flood grande y sostenido de requests válidos. Se acepta por alcance de 24h.
+- **Volumen sostenido por encima del límite de tasa (DoS real):** el límite por remitente corta el flood de un número, y la capa de red sigue sin defensa dedicada contra un flood distribuido de requests válidas. Se acepta por alcance de 24h.
+- **Los presupuestos viven en memoria:** el límite de tasa y el tope de lecturas mueren con el proceso, así que un reinicio se los devuelve al atacante. La tabla de A3 es donde dejan de morir.
 - **Integridad de medios en disco:** el audio y las fotos (`C1`, `C5`) se guardan sin cifrado adicional en el volumen de Fly. Aceptado porque el hackatón no maneja datos de producción reales, solo demo.

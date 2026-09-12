@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import { telegramWebhook } from '@/telegram/webhook'
 import { inMemoryInboundLog, type InboundMessage } from '@/telegram/inbound'
 import type { Callback, OnCallback } from '@/telegram/callback'
+import { inMemoryRateLimit } from '@/telegram/rate-limit'
 
 const noPress: OnCallback = async () => {}
 
@@ -244,5 +245,79 @@ describe('telegramWebhook, on a button press', () => {
 
     expect((await telegramWebhook({ secret: SECRET, onCallback })(wrong)).status).toBe(401)
     expect(presses).toBeEmpty()
+  })
+})
+
+describe('telegramWebhook, over its budget', () => {
+  it('drops a sender past their budget before the turn runs', async () => {
+    const { turns, turn } = spy()
+    const webhook = telegramWebhook({
+      secret: SECRET,
+      onCallback: noPress,
+      turn,
+      rateLimit: inMemoryRateLimit(2, 1000, () => 0),
+    })
+
+    await webhook(delivery(update(70)))
+    await webhook(delivery(update(71)))
+    const shed = await webhook(delivery(update(72)))
+
+    expect(turns).toHaveLength(2)
+    // 200 and not 429: Telegram retries anything else, and a retry is the flood again.
+    expect(shed.status).toBe(200)
+  })
+
+  it('keeps the log clean of what it shed, so a flood cannot fill the table either', async () => {
+    const log = inMemoryInboundLog()
+    const webhook = telegramWebhook({
+      secret: SECRET,
+      onCallback: noPress,
+      log,
+      rateLimit: inMemoryRateLimit(1, 1000, () => 0),
+    })
+
+    await webhook(delivery(update(70)))
+    await webhook(delivery(update(71)))
+
+    expect(log.messages).toHaveLength(1)
+  })
+
+  it('charges the flooder and not the shop, so another customer is still answered', async () => {
+    const { turns, turn } = spy()
+    const webhook = telegramWebhook({
+      secret: SECRET,
+      onCallback: noPress,
+      turn,
+      rateLimit: inMemoryRateLimit(1, 1000, () => 0),
+    })
+
+    await webhook(delivery(update(70, {}, 42)))
+    await webhook(delivery(update(71, {}, 42)))
+    await webhook(delivery(update(72, { chat: { id: 43, type: 'private' } }, 43)))
+
+    expect(turns.map((message) => message.senderId)).toEqual(['42', '43'])
+  })
+
+  it('sheds a press past the budget too, because a button is a model call as much as a message', async () => {
+    const presses: Callback[] = []
+    const webhook = telegramWebhook({
+      secret: SECRET,
+      onCallback: async (callback) => { presses.push(callback) },
+      rateLimit: inMemoryRateLimit(1, 1000, () => 0),
+    })
+
+    const body = (updateId: number) => new Request('https://dante.example/telegram/webhook', {
+      method: 'POST',
+      headers: { 'X-Telegram-Bot-Api-Secret-Token': SECRET },
+      body: JSON.stringify({
+        update_id: updateId,
+        callback_query: { id: 'c', from: { id: 7 }, message: { chat: { id: 7, type: 'private' } }, data: 'edit:edit_1:yes' },
+      }),
+    })
+
+    await webhook(body(900))
+    await webhook(body(901))
+
+    expect(presses).toHaveLength(1)
   })
 })
