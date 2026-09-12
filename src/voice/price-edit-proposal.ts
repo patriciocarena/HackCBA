@@ -1,5 +1,5 @@
 import { ars, isArs, scaleArs, type Ars } from '../domain/money'
-import { namesFamily, saleRows, type CatalogRow } from '../domain/price-for'
+import { amountOf, namesFamily, saleRows, type CatalogRow } from '../domain/price-for'
 import type { Media } from '../telegram/update'
 import type {
   EscalationReason,
@@ -115,7 +115,9 @@ function operationOf(change: PriceChange): PriceEditOperation | null {
 }
 
 function lineOf(row: CatalogRow, operation: PriceEditOperation): PriceEditLine {
-  return { slug: row.slug, label: row.label, oldPrice: row.price, newPrice: newPriceOf(row.price, operation) }
+  const oldPrice = amountOf(row)
+
+  return { slug: row.slug, label: row.label, oldPrice, newPrice: newPriceOf(oldPrice, operation) }
 }
 
 function newPriceOf(oldPrice: Ars, operation: PriceEditOperation): Ars {

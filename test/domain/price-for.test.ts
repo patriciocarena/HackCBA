@@ -97,7 +97,7 @@ describe('priceFor', () => {
     expectPrice(resolution, withVat(2 * priceOf('bc_offset_1000_4_1')), 'bc_offset_1000_4_1')
     if (resolution.kind !== 'price') return
     expect(resolution.breakdown.moduleFactor).toBe(2)
-    expect(resolution.breakdown.moduleDiscountRates).toEqual([])
+    expect(resolution.breakdown.rates).toEqual([])
   })
 
   test('case 9: large card 10 x 15 cm prices as 4 modules with the 10 percent bracket', () => {
@@ -105,7 +105,7 @@ describe('priceFor', () => {
 
     expectPrice(resolution, withVat(4 * priceOf('bc_offset_1000_4_1') * 0.9), 'bc_offset_1000_4_1')
     if (resolution.kind !== 'price') return
-    expect(resolution.breakdown.moduleDiscountRates).toEqual([0.1])
+    expect(resolution.breakdown.rates).toEqual([{ kind: 'module_discount', rate: -0.1 }])
   })
 
   test('case 10: a 13 module piece prices with the 25 percent bracket', () => {

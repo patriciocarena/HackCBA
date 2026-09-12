@@ -1,7 +1,7 @@
 import { businessCards, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars, type Ars } from '../../src/domain/money'
-import type { CatalogRow } from '../../src/domain/price-for'
+import { amountOf, type CatalogRow } from '../../src/domain/price-for'
 import type { QuoteIntent } from '../../src/domain/types'
 
 export function rowFor(slug: string): CatalogRow {
@@ -14,7 +14,7 @@ export function rowFor(slug: string): CatalogRow {
 }
 
 export function priceOf(slug: string): Ars {
-  return rowFor(slug).price
+  return amountOf(rowFor(slug))
 }
 
 /**
@@ -29,7 +29,7 @@ export function withVat(net: number): Ars {
   return totalOf({
     base: { slug: 'withVat', label: 'withVat', amount: ars(Math.round(net)) },
     moduleFactor: 1,
-    moduleDiscountRates: [],
+    rates: [],
     addOns: [],
     listDiscounts: [],
     vatRate: businessCards.vatRate,

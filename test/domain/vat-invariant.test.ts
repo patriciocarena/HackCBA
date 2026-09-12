@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { amountOf } from '../../src/domain/price-for'
 import { baseConfig, businessCards, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
@@ -51,8 +52,8 @@ describe('no amount leaves the engine that is not the final number', () => {
       }
 
       const total = totalOf(resolution.breakdown)
-      if (total !== withVat(row.price)) {
-        wrong.push(`${row.slug}: got ${total}, expected ${withVat(row.price)}`)
+      if (total !== withVat(amountOf(row))) {
+        wrong.push(`${row.slug}: got ${total}, expected ${withVat(amountOf(row))}`)
       }
     }
 
@@ -66,7 +67,7 @@ describe('no amount leaves the engine that is not the final number', () => {
    */
   test('no quote is its own list price, which is what the old bug looked like', () => {
     for (const row of saleRows) {
-      expect(totalFor({ attributes: row.attributes })).not.toBe(row.price)
+      expect(totalFor({ attributes: row.attributes })).not.toBe(amountOf(row))
     }
   })
 

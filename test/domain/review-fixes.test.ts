@@ -191,6 +191,6 @@ describe('every module discount bracket is exercised, not just the first', () =>
     const resolution = quote({ attributes: OFFSET_1000, size: { widthCm: 15, heightCm: 5 } })
 
     if (resolution.kind !== 'price') throw new Error('expected a price')
-    expect(resolution.breakdown.moduleDiscountRates).toEqual([])
+    expect(resolution.breakdown.rates).toEqual([])
   })
 })

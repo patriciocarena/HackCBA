@@ -6,13 +6,22 @@ the terms this repo decides.
 ## Language
 
 **Family**:
-A group of products the shop prices as one table, such as business cards. A family declares
-its unit, its module, and the ordered list of attributes a quote needs.
+A group of products the shop prices as one table, such as business cards. A family declares the
+ordered list of attributes a quote needs. It may declare a module, and most do not. A unit
+belongs to the item rather than the family, because the list prices square metres, linear metres,
+units and sets in one table; the contract carries it on the family today because every loaded
+family happens to have one unit.
 _Avoid_: Category, product type
 
+**Format**:
+A named size a family declares and the list prices as its own row, such as A4 or 1/2 oficio. It
+is an attribute. Distinct from a measurement the customer states, which the engine turns into
+modules.
+_Avoid_: Size, measure, dimension
+
 **Item**:
-One priced row of a family, named by its slug. Every amount Dante says traces back to a
-breakdown whose every line names an item the owner typed.
+One row of a family, named by its slug, carrying an amount or a rate. Every amount Dante says
+traces back to a breakdown whose every line names an item the owner typed.
 _Avoid_: Product, SKU, row
 
 **Sale row**:
@@ -20,8 +29,10 @@ An item that carries the base price of a job.
 _Avoid_: Base item, main row
 
 **Add-on**:
-An item that adds to a sale row, such as lamination. Its price belongs to the sale rows it
-applies to, not to the family, because the same finish costs differently on different rows.
+An item that adds to a sale row, by an amount such as lamination or by a percentage of it such
+as a triplicate surcharge. What it charges belongs to the sale rows it applies to, not to the
+family, because the same finish costs differently on different rows. Its group is named within
+its family and never across families: two families both say "numerado" and mean different jobs.
 _Avoid_: Extra, option, upsell
 
 **List discount**:
@@ -40,9 +51,15 @@ module occupies several modules and the excess is cut.
 _Avoid_: Plate, sheet, tile
 
 **Module discount**:
-The percentage the list takes off once a piece occupies several modules. Percentages compound
-when more than one applies; they are never summed.
+The percentage the list takes off once a piece occupies several modules.
 _Avoid_: Volume discount, bulk rate
+
+**Percentage**:
+A rate the list applies to a job rather than an amount: a module discount, a discount by
+quantity, or a surcharge. When more than one applies they apply one on the other and are never
+summed. The list states that law once, for percentages in general, and it governs families that
+have no module at all.
+_Avoid_: Multiplier, factor, markup
 
 **Escalate**:
 Hand the conversation to a person because the engine is not certain. It is the correct
@@ -78,9 +95,10 @@ An attribute still missing after the ask escalates.
 _Avoid_: Clarify, follow up, prompt
 
 **Breakdown**:
-The lines an amount is made of: the base item, the module factor, the module discounts, the
-add-ons and the list discounts. It is the audit trail, and it is what a quote and an order
-store. A human reading it can catch the error.
+What an amount is made of: the base item, the module factor, every percentage that applied, the
+add-ons and the list discounts. It is the audit trail, and it is what a quote and an order store.
+A human reading it can catch the error, so a percentage is recorded as a percentage and not only
+as the pesos it came to.
 _Avoid_: Calculation, detail, line items
 
 **List price**:

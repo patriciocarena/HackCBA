@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { amountOf } from '../../src/domain/price-for'
 import { DELEGATE } from '../../src/domain/handoff'
 import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
@@ -97,7 +98,7 @@ describe('the order copies the price instead of pointing at it', () => {
 
     // The list goes up 40 percent and the engine now answers something else entirely.
     const dearer = catalogRows.map((row) =>
-      row.slug === 'bc_offset_1000_4_1' ? { ...row, price: Math.round(row.price * 1.4) as never } : row,
+      row.slug === 'bc_offset_1000_4_1' ? { ...row, price: Math.round(amountOf(row) * 1.4) as never } : row,
     )
     const reQuoted = priceFor(intent({ attributes: OFFSET_1000 }), dearer, baseConfig)
 

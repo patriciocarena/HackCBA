@@ -3,6 +3,7 @@ import type { Ars } from './money'
 import type {
   AttributeContract,
   BreakdownLine,
+  BreakdownRate,
   FamilyContract,
   PriceBreakdown,
   QuoteIntent,
@@ -27,7 +28,16 @@ export type CatalogRow = {
   attributes?: Record<string, string | number>
   appliesTo?: string[]
   appliesToFamily?: boolean
-  price: Ars
+  /**
+   * What the row charges. An amount, or a rate for a family whose modifiers are percentages:
+   * facturas states "Por triplicado, sumar 40%" and never the pesos, because the pesos are a
+   * function of the job and the same surcharge is 60% on 1/2 oficio and 70% on A4.
+   *
+   * Exactly one of the two. An amount and a rate are never each other however alike the digits
+   * look, which is ADR 0022, and a sale row must always carry an amount.
+   */
+  price?: Ars
+  rate?: number
 }
 
 export type ModuleDiscount = {
@@ -69,7 +79,9 @@ type PriceStrategy = (context: PriceContext) => Resolution | null
 
 type MatchedRow = { kind: 'row'; row: CatalogRow } | { kind: 'escalate'; resolution: Resolution }
 
-type MatchedLines = { kind: 'lines'; lines: BreakdownLine[] } | { kind: 'escalate'; resolution: Resolution }
+type MatchedLines =
+  | { kind: 'lines'; lines: BreakdownLine[]; rates: BreakdownRate[] }
+  | { kind: 'escalate'; resolution: Resolution }
 
 // A sanity ceiling, not a price: past this many modules the piece is not a business card any
 // more, and a confident quote would be the exact failure this engine exists to prevent.
@@ -177,9 +189,11 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
     return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG }
   }
 
-  const rates = (context.config.moduleDiscounts ?? [])
+  // Signed on the way in: the seed states a module discount as a positive rate because that is
+  // how the list writes it, and every rate in a breakdown is signed so `totalOf` needs no branch.
+  const rates: BreakdownRate[] = (context.config.moduleDiscounts ?? [])
     .filter((discount) => moduleDiscountApplies(discount, moduleCount))
-    .map((discount) => discount.rate)
+    .map((discount) => ({ kind: 'module_discount', rate: -discount.rate }))
 
   return quoteOf(context, matched.row, moduleCount, rates)
 }
@@ -221,7 +235,7 @@ function quoteOf(
   context: PriceContext,
   saleRow: CatalogRow,
   moduleFactor: number,
-  moduleDiscountRates: number[],
+  rates: BreakdownRate[],
 ): Resolution {
   const addOns = addOnLines(context.rows, saleRow, context.intent.addOns)
   if (addOns.kind !== 'lines') {
@@ -231,7 +245,7 @@ function quoteOf(
   const breakdown: PriceBreakdown = {
     base: lineOf(saleRow),
     moduleFactor,
-    moduleDiscountRates,
+    rates: [...rates, ...addOns.rates],
     addOns: addOns.lines,
     listDiscounts: listDiscounts(context.rows, saleRow, context.policy).map(lineOf),
     vatRate: context.config.family.vatRate,
@@ -249,6 +263,7 @@ function quoteOf(
  */
 function addOnLines(rows: CatalogRow[], saleRow: CatalogRow, groups: string[]): MatchedLines {
   const lines: BreakdownLine[] = []
+  const rates: BreakdownRate[] = []
 
   for (const group of groups) {
     const candidates = rows.filter(
@@ -273,10 +288,16 @@ function addOnLines(rows: CatalogRow[], saleRow: CatalogRow, groups: string[]): 
       }
     }
 
-    lines.push(lineOf(candidates[0]))
+    const row = candidates[0]!
+
+    // A rate add-on joins the percentages rather than the amount lines, so it compounds with
+    // the module and quantity discounts in one pass. The line it would have been is not an
+    // amount anybody typed: the pesos are derived, and the rate is the thing the owner stated.
+    if (row.rate !== undefined) rates.push({ kind: 'surcharge', rate: row.rate, slug: row.slug, label: row.label })
+    else lines.push(lineOf(row))
   }
 
-  return { kind: 'lines', lines }
+  return { kind: 'lines', lines, rates }
 }
 
 function appliesToSaleRow(row: CatalogRow, saleRow: CatalogRow): boolean {
@@ -314,7 +335,23 @@ function listDiscounts(
 }
 
 function lineOf(row: CatalogRow): BreakdownLine {
-  return { slug: row.slug, label: row.label, amount: row.price }
+  return { slug: row.slug, label: row.label, amount: amountOf(row) }
+}
+
+/**
+ * The amount a row charges, for a row that must charge one.
+ *
+ * A sale row always has an amount: the list cannot state a base price as a percentage of
+ * nothing. Only an add-on may carry a rate instead, so reaching here with one is a seed that
+ * declared a rate on a row the engine prices as money, and that is a loud failure rather than
+ * a quote built on `undefined`.
+ */
+export function amountOf(row: CatalogRow): Ars {
+  if (row.price === undefined) {
+    throw new Error(`${row.slug} carries a rate and not an amount, so it has no price to read`)
+  }
+
+  return row.price
 }
 
 export function saleRows(rows: CatalogRow[]): CatalogRow[] {

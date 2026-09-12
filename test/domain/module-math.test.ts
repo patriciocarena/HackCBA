@@ -23,7 +23,7 @@ describe('module math, the three examples the owner gave', () => {
     const breakdown = pricedAt({ widthCm: 15, heightCm: 5 })
 
     expect(breakdown.moduleFactor).toBe(2)
-    expect(breakdown.moduleDiscountRates).toEqual([])
+    expect(breakdown.rates).toEqual([])
     expect(totalOf(breakdown)).toBe(withVat(2 * standardPrice))
   })
 
@@ -32,7 +32,7 @@ describe('module math, the three examples the owner gave', () => {
     const breakdown = pricedAt({ widthCm: 10, heightCm: 15 })
 
     expect(breakdown.moduleFactor).toBe(4)
-    expect(breakdown.moduleDiscountRates).toEqual([0.1])
+    expect(breakdown.rates).toEqual([{ kind: 'module_discount', rate: -0.1 }])
     expect(totalOf(breakdown)).toBe(withVat(4 * standardPrice * 0.9))
   })
 
@@ -102,7 +102,7 @@ describe('what the customer reads about modules', () => {
     expect(breakdown.base.slug).toBe('bc_offset_1000_4_1')
     expect(breakdown.base.amount).toBe(standardPrice)
     expect(breakdown.moduleFactor).toBe(4)
-    expect(breakdown.moduleDiscountRates).toEqual([0.1])
+    expect(breakdown.rates).toEqual([{ kind: 'module_discount', rate: -0.1 }])
   })
 })
 

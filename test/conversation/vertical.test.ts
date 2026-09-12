@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { amountOf } from '../../src/domain/price-for'
 import { withVat } from '../support/fixtures'
 import { DELEGATE } from '../../src/domain/handoff'
 import { pesos } from '../../src/domain/quote-text'
@@ -276,7 +277,7 @@ describe('the owner raises prices between the quote and the acceptance', () => {
     expect(replies[0]?.text).toContain(QUOTED)
 
     // The owner's edit lands through the same getter C10 wired, while the quote is still open.
-    catalog.swap(catalogRows.map((row) => ({ ...row, price: (row.price * 2) as typeof row.price })))
+    catalog.swap(catalogRows.map((row) => ({ ...row, price: ars(amountOf(row) * 2) })))
 
     await webhook(delivery(71, 'dale, la quiero'))
 

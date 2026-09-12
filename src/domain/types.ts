@@ -157,10 +157,35 @@ export type BreakdownLine = {
   amount: Ars
 }
 
+/**
+ * Why a percentage applied. Not arithmetic: multiplication commutes, so the kind never changes
+ * the total. It is there because the customer sentence about modules has to name the module
+ * discount and not a surcharge, and because the work order a person reads has to say `+40%`.
+ */
+export const BREAKDOWN_RATE_KINDS = ['module_discount', 'quantity_discount', 'surcharge'] as const
+export type BreakdownRateKind = (typeof BREAKDOWN_RATE_KINDS)[number]
+
+/**
+ * One percentage the list applies to this job, signed: a discount is negative and a surcharge
+ * positive. The label is the add-on's own when a row supplied it.
+ */
+export type BreakdownRate = {
+  kind: BreakdownRateKind
+  rate: number
+  slug?: string
+  label?: string
+}
+
 export type PriceBreakdown = {
   base: BreakdownLine
   moduleFactor: number
-  moduleDiscountRates: number[]
+  /**
+   * Every percentage, in one ordered list, compounding one on the other. The list states that
+   * law once and for percentages in general: "Cuando se aplica más de uno, se aplican uno sobre
+   * otro, no se suman". `moduleDiscountRates` was the right arithmetic under a name that claimed
+   * too little, and it could not hold a surcharge for a family with no module.
+   */
+  rates: BreakdownRate[]
   addOns: BreakdownLine[]
   listDiscounts: BreakdownLine[]
   vatRate: number

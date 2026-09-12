@@ -45,11 +45,14 @@ function moduleSentence(breakdown: PriceBreakdown): string {
   }
 
   const modules = `La medida entra en ${breakdown.moduleFactor} módulos`
-  if (breakdown.moduleDiscountRates.length === 0) {
+  // Only the module discounts. The rate list holds every percentage now, and a surcharge is
+  // named by the add-on sentence instead: a customer reads what is included, not a formula.
+  const discounts = breakdown.rates.filter((rate) => rate.kind === 'module_discount')
+  if (discounts.length === 0) {
     return `${modules}.`
   }
 
-  const rates = breakdown.moduleDiscountRates.map(percent).join(' compuesto con ')
+  const rates = discounts.map((rate) => percent(Math.abs(rate.rate))).join(' compuesto con ')
   return `${modules} y por eso lleva ${rates} de descuento.`
 }
 

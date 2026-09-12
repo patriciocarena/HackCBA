@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { amountOf } from '../../src/domain/price-for'
 import { OUT_OF_CATALOG } from '../../src/domain/handoff'
 import { baseConfig, businessCards, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
@@ -122,7 +123,7 @@ describe('B8: ten business card cases', () => {
     for (const row of saleRows) {
       const resolution = quote({ attributes: row.attributes })
       if (resolution.kind !== 'price') throw new Error(`${row.slug} did not quote`)
-      expect(totalOf(resolution.breakdown)).toBe(withVat(row.price))
+      expect(totalOf(resolution.breakdown)).toBe(withVat(amountOf(row)))
       amounts.add(totalOf(resolution.breakdown))
     }
 

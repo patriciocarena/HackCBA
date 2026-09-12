@@ -55,7 +55,7 @@ function anOrder(overrides: Partial<Order> = {}): Order {
     breakdown: {
       base: { slug: 'bc_offset_1000_4_1', label: 'Tarjetas', amount: 45000 as Order['breakdown']['base']['amount'] },
       moduleFactor: 1,
-      moduleDiscountRates: [],
+      rates: [],
       addOns: [],
       listDiscounts: [],
       vatRate: 0.21,
