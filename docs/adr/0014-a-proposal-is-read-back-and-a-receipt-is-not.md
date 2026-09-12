@@ -64,11 +64,16 @@ asked and saying no, and nothing but a confirmation path can produce it. The sta
 
 ## Consequences
 
-Both answers resolve the proposal, so both go through the same `state !== 'proposed'` gate.
-The first version of this module put the gate inside `applyPriceEdit` only, where the accept
-branch reached it and the reject branch did not: rejecting an already-applied edit wrote a
-second resolution over the first and returned `ok`. Six tests passed while that was true. The
-gate is now above the branch.
+Both answers resolve the proposal, so every precondition on resolving one sits above the
+branch, not inside it. Two were found the same way and both had the same shape. The state gate
+lived inside `applyPriceEdit`, which the accept branch reaches and the reject branch does not,
+so rejecting an already-applied edit wrote a second resolution over the first and returned
+`ok`. The timestamp check lived in the same place, so a refusal could be stamped `ayer` and
+stored. `applyPriceEdit` still makes both checks, for its own sake and for callers yet to be
+written; this module no longer relies on it for either.
+
+A guard reached down one of two branches is not a guard. Where two paths resolve the same
+thing, the precondition belongs above the fork.
 
 The outcome has three members, not two, because `applied` and `rejected` are both successes
 and refusal is neither. It discriminates on `decision`, not on `ok`:

@@ -14,8 +14,13 @@ first, `ok: true`.
 The test that found it loops over both states and both answers. Four cases, one `it`. Writing
 it as "the owner says no to a fresh proposal" would have passed forever.
 
+The same shape turned up a second time in the same file, found by the review pass rather than
+by the tests: `applyPriceEdit` also refuses a `now` that is not a date, and the reject branch
+also never reached that, so a refusal could be stamped `ayer` and stored.
+
 When two branches resolve the same thing, the precondition belongs above the branch, not
-inside whichever one happens to delegate.
+inside whichever one happens to delegate. Finding it once is a fix; finding it twice in one
+file means the delegation was the wrong place to keep it.
 
 ## `bun test` is not a typecheck, and the gap is where unions rot
 
