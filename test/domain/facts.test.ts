@@ -96,3 +96,13 @@ describe('the facts block enters the turn fenced as untrusted', () => {
     expect(factsBlock(facts)).toBe(factsBlock(facts))
   })
 })
+
+describe('a fact reaches the block as the shop loaded it', () => {
+  test('a value carrying an angle bracket is not edited on the way in', () => {
+    const block = factsBlock([
+      { key: 'discount', label: 'Descuentos', value: 'hasta 8 < 10 unidades' },
+    ])
+
+    expect(block).toContain('Descuentos: hasta 8 < 10 unidades')
+  })
+})
