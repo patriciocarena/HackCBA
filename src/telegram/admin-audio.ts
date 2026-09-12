@@ -1,12 +1,7 @@
 import type { CatalogRow } from '../domain/price-for'
 import type { FamilyContract, PriceEditProposal } from '../domain/types'
 import type { PriceEditExtractionPort } from '../voice/price-edit-intent'
-import {
-  inMemoryPriceEdits,
-  proposePriceEdit,
-  type Review,
-  type SavePriceEdit,
-} from '../voice/price-edit-proposal'
+import { proposePriceEdit, type Review, type SavePriceEdit } from '../voice/price-edit-proposal'
 import type { FetchLike, TranscriptionPort } from '../voice/transcription'
 import type { InboundMessage, Turn } from './inbound'
 
@@ -18,7 +13,7 @@ export type AdminAudioDeps = {
   transcription: TranscriptionPort
   extraction: PriceEditExtractionPort
   fetchAudio?: FetchAudio
-  save?: SavePriceEdit
+  save: SavePriceEdit
 }
 
 // A review is the owner being vague and is worth telling him about. A failure is the
@@ -34,7 +29,7 @@ export const noAudio: FetchAudio = async () => null
 export function readAdminAudio(
   deps: AdminAudioDeps,
 ): (message: InboundMessage) => Promise<AudioRead | null> {
-  const { rows, family, transcription, extraction, fetchAudio = noAudio, save = inMemoryPriceEdits().save } = deps
+  const { rows, family, transcription, extraction, fetchAudio = noAudio, save } = deps
 
   return async (message) => {
     if (message.role !== 'admin' || message.mediaId === null) return null
