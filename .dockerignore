@@ -1,0 +1,11 @@
+node_modules
+.git
+.env
+.env.*
+.mastra
+dist
+*.db
+*.db-*
+.DS_Store
+.claude
+medios
