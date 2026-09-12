@@ -140,6 +140,9 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
       // ADR 0013 says why there is no accessor to add one.
       store: inMemoryReceipts(),
       notify,
+      // The customer's own chat. The receipt path stops the turn, so without this line the
+      // one message a customer most needs an answer to is the one they get silence for.
+      reply: send,
       // getFile plus download, which telegramAudio already is: it takes a file id and returns
       // bytes, and a photo is fetched the same two ways an audio is. C11 uses the same seam.
       fetchImage: telegramAudio(token, fetchImpl),

@@ -135,13 +135,13 @@ console.log('\naction 2: the client accepts, and the agent confirms the money')
   check('the work order carries the agreed price', (order?.text ?? '').includes(pesos(listed)), said(order))
   check('the work order says the deposit is confirmed', /seña confirmada/i.test(order?.text ?? ''), said(order))
 
-  // Known and narrated in docs/demo-live.md: only the owner's screen moves. Asserted so the
-  // day it changes, the runbook is what is wrong and not the demo.
-  check(
-    'the client is not answered after the photo, as the runbook warns',
-    to(demo.sent, CLIENT).length === replies,
-    `${to(demo.sent, CLIENT).length - replies} replies to the client`,
-  )
+  // Both screens move now. The client's line is fixed text from the receipt path, so it is
+  // checked for what it must say and for the one thing it must not: the owner's verdict.
+  const thanks = to(demo.sent, CLIENT).slice(replies)
+
+  check('the client is thanked for the receipt', thanks.length === 1, `${thanks.length} replies to the client`)
+  check('the thanks names the confirmation', /gracias/i.test(thanks[0]?.text ?? '') && /confirm/i.test(thanks[0]?.text ?? ''), said(thanks[0]))
+  check("the client never reads the owner's verdict", !CONFIRMED_ALONE.test(thanks[0]?.text ?? ''), said(thanks[0]))
 
   // The punchline of action 4 is read off this text, so it has to exist before the raise.
   workOrder = order?.text ?? ''

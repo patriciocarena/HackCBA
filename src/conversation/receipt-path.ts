@@ -25,10 +25,19 @@ export type FetchImage = (fileId: string) => Promise<Uint8Array<ArrayBuffer> | n
 
 export type Notify = (text: string) => Promise<void>
 
+/** `Send`, and the customer's own chat is the only one it is ever handed. */
+export type Reply = (chatId: string, text: string) => Promise<void>
+
 export type ReceiptPathDeps = {
   findOrder: FindOrder
   store: ReceiptStore
   notify: Notify
+  /**
+   * What the customer reads. Optional because the owner's line is the one the money path owes
+   * and a wiring that forgets this still records and still confirms; a customer who hears
+   * nothing is the bug, not a corrupt order.
+   */
+  reply?: Reply
   fetchImage: FetchImage
   readImage: ReadImage
   confirm: ConfirmFromReceipt
@@ -55,7 +64,7 @@ export type ReadReceipt = (message: InboundMessage) => Promise<Recorded | null>
  * photo nobody could read is still the answer to a dispute. Only then is it looked at.
  */
 export function readReceipt(deps: ReceiptPathDeps): ReadReceipt {
-  const { findOrder, store, notify, maxReadings = MAX_READINGS } = deps
+  const { findOrder, store, notify, reply, maxReadings = MAX_READINGS } = deps
 
   // ponytail: in memory, and it dies with the process, which gives a flooder their budget
   // back on every restart. A3's orders table is where the count belongs once an order
@@ -88,6 +97,11 @@ export function readReceipt(deps: ReceiptPathDeps): ReadReceipt {
     const verdict = await verdictFor(deps, message.conversationId, photo, spent >= maxReadings)
 
     await notify(`${recorded.notice} ${sentenceFor(verdict)}`)
+
+    // After the owner, and never instead of him. A customer whose chat refuses the message
+    // still has a recorded receipt and an owner who was told, which is what the money path
+    // actually owes; thanking them is what it owes their nerves.
+    await reply?.(message.chatId, thanksFor(verdict)).catch(() => {})
 
     return { orderId: order.id, confirmed: verdict === 'confirmed' }
   }
@@ -161,6 +175,22 @@ function sentenceFor(verdict: Verdict): string {
     default:
       return 'No lo confirmé solo.'
   }
+}
+
+/**
+ * What the customer reads, and it is not `sentenceFor` with warmer words. Every refusal is one
+ * sentence, because the reasons name what the image claimed and the image is a stranger's: a
+ * customer told "el importe no coincide" learns what the shop checks and what it read. The
+ * owner has the verdict and is the one who acts on it.
+ *
+ * Nothing here carries an amount. The order's own number is in the work order and in the quote
+ * the customer already has, and repeating it from this branch would make a refusal look like a
+ * bill.
+ */
+function thanksFor(verdict: Verdict): string {
+  return verdict === 'confirmed'
+    ? '¡Gracias! Recibí tu comprobante y confirmé la seña. Ya pasamos el pedido a producción y te aviso apenas esté listo.'
+    : '¡Gracias por mandar el comprobante! Lo recibí y lo está revisando una persona del equipo. Te confirmamos en breve.'
 }
 
 /**

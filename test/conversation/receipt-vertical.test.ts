@@ -284,7 +284,16 @@ describe('through the composition root, with nothing wired by the test', () => {
     // And confirming is what prints, so the job arrives with nobody having asked for it.
     expect(job.text).toContain('seña confirmada')
 
-    // The quote and the deposit request. The photo never reached the turn, so it added none.
-    expect(toCustomer).toHaveLength(2)
+    // The quote, the deposit request, and the thanks. The photo never reaches the turn, so
+    // the third is the receipt path's own line and not something a model wrote.
+    expect(toCustomer).toHaveLength(3)
+
+    const thanks = toCustomer[2]!
+
+    expect(thanks.text).toMatch(/gracias/i)
+    expect(thanks.text).toMatch(/confirm/i)
+    // The owner's sentence is the owner's. A customer who reads "lo confirmé solo" is reading
+    // a line written for somebody deciding whether to print.
+    expect(thanks.text).not.toContain('lo confirmé solo')
   })
 })

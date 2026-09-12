@@ -249,8 +249,8 @@ After Dante asks for the deposit, send a photo of a transfer from C1 as the rece
 
 **What main does today, verified:** the order is created at `$45.000`, the deposit is asked
 for and the alias is named, and the receipt photo is recorded against that order. The owner
-is notified that one arrived. The customer is not answered again, and the order stays in
-`deposit_pending`.
+is notified that one arrived, and the customer is thanked in one fixed sentence from the
+receipt path.
 
 The owner's notice currently reads `Verificá el banco antes de confirmar`, which is the
 human-in-the-loop wording. dan-34 supersedes it. Do not record this step until dan-34 lands,

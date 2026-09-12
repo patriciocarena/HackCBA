@@ -59,10 +59,19 @@ dale, la quiero
 Dante creates the order at `$45.000`, names the deposit alias and asks for the receipt.
 Send the prepared receipt photo from C.
 
+On C's screen: Dante thanks them, says the seña is confirmed and that the order is in
+production. It is a fixed sentence from `src/conversation/receipt-path.ts`, not a model, so
+it cannot invent an amount or a delivery date on camera.
+
 On O's screen: the receipt notice and the work order with `Cobrado: $45.000, seña
 confirmada.` Either can land first. The job is sent from a confirm the domain makes
 synchronously and the notice is awaited after it, so the order is the runtime's, not a
 promise. Do not narrate one as following the other.
+
+The two screens read differently on purpose. The owner is told what was checked and what
+was decided, because he is the one who acts on it. The customer is thanked. A refusal is
+one sentence to them either way, with no reason, because the reasons name what the image
+claimed and the image is a stranger's.
 
 Say: nobody pressed anything. The agent read the photo, checked the amount against what
 the order owes and the destination against the alias it gave, and confirmed. The amount it

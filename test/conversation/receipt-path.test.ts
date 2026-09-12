@@ -356,3 +356,88 @@ describe('the customer sends transfer after transfer', () => {
     expect(looks).toBe(1)
   })
 })
+
+/**
+ * The customer half. Before this, a receipt reached the owner and the customer heard nothing
+ * at all: `receiptTurn` returns before `next`, so the turn that would have answered them never
+ * runs. A person who has just sent money and got silence assumes it did not arrive.
+ */
+describe('the customer is answered for the receipt they sent', () => {
+  function aReplier(): { sent: { chatId: string; text: string }[]; reply: (chatId: string, text: string) => Promise<void> } {
+    const sent: { chatId: string; text: string }[] = []
+
+    return { sent, reply: async (chatId, text) => void sent.push({ chatId, text }) }
+  }
+
+  test('a confirmed transfer is thanked and told the job is in', async () => {
+    const replier = aReplier()
+    const read = readReceipt(eyes({ reply: replier.reply }))
+
+    await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(replier.sent).toHaveLength(1)
+    expect(replier.sent[0]?.chatId).toBe('4242')
+    expect(replier.sent[0]?.text).toMatch(/gracias/i)
+    expect(replier.sent[0]?.text).toMatch(/confirm/i)
+  })
+
+  test('a refusal thanks them too, and never says what the image showed', async () => {
+    const replier = aReplier()
+    const read = readReceipt(
+      eyes({ reply: replier.reply, confirm: () => ({ ok: false, reason: 'wrong_amount' }) }),
+    )
+
+    await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    const said = replier.sent[0]?.text ?? ''
+
+    expect(said).toMatch(/gracias/i)
+    expect(said).toMatch(/persona/i)
+    // The owner was told the amount did not match. The customer is not, because the reason
+    // names what the image claimed and the image is a stranger's.
+    expect(said).not.toMatch(/importe|monto|alias/i)
+  })
+
+  test('typing the transfer instead of sending it is answered, not ignored', async () => {
+    const replier = aReplier()
+    const read = readReceipt(eyes({ reply: replier.reply }))
+
+    await read(aMessage({ text: fenced('ya te transferí') }))
+
+    expect(replier.sent[0]?.text).toMatch(/gracias/i)
+  })
+
+  test('the customer is never told the owner exists, nor sent his line', async () => {
+    const replier = aReplier()
+    const notifier = aNotifier()
+    const read = readReceipt(eyes({ reply: replier.reply, notify: notifier.notify }))
+
+    await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(notifier.sent).toHaveLength(1)
+    expect(replier.sent[0]?.text).not.toBe(notifier.sent[0])
+  })
+
+  test('a message that is not the transfer answers nobody', async () => {
+    const replier = aReplier()
+    const read = readReceipt(eyes({ reply: replier.reply, findOrder: () => null }))
+
+    await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(replier.sent).toEqual([])
+  })
+
+  test('a customer who cannot be reached still leaves the receipt recorded and the owner told', async () => {
+    const store = aStore()
+    const notifier = aNotifier()
+    const read = readReceipt(
+      eyes({ store, notify: notifier.notify, reply: async () => { throw new Error('telegram sendMessage 403') } }),
+    )
+
+    const got = await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(got).toEqual({ orderId: 'ord_1', confirmed: true })
+    expect(store.written).toHaveLength(1)
+    expect(notifier.sent).toHaveLength(1)
+  })
+})

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { EXTRACTION_REASONS, extractionSchema } from '@/conversation/prompt'
+import { EXTRACTION_REASONS, extractionSchema, INTRODUCTION, WRITING_SYSTEM } from '@/conversation/prompt'
 import { businessCards } from '@/catalog/business-cards'
 
 type Arm = { type: string; enum?: (string | number)[] }
@@ -81,5 +81,22 @@ describe('the reasons the schema lets extraction raise', () => {
     for (const engines of ['out_of_catalog', 'no_match', 'ambiguous', 'unsupported_quantity', 'unknown_fact']) {
       expect(offered).not.toContain(engines)
     }
+  })
+})
+
+/**
+ * The shop has a name and Dante says it. What he may never drop is the disclosure: README
+ * rule 7 is that he introduces himself as automated and never pretends to be a person, and
+ * "agente" on its own reads in Spanish as a salesperson.
+ */
+describe('Dante names the shop he works for', () => {
+  test('the writing system names Multimpresos', () => {
+    expect(WRITING_SYSTEM).toContain('Multimpresos')
+    expect(INTRODUCTION).toContain('Multimpresos')
+  })
+
+  test('he is still automated in both, because "agente" alone reads as a person', () => {
+    expect(WRITING_SYSTEM).toContain('automático')
+    expect(INTRODUCTION).toContain('automático')
   })
 })
