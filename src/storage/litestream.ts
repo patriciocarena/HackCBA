@@ -1,10 +1,12 @@
+import { resolve } from 'node:path'
+
 export type ReplicaEnv = {
   DATA_DIR?: string
   LITESTREAM_REPLICA_URL?: string
 }
 
 export function dataDir(env: ReplicaEnv): string {
-  return env.DATA_DIR ?? '.'
+  return resolve(env.DATA_DIR ?? '.')
 }
 
 export function replicaUrl(env: ReplicaEnv): string {

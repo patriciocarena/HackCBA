@@ -16,6 +16,10 @@ describe('replicaUrl', () => {
   it('falls back to a file beside the database, so a deploy with no bucket still replicates', () => {
     expect(replicaUrl({ DATA_DIR: '/data' })).toBe('file:///data/replica')
   })
+
+  it('resolves the directory, because file://./replica names the root of the disk', () => {
+    expect(replicaUrl({ DATA_DIR: '.' })).toBe(`file://${process.cwd()}/replica`)
+  })
 })
 
 describe('litestreamConfig', () => {
