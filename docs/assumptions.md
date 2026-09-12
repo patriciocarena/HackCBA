@@ -25,7 +25,14 @@ It fits the three examples the owner gave:
 | Large card 10x15 | 150 cm² | 42.5 | 3.53 | 4 |
 | A4 flyer | 623.7 cm² | 150 | 4.16 | 5 |
 
-Missing: his confirmation.
+Missing: his confirmation, and one case his three examples do not reach.
+
+Area is not imposition. A piece 42.5 x 1 cm is 42.5 cm², which is one module by area, and it
+does not fit inside 8.5 x 5 at all. Counting how the piece lands on the sheet instead,
+`ceil(width / module width) * ceil(height / module height)`, gives 6 for his own 10x15
+example where he said 4. So his examples are area based and area is what ships. The question
+for him is the narrow one: what happens to a piece wider than the module. Until he answers,
+a long thin piece is quoted low.
 
 The module discount is no longer missing. The list quantifies it, and `seed/business-cards.json`
 carries it: 3 to 5 modules -10%, 6 to 8 -15%, 9 to 12 -20%, 13 or more -25%. The list also
@@ -96,3 +103,16 @@ version of that same paper. If that is backwards, four prices are wrong and noth
 changes no amount.
 
 Both go to Javier with the next batch of questions.
+
+## 10. An add-on on a piece that takes several modules
+
+Assumption: an add-on is charged once for the job, whatever the module count. Four modules of
+1000 cards with an extra cut is four module prices plus one cut.
+
+It is right for the ones priced per job, like Diseño. It is doubtful for the ones priced by
+what they cover: Laminado on a six module piece laminates six times the area for the price of
+one. The list prices lamination against a sale row and says nothing about size, because the
+list was written for cards the size of cards.
+
+`test/domain/review-fixes.test.ts` pins the current answer so changing it is a decision. The
+question for him: does a finish that covers the piece scale with the modules.
