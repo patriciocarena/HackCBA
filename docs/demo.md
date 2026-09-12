@@ -12,44 +12,47 @@ image predated the webhook route, so `POST /telegram/webhook` answered 404 and T
 queued the updates. `docs/deploy.md` is the sequence that fixes that and how to tell the
 two failure shapes apart.
 
-## What can be recorded tonight
+## The flow the judge ruled on
 
-E1 merged, so Telegram replies. Steps 1 to 4 are recordable, using the paste texts below
-and not others.
+The hackathon judged `sin human in the loop`. The ruling is specific and it changes step 6:
+**the agent confirms the deposit itself, by reading the transfer photo.** The order is
+created, the owner receives the work order, and he executes once it is confirmed. The price
+update keeps its human confirm and that is fine; nobody asked for it to go.
 
-Step 5 has no path at all. `customerTurn` is the only turn the route wires, and the turn
-answers customers only, so the owner's voice note is dropped before anything transcribes
-it. `readAdminAudio`, `confirmPriceEdit` and a message that renders the diff are three
-separate gaps, and none of them has an owner.
+So there is no longer a person pressing confirm on the money. Two lanes are landing that:
 
-Step 6 needs an intent for a customer accepting a quote. There is none, so `dale, la
-quiero` escalates and ends the conversation. That is row 9, now a ticket on another lane
-and being fixed. Rows 1, 2, 3 and 9 give the files.
-
-Whoever owns the demo decides what to do about that. This runbook does not work around it.
-
-## What does not work yet
-
-Checked against `main` at `94b3203`. Every lane this demo touches has merged, E1
-included, so no row below cites an unmerged branch and nothing here is waiting on a PR.
-
-| # | What | Where |
+| Lane | What it adds | State |
 |---|---|---|
-| 1 | The admin path is not wired. `customerTurn` is the only turn the route builds, and the turn returns silence for anything that is not a customer, so the owner's voice note is recorded in the in-memory log and dropped. `readAdminAudio` has no caller in `src/`, and since it is the only thing that would read a photo either, PLAN.md section 1's photo path is moot as well. | `src/telegram/route.ts:17,38`, `src/conversation/turn.ts:48`, `src/voice/admin-audio.ts:23` |
-| 2 | No conversation creates an order. The turn returns a `Resolution` and never calls `quoteFrom`. `quoteFrom`, `acceptQuote`, `requestDeposit`, `recordReceipt` and `confirmDeposit` have no caller in `src/`. | `src/conversation/turn.ts:71`, `src/domain/order.ts:60,85`, `src/domain/deposit.ts:20,64,112` |
-| 3 | A price edit has a confirm function and no way to reach it. `confirmPriceEdit` landed in #22 and wants a proposal id and an `accepted` flag; nothing turns an owner's reply into either, and it has no caller in `src/`. Nor does anything render the proposal's `oldPrice` and `newPrice` into a message, so there is no diff to confirm. | `src/catalog/confirm-price-edit.ts:33`, `src/voice/price-edit-proposal.ts:100` |
-| 4 | Nothing supplies any fact. E1 passes `facts: []` and says so in a comment beside it, A3 has a `facts` table, and nothing fills one from the other. Every fact question escalates, including the hours `docs/assumptions.md` section 4 says are confirmed. | `src/telegram/route.ts:41`, `src/conversation/turn.ts:102`, `src/storage/schema.ts:82` |
-| 5 | `DEPOSIT_ALIAS` is read by no code. `docs/assumptions.md` section 3 names it; nothing calls `requireEnv` for it. | `docs/assumptions.md:44` |
-| 6 | An escalation is terminal and nothing clears it. Steps 3, 4 and 6 each end their conversation, so the six steps cannot share one chat. | `src/conversation/turn.ts:47,177`, ADR 0011 |
-| 7 | Nothing remembers what the customer already said. `TurnState` carries `asked`, not the answers, so a reply that does not restate the whole job gets asked for the missing half again. Every paste text below carries all four attributes. | `src/domain/types.ts:209`, `src/conversation/turn.ts:80` |
-| 8 | A file attachment is not read. The update reader takes `voice` and `photo` only, so an `.opus` dragged in as a document never reaches the turn. | `src/telegram/update.ts:52` |
-| 9 | A customer accepting a quote has no intent. `INTENT_KINDS` is quote, fact, admin_edit and other, and `other` escalates, so the acceptance message itself ends the conversation. Now a ticket on another lane; being fixed, not merged. | `src/domain/types.ts:41`, `src/conversation/turn.ts:104` |
-| 10 | The extraction schema shows the model attribute slugs, never the Spanish labels or the `4/1` shorthand the seed carries. | `src/conversation/prompt.ts:74` |
+| dan-34, `receipt-vision` | the agent reads the transfer photo and confirms the deposit | in flight |
+| dan-37, `work-order` | the owner is sent the job once the order is `deposit_confirmed` | in flight |
 
-Two things the earlier revisions of this file got wrong and are now right. The allowlist is
-wired (`src/telegram/route.ts:15`), so `TELEGRAM_ADMIN_IDS` takes effect; E1 carried the
-line across rather than dropping it. And `sendMessage` exists
-(`src/telegram/send.ts:7`), so a customer gets an answer.
+Neither is described below as working. What main does today is described as what it does.
+
+## What was verified, and how
+
+Checked against `main` at `131d83d` by driving `telegramWebhookRoute` itself, with the two
+model providers and Telegram stubbed and everything between them real. The outputs quoted in
+steps 1, 5 and 6 are copied from that run, not written from the source.
+
+```
+to customer: Te cotizo $45.000 final con IVA incluido. La cotización es válida por 15 días.
+to customer: Listo, te reservo el pedido por $45.000. Para confirmarlo, transferí a
+             dante.imprenta.mp y mandame el comprobante.
+to owner:    Llegó un comprobante para el pedido <id>. Verificá el banco antes de confirmar.
+to owner:    Subo un 20%: ... Tarjetas full color, frente full color y dorso escala de
+             grises: $45.000 → $54.000   (14 rows)
+```
+
+Not run by me, and why:
+
+- **The live model calls.** Run separately against the real API on the merged schema fix:
+  both extraction paths answer and the owner's voice note round-trips to
+  `tarjetas personales raise by 20%`.
+- **Steps 2, 3 and 4.** Pinned by tests rather than driven through the route here:
+  `test/domain/module-math.test.ts:83` for `$162.000`, and `test/conversation/adversarial.test.ts`
+  for the injection.
+- **Anything on a phone.** Every claim below about what Telegram renders is unverified.
+- **dan-34 and dan-37.** Not merged. Their output is not quoted anywhere in this file.
 
 ## Before you record
 
@@ -227,16 +230,14 @@ this is a recording of him saying it.
 Narration: `El dueño manda un audio. Dante propone, muestra el diff, y no cambia un peso
 hasta que una persona confirma. La versión queda con el audio que la causó.`
 
-Rows 1, 3 and 8 apply here, and row 1 is the one that bites first. The transcription port,
-the proposal and `confirmPriceEdit` all exist and are tested. What does not exist is
-anything that calls them: the route builds `customerTurn` and nothing else, and the turn
-answers customers only (`src/conversation/turn.ts:48`), so A's voice note is dropped with
-no reply. Nothing escalates and on camera it looks like the bot is down.
+This works on main. C11 landed the admin turn and the route dispatches an owner's message
+to it (`src/telegram/route.ts`, `dispatch`). Driven through the route, the owner gets a
+14-row diff whose 1000-card line reads exactly `$45.000 → $54.000`. C10 applies the edit on
+his confirm and C12 tells him what his press did.
 
-A reads as `admin` correctly, so the allowlist is not the problem here. The missing piece
-is an admin turn.
+This is the one step that keeps a human confirm, and the judge did not ask for it to go.
 
-### 6. An order, and a person confirms the money
+### 6. An order, and the agent confirms the money
 
 Back to C1. Paste in C1:
 
@@ -244,27 +245,33 @@ Back to C1. Paste in C1:
 dale, la quiero
 ```
 
-After Dante asks for the deposit, send any image from C1 as the receipt. Then, in A:
+After Dante asks for the deposit, send a photo of a transfer from C1 as the receipt.
 
-```
-confirmar
-```
+**What main does today, verified:** the order is created at `$45.000`, the deposit is asked
+for and the alias is named, and the receipt photo is recorded against that order. The owner
+is notified that one arrived. The customer is not answered again, and the order stays in
+`deposit_pending`.
 
-Dante must: create the order at `$45.000`, ask for the deposit at the alias in
-`DEPOSIT_ALIAS` and name that alias, accept the receipt without showing it to whoever
-confirms, refuse to confirm anything itself, and record who confirmed and when. Only an
-account on `TELEGRAM_ADMIN_IDS` can confirm.
+The owner's notice currently reads `Verificá el banco antes de confirmar`, which is the
+human-in-the-loop wording. dan-34 supersedes it. Do not record this step until dan-34 lands,
+or the narration and the screen disagree.
 
-Notice: the list went up 20% thirty seconds ago and the order is still `$45.000`.
+**What dan-34 adds:** the agent reads the photo and confirms the deposit itself, with no
+person pressing anything. **What dan-37 adds:** the work order reaches the owner once the
+order is `deposit_confirmed`. Both are in flight; neither is described here beyond that
+sentence, because neither is merged.
 
-Narration: `El cliente acepta. Nace el pedido, Dante pide la seña por alias, y una persona
-la confirma. El pedido sigue en cuarenta y cinco mil, aunque la lista subió veinte por
-ciento hace treinta segundos.`
+Notice, and this part is already true: the list went up 20% thirty seconds ago and the
+order is still `$45.000`. `test/domain/order.test.ts` pins both copies of that amount.
 
-Rows 2, 5 and 9 apply here, and row 9 is the one that bites first: `dale, la quiero` reads
-as `other`, `other` escalates, and the acceptance ends C1 before the receipt is sent. An
-image with no caption is then dropped as well. Nothing parses `confirmar`. Row 9 is a
-ticket on another lane and is being fixed. Rows 2 and 5 are not.
+Narration, once dan-34 and dan-37 are in: `El cliente acepta. Nace el pedido, Dante pide la
+seña por alias, lee el comprobante y confirma solo. El dueño recibe la orden de trabajo. El
+pedido sigue en cuarenta y cinco mil, aunque la lista subió veinte por ciento hace treinta
+segundos.`
+
+`confirmDeposit` exists in `src/domain/deposit.ts` and nothing routes a Telegram message to
+it. That is deliberate now: the judge ruled the agent confirms, so the missing caller is
+dan-34's vision path and not an admin command.
 
 ## The timing budget
 
