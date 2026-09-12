@@ -35,4 +35,33 @@ describe('applyPriceEdit', () => {
     expect(outcome.applied.proposal.resolvedBy).toBe('42')
     expect(outcome.applied.proposal.resolvedAt).toBe('2026-09-12T10:05:00.000Z')
   })
+
+  it('the agent cannot apply an edit on its own', () => {
+    const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      by: { kind: 'agent' },
+      now: '2026-09-12T10:05:00.000Z',
+    })
+
+    expect(outcome).toEqual({ ok: false, reason: 'not_a_person' })
+  })
+
+  it('a proposal already resolved is not applied a second time', () => {
+    for (const state of ['applied', 'rejected'] as const) {
+      const outcome = applyPriceEdit({ ...PROPOSED, state }, ROWS, {
+        by: { kind: 'person', id: '42' },
+        now: '2026-09-12T10:05:00.000Z',
+      })
+
+      expect(outcome).toEqual({ ok: false, reason: 'not_proposed' })
+    }
+  })
+
+  it('a time nobody can read is refused, not turned into an Invalid Date', () => {
+    const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      by: { kind: 'person', id: '42' },
+      now: 'yesterday',
+    })
+
+    expect(outcome).toEqual({ ok: false, reason: 'not_a_time' })
+  })
 })

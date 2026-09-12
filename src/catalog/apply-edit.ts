@@ -31,7 +31,16 @@ export function applyPriceEdit(
   input: ApplyInput,
 ): ApplyOutcome {
   if (input.by.kind !== 'person') {
+    // The owner's voice proposes. A person confirming is what moves a price.
     return { ok: false, reason: 'not_a_person' }
+  }
+
+  if (proposal.state !== 'proposed') {
+    return { ok: false, reason: 'not_proposed' }
+  }
+
+  if (!Number.isFinite(new Date(input.now).getTime())) {
+    return { ok: false, reason: 'not_a_time' }
   }
 
   return {
