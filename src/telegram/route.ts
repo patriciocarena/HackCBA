@@ -4,6 +4,7 @@ import type { LiveCatalog } from '../catalog/live-catalog'
 import { requireEnv } from '../config/env'
 import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
+import { inMemorySale } from '../conversation/sale'
 import { adminAllowlistFromEnv } from '../security/allowlist'
 import type { FetchLike } from '../voice/transcription'
 import type { Turn } from './inbound'
@@ -40,10 +41,19 @@ function productionTurn(fetchImpl: FetchLike, catalog: LiveCatalog): Turn {
     fetchImpl,
   })
 
+  // Built once, beside the states Map customerTurn holds, and for the same reason: a store
+  // built per message loses the quote between the message that gave it and the one that
+  // accepts it, and every unit test stays green while it does.
+  const sale = inMemorySale({
+    alias: requireEnv('DEPOSIT_ALIAS'),
+    now: () => new Date().toISOString(),
+    id: () => crypto.randomUUID(),
+  })
+
   return customerTurn(
     // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
     // half of the rule; the loaded half arrives with the table that holds them.
-    { rows: catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write },
+    { rows: catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write, sale },
     telegramSend(requireEnv('TELEGRAM_BOT_TOKEN'), fetchImpl),
   )
 }
