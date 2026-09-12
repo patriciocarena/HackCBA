@@ -9,6 +9,7 @@ type Schema = {
     family: Nullable
     attributes: { properties: Record<string, Nullable>; required: string[]; additionalProperties: false }
     addOns: { items: { enum: string[] } }
+    factKey: Nullable
     reason: Nullable
   }
   additionalProperties: false
@@ -98,5 +99,35 @@ describe('Dante names the shop he works for', () => {
   test('he is still automated in both, because "agente" alone reads as a person', () => {
     expect(WRITING_SYSTEM).toContain('automático')
     expect(INTRODUCTION).toContain('automático')
+  })
+})
+
+/**
+ * The same rule ADR 0005 draws for an attribute, drawn for a fact key. It was the one free
+ * string in a schema where everything else is an enum, and a free string means extraction
+ * guesses the word: "hours" one run, "horario" the next, and the lookup misses a fact that is
+ * loaded. A key the shop did not load is now a key extraction cannot name.
+ */
+describe('the fact keys the schema lets extraction name', () => {
+  test('offers exactly the keys the shop loaded', () => {
+    const offered = extractionSchema(businessCards, ['hours', 'address']) as unknown as Schema
+
+    expect(stated(offered.properties.factKey).enum).toEqual(['hours', 'address'])
+  })
+
+  test('stays answerable with null, because not every message asks about the shop', () => {
+    const offered = extractionSchema(businessCards, ['hours']) as unknown as Schema
+
+    expect(unanswerable(offered.properties.factKey)).toBe(true)
+  })
+
+  // An empty enum is not a schema OpenRouter can honour, and a shop with no facts loaded still
+  // has to be able to extract a quote. It falls back to the open string, which escalates
+  // anyway because no key can be found.
+  test('offers an open string when nothing is loaded at all', () => {
+    const offered = extractionSchema(businessCards, []) as unknown as Schema
+
+    expect(stated(offered.properties.factKey).enum).toBeUndefined()
+    expect(stated(offered.properties.factKey).type).toBe('string')
   })
 })

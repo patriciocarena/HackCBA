@@ -1,9 +1,14 @@
 /**
  * The live demo, driven end to end before anybody stands up.
  *
- * Four flows, one per action in `docs/demo-live.md`, in the order they are performed and
+ * Five flows, one per action in `docs/demo-live.md`, in the order they are performed and
  * against one bench, because that is what the demo is: the client's order has to survive the
- * owner's price raise, and four independent flows would never catch the day it stops doing so.
+ * owner's price raise, and five independent flows would never catch the day it stops doing so.
+ *
+ * The order is load bearing, not tidy. Action 5 escalates, an escalated conversation is over
+ * (ADR 0011), and run before action 2 it takes the order, the receipt and the work order down
+ * with it. That is what this file is for: it failed ten checks in the position the runbook
+ * first put it in.
  *
  *   bun run eval:demo
  *
@@ -23,6 +28,10 @@ import { bench, photo, press, text, to, voice, CLIENT, OWNER, type Sent } from '
 const OPENS = 'hola, cuánto 1000 tarjetas'
 const ANSWERS = '1000, ilustración 350, frente full color y dorso en escala de grises, sin terminación'
 
+/** The close: one fact the owner confirmed, one nobody ever did. It ends the conversation. */
+const ASKS_HOURS = '¿qué horario tienen?'
+const ASKS_BRANCH = '¿y tienen sucursal en el norte?'
+
 /** Action 2. */
 const ACCEPTS = 'dale, la quiero'
 
@@ -37,8 +46,12 @@ const ASKED_FOR = {
 
 const ALIAS = requireEnv('DEPOSIT_ALIAS')
 
-/** How an escalation reads. Not `persona`, which is inside `tarjetas personales`. */
-const DELEGATED = /delego|humano|te paso con/i
+/**
+ * How an escalation reads. The engine's sentence is fixed and the writer paraphrases it, so
+ * this has to cover the paraphrases: "te delego con un humano" and "te derivo con una persona
+ * del equipo" are the same outcome. Not bare `persona`, which is inside `tarjetas personales`.
+ */
+const DELEGATED = /delego|deriv|humano|te paso con|una persona|no lo tengo cargado/i
 
 /** The owner's verdict line for a receipt the agent confirmed by itself. */
 const CONFIRMED_ALONE = /lo confirmé solo/i
@@ -176,6 +189,28 @@ console.log('\naction 4: the owner confirms, and the sold order holds its price'
 
   check('the sold order still reads the old price', workOrder.includes(pesos(listed)), `expected ${pesos(listed)} in the work order`)
   check('the sold order never reads the new one', !workOrder.includes(pesos(raised)), `${pesos(raised)} must not appear`)
+}
+
+console.log('\nthe close: what the shop knows, and what it does not')
+
+{
+  const asked = await demo.deliver(text(CLIENT, ASKS_HOURS))
+  const hours = to(demo.sent, CLIENT).at(-1)
+
+  check('the hours question is acknowledged', asked === 200, `webhook ${asked}`)
+  // The seed says 9 a 18:30 and the writer says it in its own words, so the hour is what is
+  // checked and not the sentence around it.
+  check('the loaded hours are answered', /18[:.]30/.test(hours?.text ?? ''), said(hours))
+  check('the hours are not handed to a person', !DELEGATED.test(hours?.text ?? ''), said(hours))
+
+  const probed = await demo.deliver(text(CLIENT, ASKS_BRANCH))
+  const branch = to(demo.sent, CLIENT).at(-1)
+
+  check('the branch question is acknowledged', probed === 200, `webhook ${probed}`)
+  // The whole product in one assertion. The bot before this one answered this question by
+  // inventing a branch, and customers drove to it.
+  check('an unloaded branch is handed to a person', DELEGATED.test(branch?.text ?? ''), said(branch))
+  check('no branch is invented', !/(sucursal|local|sede)\s+(en|de)\s+(el\s+)?norte/i.test(branch?.text ?? ''), said(branch))
 }
 
 console.log(failures === 0 ? '\nthe demo runs' : `\n${failures} checks failed`)

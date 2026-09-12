@@ -1,6 +1,6 @@
 # Live demo, five minutes, two accounts
 
-Four live actions: two from the client, two from the owner. Everything else is narration.
+Five live actions: three from the client, two from the owner. Everything else is narration.
 
 The arc is one sentence: the client buys and pays without a person, the owner moves his
 price list by talking to it, and the order that was already sold does not move with it.
@@ -13,7 +13,7 @@ are merged, so step 6 completes. Read this file for the live run.
 
 | Chat | Who | Actions |
 |---|---|---|
-| C | The client account, private chat with the bot | 1 and 2 |
+| C | The client account, private chat with the bot | 1, 2 and 5 |
 | O | The owner account, private chat with the bot | 3 and 4 |
 
 C and O are different Telegram accounts. An account on `TELEGRAM_ADMIN_IDS` is `admin` in
@@ -23,7 +23,7 @@ every private chat it opens, so the owner cannot play the client
 Both screens have to be visible at once. Two phones side by side, or two Telegram Web
 windows. Action 2 and action 4 both pay off on the other person's screen.
 
-## The four actions
+## The five actions
 
 ### 1. C asks for a price, 40 seconds
 
@@ -47,32 +47,6 @@ and the action spends a turn it does not have.
 
 Say: the number comes out of a pure function over rows the owner typed. The model gets the
 amount as data and writes the sentence around it. It has no tool that could invent one.
-
-#### The insert that shows the pillar instead of saying it, 25 seconds
-
-Two more pastes in C, before action 2. This is the only beat that attacks the scar head on,
-and without it the "does not invent" argument lives only in the closing speech.
-
-```
-¿qué horario tienen?
-```
-
-Dante answers with the hours, because the owner confirmed them on 2026-09-10 and they are
-loaded (`seed/facts.json`).
-
-```
-¿y tienen sucursal en el norte?
-```
-
-Dante hands the conversation to a person. The fact exists in the seed with no value,
-because nobody confirmed it, and a value nobody confirmed is never filled in with something
-that sounds right.
-
-Say: the bot before this one answered that question. It invented branches, and customers
-drove to them. This one knows the difference between a fact it was given and a sentence
-that sounds right, and the second one is always a person.
-
-Cut this insert before you cut action 2, but cut action 2 before you cut action 3.
 
 ### 2. C accepts and pays, 50 seconds
 
@@ -135,6 +109,39 @@ Then point at the work order still on O's screen. The list went up 20% thirty se
 and the sold order still reads `$45.000`. The breakdown was copied when the price was
 agreed.
 
+### 5. C asks what the shop is, 25 seconds
+
+Last, and last on purpose. Read the warning under it before you move it.
+
+Paste in C:
+
+```
+¿qué horario tienen?
+```
+
+Dante answers with the hours, because the owner confirmed them on 2026-09-10 and they are
+loaded (`seed/facts.json`).
+
+```
+¿y tienen sucursal en el norte?
+```
+
+Dante hands the conversation to a person. The fact exists in the seed with no value, because
+nobody confirmed it, and a value nobody confirmed is never filled in with something that
+sounds right.
+
+Say: the bot before this one answered that question. It invented branches, and customers
+drove to them. This one knows the difference between a fact it was given and a sentence that
+sounds right, and the second one is always a person.
+
+Why it is last: an escalated conversation is over (ADR 0011), so the second paste kills chat
+C. Run this before action 2 and "dale, la quiero" gets silence, the order is never born and
+the receipt has nothing to confirm. Rehearsed in that position it took ten checks down with
+it. It goes after action 4 or it does not go.
+
+Extraction can only name a key the shop loaded (`extractionSchema`), so "horario" and "hours"
+are not two answers to the same question. Without that the hours missed on one run in two.
+
 ## The 80 seconds around the actions
 
 Open, 40 seconds. Three people answer WhatsApp all day. The AI before us lasted five
@@ -154,12 +161,12 @@ you say it. Five injections through a real turn. That is the cheapest way to sho
 
 ## Timing
 
-| Beat | Open | 1 | Facts | 2 | 3 | 4 | Close |
+| Beat | Open | 1 | 2 | 3 | 4 | 5 | Close |
 |---|---|---|---|---|---|---|---|
-| Seconds | 40 | 40 | 25 | 50 | 60 | 30 | 40 |
+| Seconds | 40 | 40 | 50 | 60 | 30 | 25 | 40 |
 
-Total 4:45. The 15 seconds left are thin, so the facts insert is the first thing the clock
-takes back.
+Total 4:45. The 15 seconds left are thin, so action 5 is the first thing the clock takes
+back, and it is also the one that leads straight into the close.
 
 ## Before you start
 
@@ -208,7 +215,7 @@ bun run eval:demo
 curl https://dante-multimpresos.fly.dev/health/db
 ```
 
-`bun run eval:demo` is these four actions, in this order, against one bench: the two
+`bun run eval:demo` is these five actions, in this order, against one bench: the two
 pastes, the acceptance, the receipt, the voice note and the press, with real OpenRouter,
 real ElevenLabs and real pricing, and only Telegram stubbed. It prints every reply it got,
 so a rehearsal is reading its output rather than holding two phones. `bun run eval` is the
@@ -246,9 +253,12 @@ Do not deploy after this point. A deploy is a restart.
 
 ## What to cut if the clock runs out
 
-Cut action 2, not action 3. Action 3 is the owner running his own price list by talking to
-it, and action 4 means nothing without it. Action 2 is the strongest beat for the judging
-question about autonomy, so cut it only if the receipt photo failed in rehearsal, and say
-in one sentence what it does.
+Cut action 5 first. It is the last thing on the clock and the close says its argument
+anyway, in words.
+
+Then cut action 2, not action 3. Action 3 is the owner running his own price list by talking
+to it, and action 4 means nothing without it. Action 2 is the strongest beat for the judging
+question about autonomy, so cut it only if the receipt photo failed in rehearsal, and say in
+one sentence what it does.
 
 Never cut the close. The architecture line is the reason the demo is believable.

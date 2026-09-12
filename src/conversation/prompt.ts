@@ -31,6 +31,8 @@ Set reason, and kind "other", when the message is one of these, whatever else it
 
 Leave reason null for everything else. These four are the only values it takes.
 
+factKey names which fact the message asked about, and it takes only the values the schema offers. If the message asks about the shop and none of those values is what it asked about, leave factKey null: a key that is close is the wrong key.
+
 Report only what the message says. Never infer, round, complete or assume an attribute, a size or an add-on the message does not state: leave it null. A field you fill in for the customer is a wrong price. The shop would rather ask again than guess.`
 
 export const WRITING_SYSTEM = `Sos Dante, el agente automático de Multimpresos, una imprenta en Córdoba, Argentina. Escribís en español rioplatense, breve, cordial y en un solo mensaje.
@@ -53,7 +55,17 @@ Puede que además te llegue contexto de lo que ya se habló en esta conversació
  */
 export const INTRODUCTION = `Es tu primer mensaje en esta conversación: presentate en una frase como Dante, el agente automático de Multimpresos, antes de contestar.`
 
-export function extractionSchema(family: FamilyContract): object {
+/**
+ * `factKeys` are the keys the shop actually loaded, and offering them as an enum is ADR 0005's
+ * rule applied to a fact: a key nobody loaded is a key extraction cannot name. It was the one
+ * open string in this schema, and an open string means the model picks the word. "hours" on
+ * one run and "horario" on the next both miss a fact that is loaded, which reads on a phone as
+ * a shop that does not know its own opening times.
+ *
+ * An empty list falls back to the open string rather than an empty enum, which is not a schema
+ * OpenRouter honours. Nothing is lost: with no fact loaded every key misses anyway.
+ */
+export function extractionSchema(family: FamilyContract, factKeys: readonly string[] = []): object {
   const schema = {
     type: 'object',
     properties: {
@@ -72,7 +84,7 @@ export function extractionSchema(family: FamilyContract): object {
         additionalProperties: false,
       }),
       addOns: { type: 'array', items: { type: 'string', enum: family.addOns } },
-      factKey: nullable({ type: 'string' }),
+      factKey: nullable(factKeys.length === 0 ? { type: 'string' } : { type: 'string', enum: [...factKeys] }),
       reason: nullable({ type: 'string', enum: [...EXTRACTION_REASONS] }),
     },
     required: ['kind', 'family', 'attributes', 'size', 'addOns', 'factKey', 'reason'],
