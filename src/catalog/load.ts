@@ -2,7 +2,7 @@ import { ars } from '../domain/money'
 import type { CatalogItemKind, CatalogRow, ModuleDiscount, PriceForConfig } from '../domain/price-for'
 import { unitSchema, type AttributeContract, type FamilyContract } from '../domain/types'
 
-export type CatalogSeedItem = {
+type CatalogSeedItem = {
   id: string
   kind: string
   label: string
@@ -14,7 +14,7 @@ export type CatalogSeedItem = {
   price: number
 }
 
-export type CatalogSeed = {
+type CatalogSeed = {
   vat_rate: number
   vat_included: boolean
   quote_validity_days: number
