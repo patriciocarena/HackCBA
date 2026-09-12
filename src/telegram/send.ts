@@ -11,7 +11,9 @@ export function telegramSend(token: string, fetchImpl: FetchLike = fetch): Send 
     })
 
     if (!response.ok) {
-      throw new Error(`telegram sendMessage ${response.status}: ${(await response.text().catch(() => '')).slice(0, 200)}`)
+      const body = await response.text().catch(() => '')
+
+      throw new Error(`telegram sendMessage ${response.status}: ${body.slice(0, 200)}`)
     }
   }
 }

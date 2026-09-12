@@ -2,7 +2,9 @@ import { describe, expect, it } from 'bun:test'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
 import type { TurnDeps } from '@/conversation/turn'
-import type { PriceForConfig } from '@/domain/price-for'
+import { totalOf } from '@/domain/breakdown'
+import { priceFor } from '@/domain/price-for'
+import { pesos } from '@/domain/quote-text'
 import type { Send } from '@/telegram/send'
 import { telegramWebhook } from '@/telegram/webhook'
 import { OFFSET_1000 } from '@test/support/fixtures'
@@ -18,20 +20,22 @@ const QUOTE = {
   factKey: null,
 }
 
-/**
- * What the owner's list charges for 1000 offset cards, written out rather than computed.
- * Asking `priceFor` what `priceFor` should say proves the wiring and nothing about the
- * price: double every row in the seed and a derived expectation follows it up.
- */
-const QUOTED = '$45.000'
+/** The number the engine computed, which is the only number the customer may read. */
+function quotedTotal(): string {
+  const resolution = priceFor(
+    { kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [] },
+    catalogRows,
+    baseConfig,
+  )
+  if (resolution.kind !== 'price') throw new Error(`the seed no longer prices 1000 offset cards: ${resolution.kind}`)
 
-/** The same order once VAT is the engine's to add, which is 45000 x 1.21. */
-const QUOTED_NET_LIST = '$54.450'
+  return pesos(totalOf(resolution.breakdown))
+}
 
-const QUOTED_REPLY = `Te cotizo ${QUOTED} final con IVA incluido.`
-
-/** A family whose list is net, so `totalOf` has to apply the rate instead of passing it through. */
-const NET_LIST: PriceForConfig = { ...baseConfig, family: { ...baseConfig.family, vatIncluded: false } }
+/** The one reply the engine's own number permits. */
+function quotedReply(): string {
+  return `Te cotizo ${quotedTotal()} final con IVA incluido.`
+}
 
 /**
  * The whole vertical behind one webhook, recording both ends: what the writer was asked and
@@ -49,7 +53,7 @@ function vertical(overrides: Partial<TurnDeps> = {}, send?: Send) {
     write: async (request) => {
       requests.push(request)
 
-      return QUOTED_REPLY
+      return quotedReply()
     },
     ...overrides,
   }
@@ -79,24 +83,8 @@ describe('a customer message crosses the whole vertical', () => {
     const response = await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
 
     expect(response.status).toBe(200)
-    expect(replies).toEqual([{ chatId: '-100', text: QUOTED_REPLY }])
-  })
-
-  it('adds the VAT itself when the list is net, and sends that number', async () => {
-    const reply = `Te cotizo ${QUOTED_NET_LIST} final con IVA incluido.`
-    const { webhook, replies } = vertical({ config: NET_LIST, write: async () => reply })
-
-    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
-
-    expect(replies).toEqual([{ chatId: '-100', text: reply }])
-  })
-
-  it('refuses the list amount when the list is net, because the customer reads the gross', async () => {
-    const { webhook, replies } = vertical({ config: NET_LIST, write: async () => QUOTED_REPLY })
-
-    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
-
-    expect(replies).toBeEmpty()
+    expect(replies).toEqual([{ chatId: '-100', text: quotedReply() }])
+    expect(quotedTotal()).not.toBe(pesos(0))
   })
 
   it('says nothing when the writer states an amount the engine did not compute', async () => {

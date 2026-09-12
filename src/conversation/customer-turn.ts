@@ -14,14 +14,15 @@ export function customerTurn(deps: TurnDeps, send: Send): Turn {
   const states = new Map<ConversationId, TurnState>()
 
   return async (message) => {
-    const result = await turn(deps, message, states.get(message.conversationId) ?? opening(message.conversationId))
+    const { conversationId } = message
+    const result = await turn(deps, message, states.get(conversationId) ?? opening(conversationId))
 
     // Sending first is what makes a refused reply recoverable. The update id was claimed
     // before the turn ran, so Telegram's retry is dropped; leaving the state untouched is
     // what lets the customer's next message say the same thing again.
     if (result.reply !== null) await send(message.chatId, result.reply)
 
-    states.set(message.conversationId, result.state)
+    states.set(conversationId, result.state)
   }
 }
 
