@@ -1,3 +1,4 @@
+import { spanishName } from '../catalog/spanish'
 import { totalOf } from './breakdown'
 import type { PriceBreakdown } from './types'
 
@@ -23,20 +24,12 @@ export function quoteText(breakdown: PriceBreakdown, validityDays: number): stri
  * What the customer is asked for when the family still needs something. One message, in the
  * order the family declares, in the words a print shop uses. `priceFor` returns the attribute
  * names, which are English and are ours; the customer never sees them.
+ *
+ * One map, shared with the work order. Two copies meant adding a family translated its
+ * attributes for the owner's press and left the customer reading `format`.
  */
 export function askText(missing: string[]): string {
-  return `Para cotizarlo, pasame: ${list(missing.map(attributeLabel))}.`
-}
-
-const ATTRIBUTE_LABELS: Record<string, string> = {
-  quantity: 'cantidad',
-  paper: 'papel',
-  sides: 'caras',
-  finish: 'terminación',
-}
-
-function attributeLabel(name: string): string {
-  return ATTRIBUTE_LABELS[name] ?? name
+  return `Para cotizarlo, pasame: ${list(missing.map(spanishName))}.`
 }
 
 function moduleSentence(breakdown: PriceBreakdown): string {

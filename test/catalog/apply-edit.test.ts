@@ -5,9 +5,10 @@ import type { PriceEditProposal } from '../../src/domain/types'
 
 const PROPOSED: PriceEditProposal = {
   id: 'edit_1',
+  familySlug: 'business_cards',
   operation: { op: 'percent', direction: 'raise', rate: 0.2 },
   lines: [
-    { slug: 'bc_special_100_front', label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) },
+    { slug: 'bc_special_100_front', familySlug: 'business_cards', label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) },
   ],
   state: 'proposed',
   source: 'audio',

@@ -69,16 +69,22 @@ export const INTRODUCTION = `Es tu primer mensaje en esta conversación: present
  * An empty list falls back to the open string rather than an empty enum, which is not a schema
  * OpenRouter honours. Nothing is lost: with no fact loaded every key misses anyway.
  */
-export function extractionSchema(family: FamilyContract, factKeys: readonly string[] = []): object {
+export function extractionSchema(
+  families: FamilyContract | readonly FamilyContract[],
+  factKeys: readonly string[] = [],
+): object {
+  const loaded = Array.isArray(families) ? families : [families as FamilyContract]
+  const attributes = unionOfAttributes(loaded)
+
   const schema = {
     type: 'object',
     properties: {
       kind: { type: 'string', enum: [...INTENT_KINDS] },
-      family: nullable({ type: 'string', enum: [family.slug] }),
+      family: nullable({ type: 'string', enum: loaded.map((one) => one.slug) }),
       attributes: {
         type: 'object',
-        properties: Object.fromEntries(family.attributes.map(attributeProperty)),
-        required: family.attributes.map((attribute) => attribute.name),
+        properties: Object.fromEntries(attributes.map(attributeProperty)),
+        required: attributes.map((attribute) => attribute.name),
         additionalProperties: false,
       },
       size: nullable({
@@ -87,7 +93,7 @@ export function extractionSchema(family: FamilyContract, factKeys: readonly stri
         required: ['widthCm', 'heightCm'],
         additionalProperties: false,
       }),
-      addOns: { type: 'array', items: { type: 'string', enum: family.addOns } },
+      addOns: { type: 'array', items: { type: 'string', enum: loaded.flatMap((one) => one.addOns) } },
       factKey: nullable(factKeys.length === 0 ? { type: 'string' } : { type: 'string', enum: [...factKeys] }),
       reason: nullable({ type: 'string', enum: [...EXTRACTION_REASONS] }),
     },
@@ -103,6 +109,42 @@ export function extractionSchema(family: FamilyContract, factKeys: readonly stri
   }
 
   return schema
+}
+
+/**
+ * One attribute list across every loaded family, merging the values each of them declares for a
+ * key they share.
+ *
+ * One model call rather than a router call and then a family-specific one. It is safe because
+ * of the exact match rule rather than in spite of it: a paper value that belongs to the cards
+ * family, answered for a facturas quote, finds no row and escalates. Every enum is still closed,
+ * so ADR 0005 holds and extraction cannot invent an attribute or a value.
+ *
+ * Add-on groups are the case where merging would be wrong, and they are namespaced by family so
+ * that it cannot happen: two families both say "numerado" and mean different jobs. An attribute
+ * key is different. `quantity` counts in both families and what differs is the unit, which the
+ * family declares, and the family is what picks the row.
+ */
+function unionOfAttributes(families: readonly FamilyContract[]): AttributeContract[] {
+  const merged = new Map<string, AttributeContract>()
+
+  for (const attribute of families.flatMap((family) => family.attributes)) {
+    const known = merged.get(attribute.name)
+
+    if (known === undefined) {
+      merged.set(attribute.name, { ...attribute, values: [...attribute.values] } as AttributeContract)
+      continue
+    }
+
+    if (known.kind !== attribute.kind) {
+      throw new Error(`${attribute.name} is a ${known.kind} in one family and a ${attribute.kind} in another`)
+    }
+
+    const values = [...new Set([...known.values, ...attribute.values])]
+    merged.set(attribute.name, { name: attribute.name, kind: known.kind, values } as AttributeContract)
+  }
+
+  return [...merged.values()]
 }
 
 function attributeProperty(attribute: AttributeContract): [string, object] {

@@ -17,8 +17,9 @@ const ROWS: CatalogRow[] = [{ slug: SLUG, familySlug: 'business_cards', kind: 's
 function proposal(): PriceEditProposal {
   return {
     id: 'edit_1',
+    familySlug: 'business_cards',
     operation: { op: 'percent', direction: 'raise', rate: 0.2 },
-    lines: [{ slug: SLUG, label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) }],
+    lines: [{ slug: SLUG, familySlug: 'business_cards', label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) }],
     state: 'proposed',
     source: 'audio',
     mediaId: 'voice_abc',
@@ -147,7 +148,7 @@ describe('the rows come from the live catalog and never from the caller', () => 
     const wiring = wired()
 
     await wiring.onCallback(press())
-    wiring.held.set('edit_2', { ...proposal(), id: 'edit_2', lines: [{ slug: SLUG, label: '100 tarjetas', oldPrice: ars(14520), newPrice: ars(17424) }] })
+    wiring.held.set('edit_2', { ...proposal(), id: 'edit_2', lines: [{ slug: SLUG, familySlug: 'business_cards', label: '100 tarjetas', oldPrice: ars(14520), newPrice: ars(17424) }] })
 
     await wiring.onCallback(press({ proposalId: 'edit_2', updateId: 9003 }))
 

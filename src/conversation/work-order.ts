@@ -11,7 +11,8 @@ import type { DepositOutcome } from '../domain/deposit'
 
 export type WorkOrderDeps = {
   rows: () => CatalogRow[]
-  family: FamilyContract
+  /** Every loaded family. The ordered row says which one the job is on; the wiring cannot. */
+  families: readonly FamilyContract[]
   send: Send
   ownerChatId: () => string | null
 }
@@ -26,7 +27,7 @@ export type DeliverWorkOrder = (order: Order) => Promise<boolean>
  * update and a second receipt are two events about one job.
  */
 export function workOrders(deps: WorkOrderDeps): DeliverWorkOrder {
-  const { rows, family, send, ownerChatId } = deps
+  const { rows, families, send, ownerChatId } = deps
 
   // ponytail: in memory, A3's table when a work order has to survive a restart. The claim is
   // taken before the send, so a retry that arrives while the first is in flight finds it.
@@ -42,7 +43,7 @@ export function workOrders(deps: WorkOrderDeps): DeliverWorkOrder {
     if (chatId === null) return false
 
     printed.add(order.id)
-    await send(chatId, workOrderText(order, rows(), family))
+    await send(chatId, workOrderText(order, rows(), families))
 
     return true
   }
@@ -59,24 +60,32 @@ export function workOrders(deps: WorkOrderDeps): DeliverWorkOrder {
  * work order is read by a person who is about to act on it, which is the most valuable place
  * in the system to inject into, so their words do not appear here at all.
  */
-export function workOrderText(order: Order, rows: CatalogRow[], family: FamilyContract): string {
+export function workOrderText(
+  order: Order,
+  rows: CatalogRow[],
+  families: readonly FamilyContract[],
+): string {
   return [
     `ORDEN ${oneLine(order.id)}`,
     '',
-    `Imprimir: ${jobLine(order, rows, family)}`,
+    `Imprimir: ${jobLine(order, rows, families)}`,
     `Cobrado: ${pesos(totalOf(order.breakdown))}, seña confirmada.`,
     `Cliente: ${chatOf(order.conversationId)}`,
     `Cotizado: ${onlyTheDay(order.quotedAt)}`,
   ].join('\n')
 }
 
-function jobLine(order: Order, rows: CatalogRow[], family: FamilyContract): string {
+function jobLine(order: Order, rows: CatalogRow[], families: readonly FamilyContract[]): string {
   const row = rows.find((candidate) => candidate.slug === order.breakdown.base.slug)
-  const stated = row?.attributes === undefined ? [] : spanishAttributes(row.attributes, family.askOrder)
+  const family = families.find((candidate) => candidate.slug === row?.familySlug)
 
-  // No row is a list that moved under a job already sold. The label the breakdown copied is
-  // what was agreed, so it is what gets printed, and the owner reads a slug rather than
-  // nothing at all.
+  // No row is a list that moved under a job already sold, and no family is a row from a list
+  // this process no longer loads. Either way the label the breakdown copied is what was
+  // agreed, so it is what gets printed: a family name guessed from the wiring would be the
+  // wrong stock cut, and the owner would have no way to tell from the order.
+  if (family === undefined) return oneLine(order.breakdown.base.label)
+
+  const stated = row?.attributes === undefined ? [] : spanishAttributes(row.attributes, family.askOrder)
   if (stated.length === 0) return oneLine(`${family.label}, ${order.breakdown.base.label}`)
 
   return oneLine([family.label, ...stated].join(', '))

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { LOADED_FAMILIES } from '@/catalog/families'
 import { DELEGATE } from '../../src/domain/handoff'
 import { amountsIn, NO_MEDIA, turn, type TurnDeps, type TurnResult } from '@/conversation/turn'
 import { ONLY_AUDIO } from '@/conversation/admin-turn'
@@ -39,6 +40,7 @@ function state(overrides: Partial<TurnState> = {}): TurnState {
     asked: [],
     escalated: false,
     introduced: true,
+    family: null,
     attributes: {},
     amounts: [],
     ...overrides,
@@ -48,7 +50,7 @@ function state(overrides: Partial<TurnState> = {}): TurnState {
 function deps(overrides: Partial<TurnDeps> = {}): TurnDeps {
   return {
     rows: () => catalogRows,
-    config: baseConfig,
+    families: LOADED_FAMILIES,
     facts: [],
     extract: async () => ({ kind: 'other' }),
     write: async () => 'una respuesta',

@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { EXTRACTION_REASONS, extractionSchema, INTRODUCTION, WRITING_SYSTEM } from '@/conversation/prompt'
 import { NO_MEDIA } from '@/conversation/turn'
 import { businessCards } from '@/catalog/business-cards'
+import { LOADED_FAMILIES } from '@/catalog/families'
 
 type Arm = { type: string; enum?: (string | number)[] }
 type Nullable = { anyOf: [Arm, { type: 'null' }] }
@@ -168,5 +169,68 @@ describe('the fact keys the schema lets extraction name', () => {
 
     expect(stated(offered.properties.factKey).enum).toBeUndefined()
     expect(stated(offered.properties.factKey).type).toBe('string')
+  })
+})
+
+/**
+ * Three families loaded, one model call. The alternative was a router call to pick the family
+ * and a second call for its own tight schema, which doubles latency and cost on every quote and
+ * adds a failure mode where the router picks wrong.
+ *
+ * The union is safe because of the exact match rule, not in spite of it. A paper value that
+ * belongs to the cards family, offered in a facturas quote, finds no row and escalates. ADR
+ * 0005 still holds: every enum is closed, so extraction cannot invent an attribute or a value.
+ */
+describe('the extraction schema over every loaded family', () => {
+  const many = extractionSchema(LOADED_FAMILIES) as unknown as Schema
+
+  test('offers every loaded family and no other', () => {
+    expect(stated(many.properties.family).enum).toEqual(LOADED_FAMILIES.map((family) => family.slug))
+    expect(stated(many.properties.family).enum).not.toContain('gigantografias')
+  })
+
+  test('a family may be left unsaid, because a first message often does not name one', () => {
+    expect(unanswerable(many.properties.family)).toBe(true)
+  })
+
+  test('offers the union of every attribute key, and nothing else', () => {
+    expect(Object.keys(many.properties.attributes.properties).sort()).toEqual([
+      'coverage',
+      'finish',
+      'format',
+      'ink',
+      'paper',
+      'quantity',
+      'sides',
+    ])
+    expect(many.properties.attributes.additionalProperties).toBe(false)
+  })
+
+  test('a key carries the values every family that declares it carries', () => {
+    const quantity = stated(many.properties.attributes.properties.quantity)
+
+    expect(quantity.enum).toContain(100)
+    expect(quantity.enum).toContain(500)
+    expect(quantity.enum).toContain(20)
+    expect(quantity.enum).not.toContain(750)
+  })
+
+  test('a key declared by two families offers both vocabularies', () => {
+    const sides = stated(many.properties.attributes.properties.sides)
+
+    expect(sides.enum).toContain('front_color_back_grayscale')
+    expect(sides.enum).toContain('front_and_back')
+  })
+
+  test('offers add-on groups namespaced by family, so no group names two jobs', () => {
+    expect(many.properties.addOns.items.enum).toContain('facturas:triplicate')
+    expect(many.properties.addOns.items.enum).toContain('lamination')
+    expect(new Set(many.properties.addOns.items.enum).size).toBe(many.properties.addOns.items.enum.length)
+  })
+
+  test('every attribute key is required, so a silent omission is not an answer', () => {
+    expect(many.properties.attributes.required.sort()).toEqual(
+      Object.keys(many.properties.attributes.properties).sort(),
+    )
   })
 })

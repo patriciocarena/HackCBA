@@ -11,7 +11,8 @@ export type AdminAudioDeps = {
   // and applyPriceEdit refuses a line whose oldPrice no longer matches. Capturing the rows
   // here means the owner's second edit of the night is minted stale and refused on his press.
   rows: () => CatalogRow[]
-  family: FamilyContract
+  /** Every loaded family, so the transcript picks one rather than the wiring assuming one. */
+  families: readonly FamilyContract[]
   transcription: TranscriptionPort
   extraction: PriceEditExtractionPort
   fetchAudio: FetchAudio
@@ -30,7 +31,7 @@ export type AudioRead =
 export function readAdminAudio(
   deps: AdminAudioDeps,
 ): (message: InboundMessage) => Promise<AudioRead | null> {
-  const { rows, family, transcription, extraction, fetchAudio, save } = deps
+  const { rows, families, transcription, extraction, fetchAudio, save } = deps
 
   return async (message) => {
     if (message.role !== 'admin') return null
@@ -48,7 +49,7 @@ export function readAdminAudio(
     const proposal = proposePriceEdit({
       intent: extracted.intent,
       rows: rows(),
-      family,
+      families,
       media: message.media,
       proposedBy: message.senderId,
       proposedAt: message.receivedAt,

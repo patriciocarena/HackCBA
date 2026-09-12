@@ -2,7 +2,7 @@ import { createClient } from '@libsql/client'
 import { Mastra } from '@mastra/core/mastra'
 import { LibSQLStore } from '@mastra/libsql'
 import { PinoLogger } from '@mastra/loggers'
-import { catalogRows } from '../catalog/business-cards'
+import { ALL_ROWS } from '../catalog/families'
 import { agentWrite, danteAgent } from '../conversation/agent'
 import { requireEnv } from '../config/env'
 import { liveCatalog } from '../catalog/live-catalog'
@@ -14,9 +14,11 @@ import { dbUrl } from '../storage/sqlite'
 import { telegramWebhookRoute } from '../telegram/route'
 import { inMemoryPriceEdits } from '../voice/price-edit-proposal'
 
-// The one catalog the process quotes from. Everything that reads prices reads it through
-// `rows()`, and the owner's confirmed edit is the only thing that swaps it.
-const catalog = liveCatalog(catalogRows)
+// The one catalog the process quotes from: every loaded family in one array, because an item
+// slug is unique across the list and a confirmed edit matches on it. Everything that reads
+// prices reads it through `rows()`, and the owner's confirmed edit is the only thing that
+// swaps it.
+const catalog = liveCatalog(ALL_ROWS)
 const edits = inMemoryPriceEdits()
 const versions = inMemoryPriceVersions()
 

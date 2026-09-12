@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { LOADED_FAMILIES } from '../../src/catalog/families'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { liveCatalog } from '@/catalog/live-catalog'
 import type { PriceVersion } from '@/catalog/apply-edit'
@@ -24,8 +25,9 @@ const RAISED = ars(Math.round(LISTED * 1.2))
 function proposal(): PriceEditProposal {
   return {
     id: 'edit_1',
+    familySlug: 'business_cards',
     operation: { op: 'percent', direction: 'raise', rate: 0.2 },
-    lines: [{ slug: SLUG, label: '100 tarjetas', oldPrice: ars(LISTED), newPrice: RAISED }],
+    lines: [{ slug: SLUG, familySlug: 'business_cards', label: '100 tarjetas', oldPrice: ars(LISTED), newPrice: RAISED }],
     state: 'proposed',
     source: 'audio',
     mediaId: 'voice_abc',
@@ -60,7 +62,7 @@ function message(): InboundMessage {
 }
 
 function opening(): TurnState {
-  return { conversationId: conversationId('telegram', '42', 'customer'), asked: [], escalated: false, introduced: true, attributes: {}, amounts: [] }
+  return { conversationId: conversationId('telegram', '42', 'customer'), asked: [], escalated: false, introduced: true, family: null, attributes: {}, amounts: [] }
 }
 
 /** What the catalog says the answer is, computed the way the engine computes it. */
@@ -94,7 +96,7 @@ describe('the owner confirms, and the next customer is quoted the new price', ()
       const result = await turn(
         {
           rows: catalog.rows,
-          config: baseConfig,
+          families: LOADED_FAMILIES,
           facts: [],
           extract: async () => answer,
           write: async (request) => request.user.match(/Te cotizo \$[\d.]+/)?.[0] ?? 'sin importe',

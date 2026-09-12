@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { LOADED_FAMILIES } from '../../src/catalog/families'
 import { DELEGATE } from '../../src/domain/handoff'
 import { ONLY_AUDIO } from '@/conversation/admin-turn'
 import { amountsIn, turn, type TurnDeps, type TurnResult } from '@/conversation/turn'
@@ -87,7 +88,7 @@ async function attack(text: string, model: Hijacked, facts: Fact[] = [], senderI
       result = await turn(
         {
           rows: () => catalogRows,
-          config: baseConfig,
+          families: LOADED_FAMILIES,
           facts,
           extract: async (request) => { extracted = request.user; return model.extract(request) },
           write: async (request) => { written = request.user; return model.write(request) },
@@ -117,7 +118,7 @@ function delivery(text: string, senderId: string, updateId = 1): Request {
 }
 
 function fresh(conversationId: ConversationId): TurnState {
-  return { conversationId, asked: [], escalated: false, introduced: true, attributes: {}, amounts: [] }
+  return { conversationId, asked: [], escalated: false, introduced: true, family: null, attributes: {}, amounts: [] }
 }
 
 /**
@@ -139,7 +140,7 @@ async function conversation(turns: { text: string; model: Hijacked }[]): Promise
       const result = await turn(
         {
           rows: () => catalogRows,
-          config: baseConfig,
+          families: LOADED_FAMILIES,
           facts: [],
           extract: model.extract,
           write: model.write,

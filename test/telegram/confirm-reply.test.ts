@@ -19,8 +19,9 @@ const ROWS: CatalogRow[] = [{ slug: SLUG, familySlug: 'business_cards', kind: 's
 function proposal(overrides: Partial<PriceEditProposal> = {}): PriceEditProposal {
   return {
     id: 'edit_1',
+    familySlug: 'business_cards',
     operation: { op: 'percent', direction: 'raise', rate: 0.2 },
-    lines: [{ slug: SLUG, label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) }],
+    lines: [{ slug: SLUG, familySlug: 'business_cards', label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) }],
     state: 'proposed',
     source: 'audio',
     mediaId: 'voice_abc',
@@ -207,8 +208,8 @@ describe('appliedText', () => {
   test('writes every line that moved, old and new', () => {
     const two = proposal({
       lines: [
-        { slug: SLUG, label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) },
-        { slug: 'bc_offset_1000_4_1', label: '1000 tarjetas', oldPrice: ars(45000), newPrice: ars(54000) },
+        { slug: SLUG, familySlug: 'business_cards', label: '100 tarjetas', oldPrice: ars(12100), newPrice: ars(14520) },
+        { slug: 'bc_offset_1000_4_1', familySlug: 'business_cards', label: '1000 tarjetas', oldPrice: ars(45000), newPrice: ars(54000) },
       ],
     })
 

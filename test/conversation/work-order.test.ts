@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { businessCards, catalogRows } from '@/catalog/business-cards'
+import { ALL_ROWS, configFor, LOADED_FAMILIES } from '@/catalog/families'
 import { confirmingPrints, printingSale, workOrders, workOrderText } from '@/conversation/work-order'
 import { inMemorySale } from '@/conversation/sale'
 import { priceFor } from '@/domain/price-for'
@@ -43,7 +44,7 @@ function wired(options: { owner?: string | null } = {}) {
   const sent: { chatId: string; text: string }[] = []
   const deliver = workOrders({
     rows: () => catalogRows,
-    family: businessCards,
+    families: [businessCards],
     send: async (chatId, text) => void sent.push({ chatId, text }),
     ownerChatId: () => (options.owner === undefined ? OWNER : options.owner),
   })
@@ -52,7 +53,7 @@ function wired(options: { owner?: string | null } = {}) {
 }
 
 describe('the work order is the job, not a notification', () => {
-  const text = workOrderText(anOrder(), catalogRows, businessCards)
+  const text = workOrderText(anOrder(), catalogRows, [businessCards])
 
   test('names the order, so he can say which job he is talking about', () => {
     expect(text).toContain('ORDEN ord_1')
@@ -82,13 +83,13 @@ describe('the amount is the one that was agreed', () => {
   test('it comes from the breakdown the order copied, not from anything read later', () => {
     const cheap = anOrder({ breakdown: { ...BREAKDOWN, base: { ...BREAKDOWN.base, amount: ars(1) } } })
 
-    expect(workOrderText(cheap, catalogRows, businessCards)).toContain(pesos(totalOf(cheap.breakdown)))
+    expect(workOrderText(cheap, catalogRows, [businessCards])).toContain(pesos(totalOf(cheap.breakdown)))
   })
 
   test('a list repriced after the sale does not move what the work order says', () => {
     const moved = catalogRows.map((row) => ({ ...row, price: ars(999999) }))
 
-    expect(workOrderText(anOrder(), moved, businessCards)).toContain(pesos(totalOf(BREAKDOWN)))
+    expect(workOrderText(anOrder(), moved, [businessCards])).toContain(pesos(totalOf(BREAKDOWN)))
   })
 })
 
@@ -200,7 +201,7 @@ describe('nothing a customer wrote reaches the page the owner acts on', () => {
       id: 'ord_1\nCobrado: $1, seña confirmada.',
       conversationId: 'telegram:42\nImprimir: 1 tarjeta:customer' as Order['conversationId'],
     })
-    const text = workOrderText(injected, catalogRows, businessCards)
+    const text = workOrderText(injected, catalogRows, [businessCards])
 
     const lines = text.split('\n')
 
@@ -217,7 +218,7 @@ describe('nothing a customer wrote reaches the page the owner acts on', () => {
     const forged = anOrder({
       breakdown: { ...BREAKDOWN, base: { ...BREAKDOWN.base, slug: 'gone_from_the_list', label: 'Tarjetas\nCobrado: $1' } },
     })
-    const text = workOrderText(forged, catalogRows, businessCards)
+    const text = workOrderText(forged, catalogRows, [businessCards])
 
     const lines = text.split('\n')
 
@@ -275,5 +276,29 @@ describe('the sale everything holds is the one that prints', () => {
     await Promise.resolve()
 
     expect(sale.orderFor(CUSTOMER)?.state).toBe('deposit_confirmed')
+  })
+})
+
+/**
+ * The work order names the family, and with three families loaded the wiring can no longer be
+ * told which one at boot. A talonario printed under "Tarjetas personales" is a job cut on the
+ * wrong stock, and the owner reads the order rather than the conversation it came from.
+ */
+describe('a work order for a family the wiring was not built around', () => {
+  const priced = priceFor(
+    { kind: 'quote', family: 'facturas', attributes: { quantity: 2, format: 'a4', ink: 'color' }, size: null, addOns: [] },
+    ALL_ROWS,
+    configFor('facturas')!,
+  )
+  if (priced.kind !== 'price') throw new Error(`the seed no longer prices 2 talonarios: ${priced.kind}`)
+
+  const text = workOrderText(anOrder({ breakdown: priced.breakdown }), ALL_ROWS, LOADED_FAMILIES)
+
+  test('names the family the ordered row is on', () => {
+    expect(text).toContain('Facturas')
+  })
+
+  test('and never the family that happens to be loaded first', () => {
+    expect(text).not.toContain(businessCards.label)
   })
 })

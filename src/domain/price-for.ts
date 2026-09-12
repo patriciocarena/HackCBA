@@ -88,13 +88,21 @@ type MatchedLines =
 // Override it through config when a family legitimately runs larger.
 const DEFAULT_MAX_MODULES = 50
 
-// ponytail: one family in the list, so a shared word is enough to say the owner meant it.
-// Row level targeting, "subi las de 100", when the list has a second family. It lives here
-// beside the slug match priceFor does, so the two rules cannot drift into two directories.
-export function namesFamily(text: string, family: FamilyContract): boolean {
-  const label = words(family.label)
+/**
+ * Every loaded family whose label shares a word with what the owner said.
+ *
+ * A list rather than a boolean, because a shared word cannot decide between two families that
+ * share it: "color" is in the folletos label as well as in a message about facturas. The
+ * caller escalates on none and on more than one, which is the only honest answer when the
+ * next step reprices a list the owner signs for.
+ *
+ * ponytail: row level targeting, "subi las de 100". It lives here beside the slug match
+ * priceFor does, so the two rules cannot drift into two directories.
+ */
+export function namesFamily(text: string, families: readonly FamilyContract[]): FamilyContract[] {
+  const said = words(text)
 
-  return words(text).some((word) => label.includes(word))
+  return families.filter((family) => words(family.label).some((word) => said.includes(word)))
 }
 
 const WORD = /[a-z0-9]+/g

@@ -137,17 +137,37 @@ function attributeValueSchema(attribute: AttributeContract): z.ZodType<string | 
   return z.union(values.map((value) => z.literal(value)))
 }
 
-export function quoteIntentSchema(family: FamilyContract): z.ZodType<QuoteIntent> {
+/**
+ * The intent shape across every loaded family, matching what the extraction schema offers.
+ *
+ * Attribute keys and values are the union across families, and add-on groups are the
+ * concatenation, which is safe because groups are namespaced by family. A value that belongs to
+ * another family parses and then finds no row, which escalates: that is the exact match rule
+ * doing the work, and it is why one schema over many families needs no router call.
+ */
+export function quoteIntentSchema(
+  families: FamilyContract | readonly FamilyContract[],
+): z.ZodType<QuoteIntent> {
+  const loaded = Array.isArray(families) ? families : [families as FamilyContract]
+  const merged = new Map<string, AttributeContract>()
+
+  for (const attribute of loaded.flatMap((family) => family.attributes)) {
+    const known = merged.get(attribute.name)
+    const values = known === undefined ? attribute.values : [...new Set([...known.values, ...attribute.values])]
+
+    merged.set(attribute.name, { name: attribute.name, kind: attribute.kind, values } as AttributeContract)
+  }
+
   const attributes = Object.fromEntries(
-    family.attributes.map((attribute) => [attribute.name, attributeValueSchema(attribute).optional()]),
+    [...merged.values()].map((attribute) => [attribute.name, attributeValueSchema(attribute).optional()]),
   )
 
   return z.object({
     kind: z.literal('quote'),
-    family: z.literal(family.slug).nullable(),
+    family: z.union(loaded.map((one) => z.literal(one.slug))).nullable(),
     attributes: z.object(attributes).strict(),
     size: sizeSchema.nullable(),
-    addOns: z.array(z.union(family.addOns.map((slug) => z.literal(slug)))),
+    addOns: z.array(z.union(loaded.flatMap((one) => one.addOns).map((slug) => z.literal(slug)))),
   }) as z.ZodType<QuoteIntent>
 }
 
@@ -226,6 +246,8 @@ export type Order = {
 
 export type PriceEditLine = {
   slug: string
+  /** Which list this row is on. The diff the owner signs says it, row by row. */
+  familySlug: string
   label: string
   oldPrice: Ars
   newPrice: Ars
@@ -233,6 +255,8 @@ export type PriceEditLine = {
 
 export type PriceEditProposal = {
   id: string
+  /** The one family the edit moves. A shared word that answers for two is refused instead. */
+  familySlug: string
   operation: PriceEditOperation
   lines: PriceEditLine[]
   state: PriceEditState
@@ -249,6 +273,13 @@ export type TurnState = {
   asked: string[]
   escalated: boolean
   introduced: boolean
+  /**
+   * Which family this conversation is about, once it has said. Remembered for the same reason
+   * `attributes` is: extraction only ever sees the message in front of it, so "A4 color" after
+   * "cuánto 2 talonarios" names no family, and asking which product again is the loop a
+   * conversation dies of.
+   */
+  family: string | null
   /**
    * Every attribute the customer has stated so far, across messages. Extraction only ever sees
    * the message in front of it, so without this the answer to "¿qué terminación?" arrives as a

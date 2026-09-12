@@ -17,8 +17,9 @@ function raiseTwentyPercent(slug: string): PriceEditProposal {
 
   return {
     id: 'edit_1',
+    familySlug: 'business_cards',
     operation: { op: 'percent', direction: 'raise', rate: 0.2 },
-    lines: [{ slug, label: 'tarjetas', oldPrice, newPrice: ars(Math.round(oldPrice * 1.2)) }],
+    lines: [{ slug, familySlug: 'business_cards', label: 'tarjetas', oldPrice, newPrice: ars(Math.round(oldPrice * 1.2)) }],
     state: 'proposed',
     source: 'audio',
     mediaId: 'voice_abc',

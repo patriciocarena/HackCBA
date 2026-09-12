@@ -1,5 +1,5 @@
 import { ars, isArs, scaleArs, type Ars } from '../domain/money'
-import { amountOf, namesFamily, saleRows, type CatalogRow } from '../domain/price-for'
+import { amountOf, namesFamily, saleRowsOf, type CatalogRow } from '../domain/price-for'
 import type { Media } from '../telegram/update'
 import type {
   EscalationReason,
@@ -44,14 +44,15 @@ export type Proposal = { ok: true; proposal: PriceEditProposal } | { ok: false; 
 type ProposeInput = {
   intent: PriceEditIntent
   rows: CatalogRow[]
-  family: FamilyContract
+  /** Every loaded family, so what the owner said picks one rather than being assumed. */
+  families: readonly FamilyContract[]
   media: Media | null
   proposedBy: string
   proposedAt: string
 }
 
 export function proposePriceEdit(input: ProposeInput): Proposal {
-  const { intent, rows, family, media, proposedBy, proposedAt } = input
+  const { intent, rows, families, media, proposedBy, proposedAt } = input
 
   if (!isActionable(intent)) return { ok: false, review: intent }
 
@@ -61,20 +62,28 @@ export function proposePriceEdit(input: ProposeInput): Proposal {
     return reviewed('ambiguous', `${proposedAt} is not a time`)
   }
 
-  if (!namesFamily(intent.target, family)) {
-    return reviewed('no_match', `${intent.target} is not a family in the list`)
+  // One family or none. Two families answering to the same word is not a price this may
+  // propose: repricing either of them would move a list the owner never named, and he signs
+  // the diff without the transcript beside it.
+  const named = namesFamily(intent.target, families)
+  if (named.length === 0) return reviewed('no_match', `${intent.target} is not a family in the list`)
+  if (named.length > 1) {
+    return reviewed('ambiguous', `${intent.target} names ${named.map((one) => one.slug).join(' and ')}`)
   }
+
+  const family = named[0]!
 
   const operation = operationOf(intent.change)
   if (operation === null) return reviewed('ambiguous', 'the amount is not a price this can propose')
 
-  const lines = saleRows(rows).map((row) => lineOf(row, operation))
+  const lines = saleRowsOf(rows, family.slug).map((row) => lineOf(row, operation))
   if (lines.length === 0) return reviewed('no_match', `${intent.target} has no price to change`)
 
   return {
     ok: true,
     proposal: {
       id: crypto.randomUUID(),
+      familySlug: family.slug,
       operation,
       lines,
       state: 'proposed',
@@ -117,7 +126,13 @@ function operationOf(change: PriceChange): PriceEditOperation | null {
 function lineOf(row: CatalogRow, operation: PriceEditOperation): PriceEditLine {
   const oldPrice = amountOf(row)
 
-  return { slug: row.slug, label: row.label, oldPrice, newPrice: newPriceOf(oldPrice, operation) }
+  return {
+    slug: row.slug,
+    familySlug: row.familySlug,
+    label: row.label,
+    oldPrice,
+    newPrice: newPriceOf(oldPrice, operation),
+  }
 }
 
 function newPriceOf(oldPrice: Ars, operation: PriceEditOperation): Ars {

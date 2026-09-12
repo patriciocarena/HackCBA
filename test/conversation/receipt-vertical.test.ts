@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { LOADED_FAMILIES } from '../../src/catalog/families'
 import { withVat } from '../support/fixtures'
 import { catalogRows, baseConfig } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
@@ -72,7 +73,7 @@ function vertical(reading: ReceiptReading | null = MATCHES) {
 
   const deps: TurnDeps = {
     rows: () => catalogRows,
-    config: baseConfig,
+    families: LOADED_FAMILIES,
     facts: [],
     extract: async () => answers.shift() ?? { kind: 'other', family: null, attributes: {}, size: null, addOns: [], factKey: null },
     write: async (request) => passThrough(request.user),

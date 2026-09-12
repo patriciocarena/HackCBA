@@ -8,7 +8,7 @@ import type { AttributeBag } from './attributes'
  * missing an attribute is a job printed wrong; one carrying an ugly slug is a job printed
  * right by someone who had to think for a second.
  */
-const VALUES: Record<string, string> = {
+export const SPANISH_VALUES: Record<string, string> = {
   illustration_300: 'ilustración 300',
   illustration_350: 'ilustración 350',
   special: 'papel especial',
@@ -20,21 +20,34 @@ const VALUES: Record<string, string> = {
   opp_both_sides: 'OPP ambas caras',
   opp_both_sides_uv_one_side: 'OPP ambas caras, UV una cara',
   opp_both_sides_uv_both_sides: 'OPP ambas caras, UV ambas caras',
+  semi_pleno: 'semi pleno',
+  pleno: 'pleno',
+  half_legal: '1/2 oficio',
+  a4: 'A4',
+  bw: 'blanco y negro',
+  color: 'color',
 }
 
-const NAMES: Record<string, string> = {
+export const SPANISH_NAMES: Record<string, string> = {
+  // Not an attribute any family declares: it is what the turn asks for when the message names
+  // no product and the conversation has not named one either. Phrased as the question the
+  // counter asks, because "producto" on its own reads as a form field.
+  family: 'qué querés imprimir',
   quantity: 'cantidad',
   paper: 'papel',
   sides: 'caras',
   finish: 'terminación',
+  coverage: 'cobertura de tinta',
+  format: 'formato',
+  ink: 'tinta',
 }
 
 export function spanishValue(value: string | number): string {
-  return typeof value === 'number' ? String(value) : (VALUES[value] ?? value)
+  return typeof value === 'number' ? String(value) : (SPANISH_VALUES[value] ?? value)
 }
 
 export function spanishName(name: string): string {
-  return NAMES[name] ?? name
+  return SPANISH_NAMES[name] ?? name
 }
 
 /**

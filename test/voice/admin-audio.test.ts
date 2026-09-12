@@ -44,7 +44,7 @@ function readerWith(overrides: Partial<AdminAudioDeps> = {}) {
   const heard = transcriber()
   const read = readAdminAudio({
     rows: () => catalogRows,
-    family: businessCards,
+    families: [businessCards],
     transcription: heard.port,
     extraction: extractor(),
     fetchAudio: async () => new Uint8Array([1, 2, 3]) as Uint8Array<ArrayBuffer>,

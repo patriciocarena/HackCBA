@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { LOADED_FAMILIES } from '../../src/catalog/families'
 import { amountOf } from '../../src/domain/price-for'
 import { withVat } from '../support/fixtures'
 import { DELEGATE } from '../../src/domain/handoff'
@@ -44,9 +45,6 @@ const QUOTED_FINAL_LIST = '$45.000'
 
 const QUOTED_REPLY = `Te cotizo ${QUOTED} final con IVA incluido.`
 
-/** A family whose list is already final, so `totalOf` passes the amount through. */
-const FINAL_LIST: PriceForConfig = { ...baseConfig, family: { ...baseConfig.family, vatIncluded: true } }
-
 /**
  * The whole vertical behind one webhook, recording both ends: what the writer was asked and
  * what the customer was sent. A test overrides only the phase it is about.
@@ -57,7 +55,7 @@ function vertical(overrides: Partial<TurnDeps> = {}, send?: Send, notify?: Notif
 
   const deps: TurnDeps = {
     rows: () => catalogRows,
-    config: baseConfig,
+    families: LOADED_FAMILIES,
     facts: [],
     extract: async () => QUOTE,
     write: async (request) => {
@@ -131,17 +129,16 @@ describe('a customer message crosses the whole vertical', () => {
     expect(replies).toEqual([{ chatId: '-100', text: QUOTED_REPLY }])
   })
 
-  it('adds the VAT itself when the list is net, and sends that number', async () => {
-    const reply = `Te cotizo ${QUOTED_FINAL_LIST} final con IVA incluido.`
-    const { webhook, replies } = vertical({ config: FINAL_LIST, write: async () => reply })
-
-    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
-
-    expect(replies).toEqual([{ chatId: '-100', text: reply }])
-  })
-
+  /**
+   * The two halves of ADR 0020 in one assertion. The writer states the list amount, which is
+   * what a model that read the owner's own table would say, and the guard refuses it because
+   * the engine grossed it up. `totalOf`'s other branch, a family whose list is already final,
+   * is unit tested: this vertical loads the families the shop actually loaded, and every one
+   * of them is net.
+   */
   it('refuses the list amount when the list is net, because the customer reads the gross', async () => {
-    const { webhook, replies } = vertical({ config: FINAL_LIST, write: async () => QUOTED_REPLY })
+    const reply = `Te cotizo ${QUOTED_FINAL_LIST} final con IVA incluido.`
+    const { webhook, replies } = vertical({ write: async () => reply })
 
     await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
 
@@ -217,7 +214,7 @@ function saleVertical(catalog: LiveCatalog = liveCatalog(catalogRows)) {
 
   const deps: TurnDeps = {
     rows: catalog.rows,
-    config: baseConfig,
+    families: LOADED_FAMILIES,
     facts: [],
     sale,
     extract: async ({ user }) => (user.includes('la quiero') ? ACCEPT : QUOTE),

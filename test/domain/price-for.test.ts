@@ -237,10 +237,16 @@ describe('priceFor', () => {
 })
 
 describe('namesFamily', () => {
-  test('a short article shared with the label is not the owner naming the family', () => {
-    const withArticle = { ...businessCards, label: 'Tarjetas de presentación' }
+  const withArticle = { ...businessCards, label: 'Tarjetas de presentación' }
 
-    expect(namesFamily('las tarjetas', withArticle)).toBe(true)
-    expect(namesFamily('de algo', withArticle)).toBe(false)
+  test('a short article shared with the label is not the owner naming the family', () => {
+    expect(namesFamily('las tarjetas', [withArticle])).toEqual([withArticle])
+    expect(namesFamily('de algo', [withArticle])).toEqual([])
+  })
+
+  test('it gives back every family that answers, because one word cannot pick between two', () => {
+    const other = { ...businessCards, slug: 'tarjetones', label: 'Tarjetas grandes' }
+
+    expect(namesFamily('las tarjetas', [withArticle, other])).toEqual([withArticle, other])
   })
 })

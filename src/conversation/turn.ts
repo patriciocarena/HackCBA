@@ -1,7 +1,8 @@
 import { totalOf } from '../domain/breakdown'
 import { answerFromFacts, factsBlock, type Fact } from '../domain/facts'
-import { DELEGATE } from '../domain/handoff'
-import { priceFor, type CatalogRow, type PriceForConfig } from '../domain/price-for'
+import { DELEGATE, OUT_OF_CATALOG } from '../domain/handoff'
+import { configFor } from '../catalog/families'
+import { priceFor, type CatalogRow } from '../domain/price-for'
 import { askText, pesos, quoteText } from '../domain/quote-text'
 import {
   quoteIntentSchema,
@@ -39,7 +40,12 @@ export type TurnDeps = {
   // price edit invisible: applyPriceEdit builds a new array and the captured reference goes
   // on quoting the old prices. See ADR 0017.
   rows: () => CatalogRow[]
-  config: PriceForConfig
+  /**
+   * Every family loaded, in the order extraction offers them. The turn picks one per message
+   * rather than being wired to one: with a single family `intent.family === null` meant "the one
+   * loaded family" and `priceFor` assumed it, which with three families is a wrong price.
+   */
+  families: readonly FamilyContract[]
   facts: Fact[]
   extract: Extract
   write: Write
@@ -84,7 +90,7 @@ export async function turn(
   const fenced = message.text
 
   const resolved = await resolve(deps, message, fenced, state).catch(
-    (): Resolved => ({ resolution: escalate('ambiguous'), attributes: state.attributes }),
+    (): Resolved => ({ resolution: escalate('ambiguous'), attributes: state.attributes, family: state.family }),
   )
   const settled = settle(resolved.resolution, state)
   const answer = answerOf(settled)
@@ -109,7 +115,7 @@ export async function turn(
     return silence({ ...state, escalated: true })
   }
 
-  return { reply, resolution: settled, state: nextState(state, settled, resolved.attributes, answer) }
+  return { reply, resolution: settled, state: nextState(state, settled, resolved, answer) }
 }
 
 function silence(state: TurnState): TurnResult {
@@ -120,7 +126,12 @@ export const NO_MEDIA =
   'Soy Dante, asesoro y tomo los pedidos de Multimpresos. Todavía no puedo escuchar audios ni mirar imágenes: esto lo miramos en el local y te contestamos en un rato.'
 
 /** The resolution, and what the conversation knows once this message has been read. */
-type Resolved = { resolution: Resolution; attributes: Record<string, string | number> }
+type Resolved = {
+  resolution: Resolution
+  attributes: Record<string, string | number>
+  /** Which family this message settled on, carried forward so a follow up need not name it. */
+  family?: string | null
+}
 
 async function resolve(
   deps: TurnDeps,
@@ -128,19 +139,19 @@ async function resolve(
   fenced: string,
   state: TurnState,
 ): Promise<Resolved> {
-  const family = deps.config.family
   const raw = await deps.extract({
     system: EXTRACTION_SYSTEM,
     user: fenced,
     // The loaded keys, so extraction names a fact the shop has rather than guessing the word
-    // for one. A key it cannot name is a fact it cannot claim was asked for.
-    schema: extractionSchema(family, deps.facts.map((fact) => fact.key)),
+    // for one. A key it cannot name is a fact it cannot claim was asked for. One schema over
+    // every family, so one model call decides the family and the attributes together.
+    schema: extractionSchema(deps.families, deps.facts.map((fact) => fact.key)),
   })
 
   // A reason outranks the kind. Extraction naming one means it recognised something the
   // engine must not answer, and a quote filled in beside it is a quote nobody may be given.
   const kept = state.attributes
-  const only = (resolution: Resolution): Resolved => ({ resolution, attributes: kept })
+  const only = (resolution: Resolution): Resolved => ({ resolution, attributes: kept, family: state.family })
 
   const stated = statedReason(raw)
   if (stated !== null) return only(escalate(stated))
@@ -152,20 +163,33 @@ async function resolve(
     return only(message.role === 'admin' ? { kind: 'instruct', text: ONLY_AUDIO } : escalate('not_authorized'))
   }
 
-  const intent = readIntent(raw, family)
+  const intent = readIntent(raw, deps.families)
   if (intent === null) return only(escalate('unsupported_option'))
 
   switch (intent.kind) {
     case 'quote': {
       // What this message said, on top of what the conversation already knew. The customer
-      // answering one question must not unsay the three answers they gave before it.
+      // answering one question must not unsay the three answers they gave before it. The family
+      // is remembered the same way: "A4 color" after "cuánto 2 talonarios" names no family, and
+      // asking which product again is the loop a conversation dies of.
       const attributes = { ...kept, ...intent.attributes }
+      const slug = intent.family ?? state.family
+
+      // A message that names no family, in a conversation that has not named one either. With
+      // one family this was an assumption the engine made silently. With three it is a question.
+      if (slug === null) return { resolution: { kind: 'ask', missing: ['family'] }, attributes, family: null }
+
+      const config = configFor(slug)
+      if (config === undefined) {
+        return { resolution: escalate('out_of_catalog', OUT_OF_CATALOG), attributes, family: slug }
+      }
+
       // C10's getter, so a quote reads the catalog as it is now and not as it was at boot.
-      const priced = priceFor({ ...intent, attributes }, deps.rows(), deps.config)
+      const priced = priceFor({ ...intent, family: slug, attributes }, deps.rows(), config)
       // Held before it is said, so the quote the customer may accept is the one they read.
       deps.sale?.hold(message.conversationId, priced)
 
-      return { resolution: priced, attributes }
+      return { resolution: priced, attributes, family: slug }
     }
     case 'fact':
       return only(answerFromFacts(intent.key, deps.facts))
@@ -180,8 +204,8 @@ async function resolve(
   }
 }
 
-function escalate(reason: EscalationReason): Resolution {
-  return { kind: 'escalate', reason, detail: DELEGATE }
+function escalate(reason: EscalationReason, detail: string = DELEGATE): Resolution {
+  return { kind: 'escalate', reason, detail }
 }
 
 function statedReason(raw: unknown): EscalationReason | null {
@@ -199,7 +223,7 @@ function answerKind(raw: unknown): unknown {
 /** Null is a quote the loaded catalog cannot express, which is not the same as no quote. */
 function readIntent(
   raw: unknown,
-  family: FamilyContract,
+  families: readonly FamilyContract[],
 ): QuoteIntent | FactIntent | AcceptIntent | OtherIntent | null {
   const answered = raw as Record<string, unknown>
 
@@ -207,7 +231,7 @@ function readIntent(
   if (answerKind(raw) === 'accept') return { kind: 'accept' }
   if (answerKind(raw) !== 'quote') return { kind: 'other' }
 
-  const parsed = quoteIntentSchema(family).safeParse({
+  const parsed = quoteIntentSchema(families).safeParse({
     kind: 'quote',
     family: answered.family,
     attributes: stated(answered.attributes),
@@ -253,12 +277,13 @@ function answerOf(resolution: Resolution): string {
 function nextState(
   state: TurnState,
   resolution: Resolution,
-  attributes: Record<string, string | number>,
+  resolved: Resolved,
   answer: string,
 ): TurnState {
   return {
     ...state,
-    attributes,
+    attributes: resolved.attributes,
+    family: resolved.family ?? state.family,
     amounts: [...new Set([...state.amounts, ...amountsIn(answer)])],
     introduced: true,
     escalated: resolution.kind === 'escalate',

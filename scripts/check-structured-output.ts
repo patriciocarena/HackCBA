@@ -15,7 +15,7 @@
  * longer load bearing. Needs OPENROUTER_API_KEY and OPENROUTER_MODEL.
  */
 import '../src/config/load-env'
-import { businessCards } from '../src/catalog/business-cards'
+import { LOADED_FAMILIES } from '../src/catalog/families'
 import { openRouterModel } from '../src/conversation/openrouter'
 import { EXTRACTION_SYSTEM, extractionSchema } from '../src/conversation/prompt'
 import { READING_SYSTEM, RECEIPT_SCHEMA } from '../src/conversation/receipt-reading'
@@ -85,7 +85,7 @@ try {
   const raw = await customer.extract({
     system: EXTRACTION_SYSTEM,
     user: CUSTOMER_MESSAGE,
-    schema: extractionSchema(businessCards),
+    schema: extractionSchema(LOADED_FAMILIES),
   })
   pass('the customer schema is honoured', JSON.stringify(raw))
 } catch (error) {

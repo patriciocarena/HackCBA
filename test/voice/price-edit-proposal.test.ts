@@ -15,7 +15,7 @@ function raise(percent: number, target = 'las tarjetas'): PriceEditIntent {
 }
 
 function propose(intent: PriceEditIntent) {
-  return proposePriceEdit({ intent, rows: catalogRows, family: businessCards, ...CONTEXT })
+  return proposePriceEdit({ intent, rows: catalogRows, families: [businessCards], ...CONTEXT })
 }
 
 describe('proposePriceEdit', () => {
@@ -54,7 +54,7 @@ describe('proposePriceEdit, when the target names nothing loaded', () => {
     const result = proposePriceEdit({
       intent: raise(20),
       rows: catalogRows.filter((row: CatalogRow) => row.kind !== 'sale'),
-      family: businessCards,
+      families: [businessCards],
       ...CONTEXT,
     })
 
@@ -74,7 +74,7 @@ describe('proposePriceEdit, on an amount it was never given', () => {
     const result = proposePriceEdit({
       intent: { kind: 'review', reason: 'ambiguous', detail: 'no amount was dictated' },
       rows: catalogRows,
-      family: businessCards,
+      families: [businessCards],
       ...CONTEXT,
     })
 
@@ -119,7 +119,7 @@ describe('proposePriceEdit, on where the edit came from', () => {
     const photo = proposePriceEdit({
       intent: raise(20),
       rows: catalogRows,
-      family: businessCards,
+      families: [businessCards],
       ...CONTEXT,
       media: { kind: 'photo', id: 'photo-1' },
     })
@@ -133,7 +133,7 @@ describe('proposePriceEdit, on where the edit came from', () => {
       const result = proposePriceEdit({
         intent: raise(20),
         rows: catalogRows,
-        family: businessCards,
+        families: [businessCards],
         ...CONTEXT,
         proposedAt,
       })

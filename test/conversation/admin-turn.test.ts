@@ -13,10 +13,11 @@ const OWNER = '7'
 function proposal(overrides: Partial<PriceEditProposal> = {}): PriceEditProposal {
   return {
     id: 'edit_1',
+    familySlug: 'business_cards',
     operation: { op: 'percent', direction: 'raise', rate: 0.2 },
     lines: [
-      { slug: 'bc_special_100_front', label: '100 tarjetas papel especial', oldPrice: ars(12100), newPrice: ars(14520) },
-      { slug: 'bc_offset_1000_4_1', label: '1000 tarjetas ilustración', oldPrice: ars(45000), newPrice: ars(54000) },
+      { slug: 'bc_special_100_front', familySlug: 'business_cards', label: '100 tarjetas papel especial', oldPrice: ars(12100), newPrice: ars(14520) },
+      { slug: 'bc_offset_1000_4_1', familySlug: 'business_cards', label: '1000 tarjetas ilustración', oldPrice: ars(45000), newPrice: ars(54000) },
     ],
     state: 'proposed',
     source: 'audio',

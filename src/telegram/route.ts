@@ -1,4 +1,5 @@
 import { registerApiRoute, type ApiRoute } from '@mastra/core/server'
+import { LOADED_FAMILIES } from '../catalog/families'
 import { baseConfig, businessCards } from '../catalog/business-cards'
 import { shopFacts } from '../catalog/shop-facts'
 import type { LiveCatalog } from '../catalog/live-catalog'
@@ -121,7 +122,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
     held,
     workOrders({
       rows: wiring.catalog.rows,
-      family: businessCards,
+      families: LOADED_FAMILIES,
       send,
       ownerChatId: () => ownerChat,
     }),
@@ -156,7 +157,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
     customerTurn(
       // ponytail: the seed, not the facts table. The rows are the same shape from the same
       // file either way, so the day something reads them back it is a change of reader.
-      { rows: wiring.catalog.rows, config: baseConfig, facts: shopFacts, extract: model.extract, write: wiring.write, sale },
+      { rows: wiring.catalog.rows, families: LOADED_FAMILIES, facts: shopFacts, extract: model.extract, write: wiring.write, sale },
       send,
       notify,
     ),
@@ -165,7 +166,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
   const owner = adminTurn({
     read: readAdminAudio({
       rows: wiring.catalog.rows,
-      family: businessCards,
+      families: LOADED_FAMILIES,
       transcription: transcriptionFromEnv(process.env, fetchImpl),
       extraction: extractionFromEnv(process.env, fetchImpl),
       fetchAudio: telegramAudio(token, fetchImpl),
