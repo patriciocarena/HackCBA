@@ -54,6 +54,8 @@ function wired(rows: CatalogRow[] = ROWS) {
     catalog,
     record: async (version) => void versions.push(version),
     isAdmin: (id) => id === ADMIN,
+    answer: async () => {},
+    send: async () => {},
     versionId: () => `v${(issued += 1)}`,
     now: () => NOW,
   })
