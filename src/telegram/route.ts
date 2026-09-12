@@ -1,5 +1,6 @@
 import { registerApiRoute, type ApiRoute } from '@mastra/core/server'
 import { baseConfig, businessCards } from '../catalog/business-cards'
+import { shopFacts } from '../catalog/shop-facts'
 import type { LiveCatalog } from '../catalog/live-catalog'
 import { requireEnv } from '../config/env'
 import { adminTurn } from '../conversation/admin-turn'
@@ -19,7 +20,7 @@ import { transcriptionFromEnv, type FetchLike } from '../voice/transcription'
 import { telegramAudio } from './audio-file'
 import { confirmCallback, type RecordVersion } from './confirm-callback'
 import type { Turn } from './inbound'
-import { telegramAnswerCallback, telegramAsk, telegramSend } from './send'
+import { telegramAnswerCallback, telegramAsk, telegramChatAction, telegramSend } from './send'
 import { telegramWebhook, type WebhookDeps } from './webhook'
 
 /**
@@ -53,6 +54,7 @@ export function telegramWebhookRoute(
     ...deps,
     isAdmin,
     secret: requireEnv('TELEGRAM_WEBHOOK_SECRET'),
+    typing: deps.typing ?? telegramChatAction(botToken, fetchImpl),
     turn: deps.turn ?? productionTurn(fetchImpl, wiring),
     onCallback:
       deps.onCallback ??
@@ -152,9 +154,9 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
       confirm: sale.confirmFromReceipt,
     },
     customerTurn(
-      // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
-      // half of the rule; the loaded half arrives with the table that holds them.
-      { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: wiring.write, sale },
+      // ponytail: the seed, not the facts table. The rows are the same shape from the same
+      // file either way, so the day something reads them back it is a change of reader.
+      { rows: wiring.catalog.rows, config: baseConfig, facts: shopFacts, extract: model.extract, write: wiring.write, sale },
       send,
       notify,
     ),

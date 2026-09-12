@@ -1,0 +1,68 @@
+{
+  "source": {
+    "client": "Multimpresos",
+    "note": "A value is copied from what the owner confirmed or from the page he approved. A fact nobody confirmed carries a null value, which escalates, and it is never filled in with something that sounds right.",
+    "confirmations": {
+      "2026-09-10": "Answered by the owner: hours, payment methods and the e-cheq term.",
+      "2026-09-11": "Published on multimpresos.com.ar, the site the owner approved: address and phones."
+    }
+  },
+  "facts": [
+    {
+      "key": "hours",
+      "label": "Horarios",
+      "value": "Lunes a viernes de 9 a 18:30, sábados de 9 a 13.",
+      "confirmed_on": "2026-09-10"
+    },
+    {
+      "key": "payment_methods",
+      "label": "Medios de pago",
+      "value": "Efectivo, transferencia, QR, todas las tarjetas, link de pago y e-cheq.",
+      "confirmed_on": "2026-09-10"
+    },
+    {
+      "key": "echeq_term",
+      "label": "Plazo de e-cheq",
+      "value": "E-cheq a 10 días. Otro plazo lo conversa una persona según el monto.",
+      "confirmed_on": "2026-09-10"
+    },
+    {
+      "key": "address",
+      "label": "Dirección",
+      "value": "Santa Rosa 407, Córdoba capital.",
+      "confirmed_on": "2026-09-11"
+    },
+    {
+      "key": "phones",
+      "label": "Teléfonos",
+      "value": "Fijo (0351) 429-0749.",
+      "confirmed_on": "2026-09-11"
+    },
+    {
+      "key": "email",
+      "label": "Correo",
+      "value": "info@multimpresos.com.ar",
+      "confirmed_on": "2026-09-11"
+    },
+    {
+      "key": "delivery_times",
+      "label": "Plazos de entrega",
+      "value": null
+    },
+    {
+      "key": "branches",
+      "label": "Sucursales",
+      "value": null
+    },
+    {
+      "key": "what_we_do_not_do",
+      "label": "Lo que no hacemos",
+      "value": null
+    },
+    {
+      "key": "invoice_types",
+      "label": "Tipos de factura",
+      "value": null
+    }
+  ]
+}

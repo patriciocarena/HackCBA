@@ -210,7 +210,9 @@ function routed() {
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>
 
     if (new URL(url).host === 'api.telegram.org') {
-      sends.push({ chatId: String(body.chat_id), text: String(body.text) })
+      // Only what carries words. A chat action is a POST to the same host and it says nothing,
+      // so counting it here would make every assertion about what a customer read wrong.
+      if (body.text !== undefined) sends.push({ chatId: String(body.chat_id), text: String(body.text) })
 
       return Response.json({ ok: true })
     }

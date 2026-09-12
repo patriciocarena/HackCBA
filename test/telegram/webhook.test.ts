@@ -321,3 +321,54 @@ describe('telegramWebhook, over its budget', () => {
     expect(presses).toHaveLength(1)
   })
 })
+
+/**
+ * The webhook awaits the turn before it acknowledges, so between a customer's message and
+ * Dante's reply their screen shows nothing at all. On the voice path that is about twenty
+ * seconds. The indicator is the one thing that says the shop heard them.
+ */
+describe('telegramWebhook, while the turn runs', () => {
+  it('tells the chat Dante is writing before the turn, not after it', async () => {
+    const order: string[] = []
+    const webhook = telegramWebhook({
+      secret: SECRET,
+      onCallback: noPress,
+      typing: async (chatId) => { order.push(`typing:${chatId}`) },
+      turn: async () => { order.push('turn') },
+    })
+
+    await webhook(delivery(update(70)))
+
+    expect(order).toEqual(['typing:42', 'turn'])
+  })
+
+  it('says nothing to a sender it already shed, because the indicator costs a message too', async () => {
+    const order: string[] = []
+    const webhook = telegramWebhook({
+      secret: SECRET,
+      onCallback: noPress,
+      typing: async (chatId) => { order.push(`typing:${chatId}`) },
+      rateLimit: inMemoryRateLimit(1, 1000, () => 0),
+    })
+
+    await webhook(delivery(update(70)))
+    await webhook(delivery(update(71)))
+
+    expect(order).toEqual(['typing:42'])
+  })
+
+  it('answers even when the indicator throws, because the reply is the product', async () => {
+    const { turns, turn } = spy()
+    const webhook = telegramWebhook({
+      secret: SECRET,
+      onCallback: noPress,
+      typing: async () => { throw new Error('telegram said no') },
+      turn,
+    })
+
+    const answered = await webhook(delivery(update(70)))
+
+    expect(answered.status).toBe(200)
+    expect(turns).toHaveLength(1)
+  })
+})

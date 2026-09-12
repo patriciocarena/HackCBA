@@ -133,7 +133,9 @@ async function resolve(
   const raw = await deps.extract({
     system: EXTRACTION_SYSTEM,
     user: fenced,
-    schema: extractionSchema(family),
+    // The loaded keys, so extraction names a fact the shop has rather than guessing the word
+    // for one. A key it cannot name is a fact it cannot claim was asked for.
+    schema: extractionSchema(family, deps.facts.map((fact) => fact.key)),
   })
 
   // A reason outranks the kind. Extraction naming one means it recognised something the

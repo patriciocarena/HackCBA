@@ -238,3 +238,34 @@ a config shape. Nothing I would have designed from the phrase resembled it.
 Install the vendor's skill or fetch the vendor's docs first, then ask the questions the docs
 cannot answer. The two that mattered here were product decisions the docs never address: may an
 LLM-written observation set an attribute that becomes a price, and what is the memory for.
+
+## A new demo beat is a change to the demo, so the eval decides where it goes
+
+2026-09-12. Loading the facts bought the demo an exchange that shows the "does not invent"
+pillar instead of narrating it: the hours are answered, a branch in the north is not. I put it
+between action 1 and action 2 because that is where it reads best.
+
+`bun test` stayed green. `bun run eval:demo` failed ten checks. The second question escalates,
+an escalated conversation is over (ADR 0011), and "dale, la quiero" got silence: no order, no
+deposit, no receipt, no work order. On stage that is the whole money path gone, two minutes in.
+
+Two patterns out of it.
+
+A beat that escalates goes last, or it ends the demo. Write the placement argument into the
+runbook next to the beat, not into a commit nobody opens at showtime.
+
+And the eval is not a rehearsal of the code, it is the rehearsal of the run sheet. When the run
+sheet grows a step, the eval grows the same step in the same position, or the next person
+rehearses something the demo is not.
+
+## A free string in a schema of enums is the field that guesses
+
+Same beat, found by the same eval on the second run. `factKey` was the one open string in an
+extraction schema where the family, the attributes and the add-ons are all enums built from
+the loaded catalog. The model returned a key the seed did not have, so a loaded fact read as
+unknown and the shop escalated its own opening hours. It answered correctly on the run before,
+which is worse than failing: one run in two.
+
+ADR 0005 already said an attribute no family declares cannot be extracted at all. The same rule
+was never drawn for a fact key. When a lookup is keyed on a model's word, constrain the word to
+the keys that exist, and fall back to the open string only when there are none.

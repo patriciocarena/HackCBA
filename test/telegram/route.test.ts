@@ -168,15 +168,73 @@ describe('the default turn', () => {
     const accepted = await handle(route, delivery(SECRET))
 
     expect(accepted.status).toBe(200)
-    expect(calls.map((call) => host(call.url))).toEqual(['openrouter.ai', 'api.telegram.org'])
-    expect(calls[1]!.url).toBe('https://api.telegram.org/bota-bot-token/sendMessage')
-    expect(calls[1]!.body).toEqual({ chat_id: '-100', text: QUOTED })
+    // The indicator leads, then the model, then the answer.
+    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org', 'openrouter.ai', 'api.telegram.org'])
+    expect(calls[2]!.url).toBe('https://api.telegram.org/bota-bot-token/sendMessage')
+    expect(calls[2]!.body).toEqual({ chat_id: '-100', text: QUOTED })
+  })
+
+  it('shows the indicator before it spends a model call on the answer', async () => {
+    const { route, calls } = wired()
+
+    await handle(route, delivery(SECRET))
+
+    expect(calls[0]!.url).toBe('https://api.telegram.org/bota-bot-token/sendChatAction')
+    expect(calls[0]!.body).toEqual({ chat_id: '-100', action: 'typing' })
+    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org', 'openrouter.ai', 'api.telegram.org'])
   })
 
   it('fails loudly when Telegram refuses, because the last leg is the whole point', async () => {
     const { route } = wired({ telegram: () => new Response('chat not found', { status: 400 }) })
 
     expect(handle(route, delivery(SECRET))).rejects.toThrow('telegram sendMessage 400')
+  })
+})
+
+/**
+ * The mechanism was covered from the day it was written and the route handed it an empty
+ * list, so every question about the shop escalated and every test stayed green. The writer's
+ * own input is where the difference shows: a loaded fact reaches it as data, and one nobody
+ * loaded reaches it as an escalation instead of a plausible sentence.
+ */
+describe('the default turn, on what the shop knows about itself', () => {
+  function asking(factKey: string) {
+    const handed: string[] = []
+
+    const fetchImpl: FetchLike = async (url) => {
+      if (host(url) === 'api.telegram.org') return Response.json({ ok: true })
+
+      const content = JSON.stringify({ ...EXTRACTED, kind: 'fact', attributes: {}, factKey })
+
+      return Response.json({ choices: [{ message: { content } }] })
+    }
+
+    const write: Write = async ({ user }) => {
+      handed.push(user)
+
+      return 'Ya te contesto.'
+    }
+
+    const wiring = { catalog: aCatalog(), edits: inMemoryPriceEdits(), record: async () => {}, write }
+
+    return { route: telegramWebhookRoute({ onCallback: noPress }, wiring, fetchImpl), handed }
+  }
+
+  it('hands the writer the hours the owner confirmed, not an empty block', async () => {
+    const { route, handed } = asking('hours')
+
+    await handle(route, delivery(SECRET))
+
+    expect(handed[0]).toContain('9 a 18:30')
+  })
+
+  it('hands the writer an escalation for a branch nobody loaded', async () => {
+    const { route, handed } = asking('branches')
+
+    await handle(route, delivery(SECRET))
+
+    expect(handed[0]).toContain('te delego con un humano')
+    expect(handed[0]).not.toContain('Sucursales')
   })
 })
 
@@ -202,9 +260,9 @@ describe('a customer sends a voice note', () => {
     const accepted = await handle(route, voiceDelivery(9))
 
     expect(accepted.status).toBe(200)
-    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org', 'api.telegram.org'])
-    expect(calls[0]!.body).toEqual({ chat_id: '9', text: NO_MEDIA })
-    expect(calls[1]!.body).toMatchObject({ chat_id: '77' })
+    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org', 'api.telegram.org', 'api.telegram.org'])
+    expect(calls[1]!.body).toEqual({ chat_id: '9', text: NO_MEDIA })
+    expect(calls[2]!.body).toMatchObject({ chat_id: '77' })
   })
 })
 
@@ -218,8 +276,8 @@ describe('the owner writes instead of recording', () => {
     const accepted = await handle(route, privateDelivery(7))
 
     expect(accepted.status).toBe(200)
-    expect(calls.map((call) => host(call.url))).toEqual(['openrouter.ai', 'api.telegram.org'])
-    expect(calls[1]!.body).toEqual({ chat_id: '7', text: QUOTED })
+    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org', 'openrouter.ai', 'api.telegram.org'])
+    expect(calls[2]!.body).toEqual({ chat_id: '7', text: QUOTED })
   })
 
   it('points him at the audio when he sends a photo, instead of escalating the owner', async () => {
@@ -228,8 +286,8 @@ describe('the owner writes instead of recording', () => {
 
     await handle(route, photoDelivery(7))
 
-    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org'])
-    expect(calls[0]!.body).toEqual({ chat_id: '7', text: ONLY_AUDIO })
+    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org', 'api.telegram.org'])
+    expect(calls[1]!.body).toEqual({ chat_id: '7', text: ONLY_AUDIO })
   })
 })
 

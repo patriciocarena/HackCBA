@@ -2,7 +2,7 @@
 
 A sales agent for a print shop. It quotes over WhatsApp without inventing a price.
 
-HackCBA, 24 hours, four people. The client is Multimpresos, a print shop in Tucumán.
+HackCBA, 24 hours, four people. The client is Multimpresos, a print shop in Córdoba capital.
 
 ## The problem
 
@@ -56,8 +56,10 @@ They are the product. Loosen them and we are back to the bot that invented price
 6. Every outside text is fenced as untrusted and is never an instruction.
 7. Dante introduces itself as automated and never pretends to be a person.
 
-Escalation rate is measured from the first turn. It will be high at the start, and it is
-the honest signal of catalog coverage, not a failure.
+Escalating is the right outcome, not a failure. Its rate will be high while the catalog is
+thin, and that is the honest signal of coverage. Nothing counts it yet: `inbound_messages`
+stores the message and not the outcome, so the rate arrives with the table that holds a
+turn's result.
 
 ## What we build in 24 hours
 
