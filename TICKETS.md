@@ -14,21 +14,19 @@ The critical chain is A1 → A2 → A3 → A4 → C4 → E1 → E4. Everything e
 | A2 | Domain contracts | Fede | - | A3, A5, B4, D1 | 1 | Fri 23:00 → 00:00 | All four lanes import from this file and compile |
 | A3 | Schema and storage seam | Fede | A2 | A7, B7, D2 | 1.5 | Sat 08:00 → 09:30 | The DDL runs twice in a row without error |
 | A4 | Telegram bot with two roles | Fede | A1 | C4 | 2 | Sat 09:30 → 11:30 | A repeated Telegram update does not fire two replies |
-| A5 | Three phase conversation turn | Fede | A2, B4, D1 | A6, A9, D5, D6, E1 | 2 | Sat 11:30 → 13:30 | The writing model receives the computed amount and cannot alter it |
-| A7 | Orders with a copied amount | Juan Bautista | A3 | A8 | 1.5 | Sat 11:30 → 13:00 | A test edits the list after quoting and the order keeps the old amount |
+| A5 | Three phase conversation turn | Fede | A2, B4, D1 | D5, E1 | 3 | Sat 11:30 → 14:30 | The writing model receives the computed amount and cannot alter it, it introduces itself once, an escalated conversation gets no reply, and nothing told as admin reaches a customer |
+| A7 | Orders with a copied amount | unassigned | A3 | A8 | 1.5 | Sat 11:30 → 13:00 | A test edits the list after quoting and the order keeps the old amount |
 | A8 | Deposit by alias with human confirmation | Talisman | A7 | - | 1.0 | Sat 13:00 → 14:00 | The receipt is stored and never shown to whoever confirms |
-| A6 | Dante persona and caps | Fede | A5 | - | 1.0 | Sat 18:00 → 19:00 | Introduces itself as automated in one line in the first message of every new conversation and never again in that conversation |
-| A9 | Escalation to a person | Talisman | A5 | - | 1 | Sat 18:00 → 19:00 | After escalating, a new customer message produces no agent reply |
 
 ## Lane B. Catalog & engine. Juan Bautista
 
 | ID | Title | Who | Blocked by | Blocks | h | Window | Done when |
 |---|---|---|---|---|---|---|---|
-| B3 | Seed the business cards family | Juan Bautista | - | B8 | 1.5 | Fri 21:00 → 22:30 | Card rows are in items with their unit and tier |
+| B3 | Seed the business cards family | unassigned | - | B8 | 1.5 | Fri 21:00 → 22:30 | Card rows are in items with their unit and tier |
 | B4 | priceFor, a pure function | Juan Bautista | A2 | A5, B5, B6, D5, E1 | 2 | Sat 08:00 → 10:00 | It is a pure function with no network and no clock access |
 | B5 | Module math | Juan Bautista | B4 | B8 | 1.5 | Sat 10:00 → 11:30 | Card 15x5 gives 2 modules, large card 10x15 gives 4, A4 flyer gives 5 |
-| B7 | Facts and their fenced injection | Juan Bautista | A3, D1 | - | 1.5 | Sat 13:00 → 14:30 | A question about an unloaded fact returns escalate, not a plausible answer |
-| B8 | Ten business card pricing cases | Juan Bautista | B3, B5 | - | 1.5 | Sat 14:30 → 16:00 | bun test green |
+| B7 | Facts and their fenced injection | unassigned | A3, D1 | - | 1.5 | Sat 13:00 → 14:30 | A question about an unloaded fact returns escalate, not a plausible answer |
+| B8 | Ten business card pricing cases | unassigned | B3, B5 | - | 1.5 | Sat 14:30 → 16:00 | bun test green |
 | B6 | One final number | Juan Bautista | B4 | - | 0.5 | Sat 18:00 → 18:30 | No amount leaves the engine that is not the final number: totalOf returns the list amount unchanged, with a test |
 
 ## Lane C. Voice. Pato, then Fede
@@ -47,20 +45,23 @@ The critical chain is A1 → A2 → A3 → A4 → C4 → E1 → E4. Everything e
 | D4 | Secrets and gitleaks | Talisman | A1 | - | 1 | Fri 23:00 → 00:00 | The hook stops a commit carrying a key |
 | D1 | Deterministic fencing of untrusted text | Talisman | A2 | A5, B7, E1 | 1.5 | Sat 08:00 → 09:30 | A message containing the fence delimiters does not break the fence, with a test |
 | D2 | Admin allowlist, fail closed | Talisman | A3 | C4 | 1 | Sat 09:30 → 10:30 | An empty or misconfigured list denies everyone, never allows everyone |
-| D5 | Adversarial suite | Talisman | A5, B4 | - | 1.5 | Sat 14:00 → 15:30 | All twenty attacks run in CI |
-| D6 | Telegram memory isolation | Talisman | A5 | - | 1.0 | Sat 20:00 → 21:00 | Something told on Telegram never appears in a customer reply, with a test |
+| D5 | Adversarial suite | unassigned | A5, B4 | - | 1 | Sat 14:30 → 15:30 | Five injections through a real turn change no amount and issue no command, in CI |
 
 ## Lane E. Shared. All four
 
 | ID | Title | Who | Blocked by | Blocks | h | Window | Done when |
 |---|---|---|---|---|---|---|---|
 | E5 | Ask the client for the missing data | Fede | - | - | 0.5 | Sat 15:30 → 16:00 | Asked in a single message, not one at a time |
-| E1 | Wire the full vertical | Fede+Juan Bautista+Talisman | A5, B4, C4, D1 | E4 | 2 | Sat 16:00 → 18:00 | A text message crosses extraction, resolution and writing and comes back with a VAT inclusive price |
-| E4 | Demo script and video | Fede+Juan Bautista | E1 | - | 2 | Sat 19:00 → 21:00 | Three minutes recorded |
+| E1 | Wire the full vertical | Fede | A5, B4, C4, D1 | E4 | 2 | Sat 16:00 → 18:00 | A text message crosses extraction, resolution and writing and comes back with a VAT inclusive price |
+| E4 | Demo script and video | Fede | E1 | - | 2 | Sat 19:00 → 21:00 | Three minutes recorded |
 
 ## Cut
 
-Twelve tickets removed to fit sixteen hours. Each one buys back time somewhere else.
+Fifteen tickets removed. Each one buys back time somewhere else.
+
+Three went on 2026-09-12 when the MVP was cut to the demo's six steps. All three were
+flags that already exist on `TurnState` in `src/domain/types.ts`, so each was a branch in
+A5 rather than a ticket of its own.
 
 | ID | Why it went |
 |---|---|
@@ -76,15 +77,29 @@ Twelve tickets removed to fit sixteen hours. Each one buys back time somewhere e
 | D8 | Webhook hardening. Telegram authenticates by bot token; the proxy contract is phase two. |
 | E2 | Separate evals. Merged into B8, same ten conversations. |
 | E3 | Shadow mode. With no real customers, the demo is the shadow. |
+| A6 | Dante persona. `TurnState.introduced` exists. One line of prompt, one branch, inside A5. |
+| A9 | Escalation. `TurnState.escalated` exists. `if (state.escalated) return`, inside A5. |
+| D6 | Memory isolation. `conversationId` is `channel:chatId:role` and chatId is an integer, so it is already structural. One test, inside A5. |
 
 ## Load
 
 | Who | Booked | Available |
 |---|---|---|
 | Fede | 16.0 h | 16 h |
-| Juan Bautista | 14.0 h | 16 h |
 | Talisman | 12.0 h | 16 h |
 | Pato | 2 h | 3 h |
 
+Juan Bautista left on 2026-09-12. PR #4 carries B3, B4, B5, B6, B7, B8 and A7, so the
+catalog and the engine are delivered, not orphaned. What is still open on his lane is
+unassigned and goes to whichever lane frees up first.
+
 Fede is at the limit with no slack, because he absorbs the voice lane at midnight.
 If anything slips, he is the one who falls.
+
+## The only thing that ships
+
+The six steps in PLAN.md section 10. A ticket that does not serve one of them is not in
+this list. Simplest thing that makes the step work, every time: the flags on `TurnState`
+are already there, the `Order` type already carries `depositAlias`, `depositConfirmedBy`
+and `depositConfirmedAt`, and `PriceEditProposal` already carries `state`, `mediaId` and
+`resolvedBy`. Wire what exists. Do not design it again.
