@@ -200,6 +200,10 @@ function routed() {
   const sends: { chatId: string; text: string }[] = []
 
   const fetchImpl: FetchLike = async (url, init) => {
+    // The two Telegram GETs telegramAudio makes for a file id, which is how the photo arrives.
+    if (url.includes('/getFile?')) return Response.json({ ok: true, result: { file_path: 'photos/1.jpg' } })
+    if (url.includes('/file/bot')) return new Response(new Uint8Array([1, 2, 3]))
+
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>
 
     if (new URL(url).host === 'api.telegram.org') {
@@ -208,8 +212,11 @@ function routed() {
       return Response.json({ ok: true })
     }
 
-    const content =
-      'response_format' in body
+    // An image call carries its content as parts rather than a string, which is the only
+    // thing that tells the two model calls apart from out here.
+    const content = looksAtAnImage(body)
+      ? JSON.stringify(MATCHES)
+      : 'response_format' in body
         ? JSON.stringify(answers.shift() ?? { kind: 'other', family: null, attributes: {}, size: null, addOns: [], factKey: null, reason: null })
         : passThrough(lastUserMessage(body))
 
@@ -224,6 +231,12 @@ function routed() {
   const { handler } = route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }
 
   return { deliver: (request: Request) => handler({ req: { raw: request } }), sends }
+}
+
+function looksAtAnImage(body: Record<string, unknown>): boolean {
+  const messages = body.messages as { content: unknown }[]
+
+  return Array.isArray(messages[messages.length - 1]?.content)
 }
 
 function lastUserMessage(body: Record<string, unknown>): string {
@@ -248,6 +261,10 @@ describe('through the composition root, with nothing wired by the test', () => {
     expect(toOwner).toHaveLength(1)
     expect(toOwner[0]!.text).toContain('banco')
     expect(toOwner[0]!.text).not.toContain('AgACtransfer')
+
+    // And it confirmed it, through the route, with nobody pressing anything. The sale port is
+    // private in there, so this sentence is the only place the outcome is visible.
+    expect(toOwner[0]!.text).toContain('lo confirmé solo')
 
     // The quote and the deposit request. The photo never reached the turn, so it added none.
     expect(toCustomer).toHaveLength(2)
