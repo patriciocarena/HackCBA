@@ -7,8 +7,9 @@
     "note": "Amounts are copied from the list exactly as the owner typed them."
   },
   "currency": "ARS",
-  "vat_included": false,
+  "vat_included": true,
   "vat_rate": 0.21,
+  "quote_validity_days": 15,
   "family": {
     "slug": "business_cards",
     "label": "Tarjetas personales",
@@ -134,6 +135,7 @@
     {
       "id": "bc_addon_lamination_special_100_front",
       "kind": "add_on",
+      "group": "lamination",
       "label": "Laminado",
       "applies_to": ["bc_special_100_front"],
       "price": 5100
@@ -141,6 +143,7 @@
     {
       "id": "bc_addon_lamination_special_100_front_and_back",
       "kind": "add_on",
+      "group": "lamination",
       "label": "Laminado",
       "applies_to": ["bc_special_100_front_and_back"],
       "price": 6800
@@ -148,6 +151,7 @@
     {
       "id": "bc_addon_lamination_special_200_front",
       "kind": "add_on",
+      "group": "lamination",
       "label": "Laminado",
       "applies_to": ["bc_special_200_front"],
       "price": 6800
@@ -155,6 +159,7 @@
     {
       "id": "bc_addon_lamination_special_200_front_and_back",
       "kind": "add_on",
+      "group": "lamination",
       "label": "Laminado",
       "applies_to": ["bc_special_200_front_and_back"],
       "price": 11000
@@ -162,6 +167,7 @@
     {
       "id": "bc_addon_design",
       "kind": "add_on",
+      "group": "design",
       "label": "Diseño, mínimo",
       "applies_to_family": true,
       "price": 20000,
@@ -170,6 +176,7 @@
     {
       "id": "bc_addon_extra_cut",
       "kind": "add_on",
+      "group": "extra_cut",
       "label": "Corte extra",
       "applies_to_family": true,
       "price": 1600
@@ -177,6 +184,7 @@
     {
       "id": "bc_addon_label_perforation_1000",
       "kind": "add_on",
+      "group": "label_perforation",
       "label": "Perforación etiqueta, por millar",
       "applies_to_family": true,
       "attributes": { "quantity": 1000 },
@@ -186,6 +194,7 @@
     {
       "id": "bc_addon_rounded_corners_100",
       "kind": "add_on",
+      "group": "rounded_corners",
       "label": "Puntas redondeadas, 100",
       "applies_to_family": true,
       "attributes": { "quantity": 100 },
@@ -195,6 +204,7 @@
     {
       "id": "bc_addon_rounded_corners_200",
       "kind": "add_on",
+      "group": "rounded_corners",
       "label": "Puntas redondeadas, 200",
       "applies_to_family": true,
       "attributes": { "quantity": 200 },
@@ -204,6 +214,7 @@
     {
       "id": "bc_addon_rounded_corners_1000",
       "kind": "add_on",
+      "group": "rounded_corners",
       "label": "Puntas redondeadas, 1000",
       "applies_to_family": true,
       "attributes": { "quantity": 1000 },
@@ -213,6 +224,7 @@
     {
       "id": "bc_addon_circular_cut_1000",
       "kind": "add_on",
+      "group": "circular_cut",
       "label": "Corte circular de 4 a 12 cm de diámetro, por millar",
       "applies_to_family": true,
       "attributes": { "quantity": 1000 },
@@ -222,6 +234,7 @@
     {
       "id": "bc_discount_illustration_plain_100",
       "kind": "discount",
+      "provisional": true,
       "label": "Papel ilustración común 300g, 100 tarjetas 4/0 o 4/4",
       "applies_to": ["bc_illustration300_100_front", "bc_illustration300_100_front_and_back"],
       "price": 1800
@@ -229,6 +242,7 @@
     {
       "id": "bc_discount_illustration_plain_200",
       "kind": "discount",
+      "provisional": true,
       "label": "Papel ilustración común 300g, 200 tarjetas 4/0 o 4/4",
       "applies_to": ["bc_illustration300_200_front", "bc_illustration300_200_front_and_back"],
       "price": 3400
