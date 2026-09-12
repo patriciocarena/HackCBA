@@ -7,7 +7,10 @@ import { proposePriceEdit, type Review, type SavePriceEdit } from './price-edit-
 import type { TranscriptionPort } from './transcription'
 
 export type AdminAudioDeps = {
-  rows: CatalogRow[]
+  // A getter, for the reason ADR 0017 gives. A proposal prices oldPrice against the catalog,
+  // and applyPriceEdit refuses a line whose oldPrice no longer matches. Capturing the rows
+  // here means the owner's second edit of the night is minted stale and refused on his press.
+  rows: () => CatalogRow[]
   family: FamilyContract
   transcription: TranscriptionPort
   extraction: PriceEditExtractionPort
@@ -39,7 +42,7 @@ export function readAdminAudio(
 
     const proposal = proposePriceEdit({
       intent: extracted.intent,
-      rows,
+      rows: rows(),
       family,
       media: message.media,
       proposedBy: message.senderId,

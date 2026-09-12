@@ -86,6 +86,7 @@ export function elevenLabsTranscription(
 
 export function transcriptionFromEnv(
   env: Record<string, string | undefined> = process.env,
+  fetchImpl?: FetchLike,
 ): TranscriptionPort {
   const missing = [
     "ELEVENLABS_API_KEY",
@@ -101,5 +102,6 @@ export function transcriptionFromEnv(
     apiKey: env.ELEVENLABS_API_KEY!,
     modelId: env.ELEVENLABS_MODEL_ID!,
     languageCode: env.TRANSCRIPTION_LANGUAGE!,
+    fetchImpl,
   });
 }

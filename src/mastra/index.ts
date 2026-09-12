@@ -1,14 +1,11 @@
-import { randomUUID } from 'node:crypto'
 import { Mastra } from '@mastra/core/mastra'
 import { LibSQLStore } from '@mastra/libsql'
 import { PinoLogger } from '@mastra/loggers'
 import { catalogRows } from '../catalog/business-cards'
 import { liveCatalog } from '../catalog/live-catalog'
 import { healthDbRoute } from '../health/route'
-import { adminAllowlistFromEnv } from '../security/allowlist'
 import { inMemoryPriceVersions } from '../storage/price-versions'
 import { dbUrl } from '../storage/sqlite'
-import { confirmCallback } from '../telegram/confirm-callback'
 import { telegramWebhookRoute } from '../telegram/route'
 import { inMemoryPriceEdits } from '../voice/price-edit-proposal'
 
@@ -23,20 +20,7 @@ export const mastra = new Mastra({
   server: {
     apiRoutes: [
       healthDbRoute(),
-      telegramWebhookRoute(
-        {
-          onCallback: confirmCallback({
-            load: edits.load,
-            save: edits.save,
-            catalog,
-            record: versions.record,
-            isAdmin: adminAllowlistFromEnv(),
-            versionId: () => randomUUID(),
-            now: () => new Date().toISOString(),
-          }),
-        },
-        catalog,
-      ),
+      telegramWebhookRoute({}, { catalog, edits, record: versions.record }),
     ],
   },
   logger: new PinoLogger({ name: 'Dante', level: 'info' }),

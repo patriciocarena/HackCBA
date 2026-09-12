@@ -15,6 +15,9 @@ export type SavePriceEdit = (proposal: PriceEditProposal) => Promise<void>
 
 export type LoadPriceEdit = (id: string) => Promise<PriceEditProposal | null>
 
+/** One store, so the end that mints a proposal and the end that reads it back share it. */
+export type PriceEditStore = { save: SavePriceEdit; load: LoadPriceEdit }
+
 // ponytail: in memory, A3's price_edits table once a proposal has to outlive the process.
 // The table is also where the read and the write become one transaction; keyed on id here,
 // a save replaces the proposal rather than appending a second row for the same edit.

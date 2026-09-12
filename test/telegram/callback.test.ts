@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { readCallback } from '../../src/telegram/callback'
+import { confirmData, readCallback } from '../../src/telegram/callback'
 
 function anUpdate(data: string) {
   return {
@@ -46,5 +46,23 @@ describe('readCallback', () => {
     expect(readCallback({ update_id: 1, message: { chat: { id: 1, type: 'private' }, text: 'hola' } })).toBeNull()
     expect(readCallback(null)).toBeNull()
     expect(readCallback({})).toBeNull()
+  })
+})
+
+describe('confirmData, the other half of readCallback', () => {
+  it('mints data that readCallback reads back as the same press', () => {
+    for (const accepted of [true, false]) {
+      const data = confirmData('018f2c7a-1d4e-7b3f-9a21-0c5e6f7a8b90', accepted)
+
+      expect(readCallback(anUpdate(data))).toMatchObject({
+        proposalId: '018f2c7a-1d4e-7b3f-9a21-0c5e6f7a8b90',
+        accepted,
+      })
+    }
+  })
+
+  it('refuses an id that would smuggle a fourth segment past the parser', () => {
+    expect(() => confirmData('edit_1:14520', true)).toThrow('cannot go in callback data')
+    expect(() => confirmData('', true)).toThrow('cannot go in callback data')
   })
 })
