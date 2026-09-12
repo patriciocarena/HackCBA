@@ -74,6 +74,7 @@ async function attack(text: string, model: Hijacked, facts: Fact[] = [], senderI
 
   const webhook = telegramWebhook({
     secret: SECRET,
+    onCallback: async () => {},
     isAdmin: adminAllowlist({ ids: OWNER }),
     turn: async (inbound) => {
       message = inbound

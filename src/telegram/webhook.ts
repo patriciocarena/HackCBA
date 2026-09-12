@@ -10,6 +10,7 @@ import {
   type InboundMessage,
   type Turn,
 } from './inbound'
+import { readCallback, type OnCallback } from './callback'
 import { inMemorySeenUpdates, type SeenUpdates } from './seen-updates'
 import { readUpdate } from './update'
 
@@ -22,6 +23,11 @@ export type WebhookDeps = {
   seenUpdates?: SeenUpdates
   log?: InboundLog
   turn?: Turn
+  // Required, and deliberately not defaulted. The last defaulted port in this file was
+  // `fence`, which fell back to an identity cast nothing ever replaced, and every Telegram
+  // message reached the turn unfenced for as long as the seam existed. A forgotten wire has
+  // to be a compile error rather than a button that does nothing in a live demo.
+  onCallback: OnCallback
   now?: () => string
 }
 
@@ -32,6 +38,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
     seenUpdates = inMemorySeenUpdates(),
     log = inMemoryInboundLog(),
     turn = silentTurn,
+    onCallback,
     now = () => new Date().toISOString(),
   } = deps
 
@@ -41,7 +48,20 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
   return async (request) => {
     if (!secretMatches(request.headers.get(SECRET_HEADER), known)) return new Response(null, { status: 401 })
 
-    const update = readUpdate(await request.json().catch(() => null))
+    const body = await request.json().catch(() => null)
+
+    // A button press is a callback_query and carries no `message`, so readUpdate reads it as
+    // null and it was acknowledged and dropped. The two shapes are disjoint; whichever parser
+    // claims the body owns it.
+    const callback = readCallback(body)
+    if (callback !== null) {
+      if (await seenUpdates.seen(callback.updateId)) return acknowledged()
+      await onCallback(callback)
+
+      return acknowledged()
+    }
+
+    const update = readUpdate(body)
     if (update === null) return acknowledged()
     if (await seenUpdates.seen(update.updateId)) return acknowledged()
 

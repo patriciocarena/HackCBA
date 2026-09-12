@@ -13,11 +13,25 @@ import { isActionable, MAX_PERCENT, type PriceChange, type PriceEditIntent } fro
 
 export type SavePriceEdit = (proposal: PriceEditProposal) => Promise<void>
 
-// ponytail: in memory, A3's price_edits table once a proposal has to outlive the process
-export function inMemoryPriceEdits(): { proposals: PriceEditProposal[]; save: SavePriceEdit } {
-  const proposals: PriceEditProposal[] = []
+export type LoadPriceEdit = (id: string) => Promise<PriceEditProposal | null>
 
-  return { proposals, save: async (proposal) => void proposals.push(proposal) }
+// ponytail: in memory, A3's price_edits table once a proposal has to outlive the process.
+// The table is also where the read and the write become one transaction; keyed on id here,
+// a save replaces the proposal rather than appending a second row for the same edit.
+export function inMemoryPriceEdits(): {
+  proposals: PriceEditProposal[]
+  save: SavePriceEdit
+  load: LoadPriceEdit
+} {
+  const held = new Map<string, PriceEditProposal>()
+
+  return {
+    get proposals() {
+      return [...held.values()]
+    },
+    save: async (proposal) => void held.set(proposal.id, proposal),
+    load: async (id) => held.get(id) ?? null,
+  }
 }
 
 export type Review = Extract<PriceEditIntent, { kind: 'review' }>

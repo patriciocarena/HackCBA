@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { telegramWebhookRoute } from '@/telegram/route'
 import type { InboundMessage } from '@/telegram/inbound'
+import type { OnCallback } from '@/telegram/callback'
+
+const noPress: OnCallback = async () => {}
 
 process.env.TELEGRAM_WEBHOOK_SECRET = 'a-long-random-string'
 
@@ -31,14 +34,14 @@ function privateDelivery(senderId: number): Request {
 
 describe('telegramWebhookRoute', () => {
   it('mounts a POST route on the server that already answers the health check', () => {
-    const route = telegramWebhookRoute()
+    const route = telegramWebhookRoute({ onCallback: noPress })
 
     expect(route).toMatchObject({ path: '/telegram/webhook', method: 'POST', requiresAuth: false })
   })
 
   it('hands the raw request to the webhook and takes the secret from the environment', async () => {
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ turn: async (message) => { turns.push(message) } })
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } })
 
     const denied = await handle(route, delivery('wrong'))
     const accepted = await handle(route, delivery(SECRET))
@@ -54,7 +57,7 @@ describe('telegramWebhookRoute, on who counts as the owner', () => {
 
   it('reads the allowlist from the deployment, so an unconfigured one admits nobody', async () => {
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ turn: async (message) => { turns.push(message) } })
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } })
 
     await handle(route, privateDelivery(7))
 
@@ -64,7 +67,7 @@ describe('telegramWebhookRoute, on who counts as the owner', () => {
   it('makes an allowlisted sender the admin in his own private chat', async () => {
     process.env.TELEGRAM_ADMIN_IDS = '7'
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ turn: async (message) => { turns.push(message) } })
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } })
 
     await handle(route, privateDelivery(7))
     await handle(route, privateDelivery(42))
