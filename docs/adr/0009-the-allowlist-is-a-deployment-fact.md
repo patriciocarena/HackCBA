@@ -47,12 +47,17 @@ because it is configuration. We never trim, pad or otherwise normalise what arri
 outside, so `" 123 "` denies, and `"123"` denies against an allowed `"1234"` because a set is
 not a substring search.
 
-Recording a denial is a required field of the config, not an option, so no construction site
-can quietly skip the Done when line that asks for it. The record carries the id when the id is
-a well formed Telegram id and null when it is not. Digits cannot carry an instruction, and an
-operator needs them to tell one prober from many. Anything that is not digits is attacker
-authored text and never reaches the record, not truncated and not escaped, because the log is
-read by a person and by whatever reads the log next.
+The predicate is pure and has no side effect. It answers a question and writes nothing.
+`isAdmin` runs on every inbound update, because the role of a sender is what the answer
+decides, so false is the normal answer for every customer the shop has. A recorder on that
+path would turn "someone tried to command the bot" into "someone spoke", and would hand an
+unauthenticated outsider unbounded writes into whatever sink it reached.
+
+Recording a rejected edit attempt belongs to C4, on the edit path, where a rejected edit
+attempt is actually known. When C4 writes one, the id belongs in it only when the id is a well
+formed Telegram user id. Digits cannot carry an instruction and an operator needs them, but
+anything else is text the sender chose and must not reach a log a person reads, not truncated
+and not escaped.
 
 ## Consequences
 

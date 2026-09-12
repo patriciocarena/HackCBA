@@ -18,9 +18,3 @@ _Avoid_: Fail safe, default deny, safe default
 A sender whose id is in the allowlist. The role the sender claims is not it, and neither is the
 content of the message. `ROLES` carries the name; the allowlist decides who holds it.
 _Avoid_: Owner, superuser, operator
-
-**Denial record**:
-What we write when a sender fails the check. It names the id only when the id is a well formed
-Telegram id, because a record is read by a person and an id we could not parse is text someone
-outside chose.
-_Avoid_: Audit log, access log, rejection

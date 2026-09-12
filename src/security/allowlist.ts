@@ -1,16 +1,10 @@
 export type IsAdmin = (telegramUserId: string) => boolean
 
-export type Denial = { telegramUserId: string | null }
-
-export type RecordDenial = (denial: Denial) => void
-
 export type AdminAllowlistConfig = {
   ids: string | undefined
-  recordDenial: RecordDenial
 }
 
 export type AdminAllowlistEnvConfig = {
-  recordDenial: RecordDenial
   env?: Record<string, string | undefined>
 }
 
@@ -32,19 +26,13 @@ function parse(ids: string | undefined): ReadonlySet<string> {
 }
 
 export function adminAllowlist(config: AdminAllowlistConfig): IsAdmin {
-  const { ids, recordDenial } = config
-  const allowed = parse(ids)
+  const allowed = parse(config.ids)
 
-  return (telegramUserId) => {
-    if (allowed.has(telegramUserId)) return true
-
-    recordDenial({ telegramUserId: isTelegramUserId(telegramUserId) ? telegramUserId : null })
-    return false
-  }
+  return (telegramUserId) => allowed.has(telegramUserId)
 }
 
-export function adminAllowlistFromEnv(config: AdminAllowlistEnvConfig): IsAdmin {
-  const { recordDenial, env = process.env } = config
+export function adminAllowlistFromEnv(config: AdminAllowlistEnvConfig = {}): IsAdmin {
+  const { env = process.env } = config
 
-  return adminAllowlist({ ids: env.TELEGRAM_ADMIN_IDS, recordDenial })
+  return adminAllowlist({ ids: env.TELEGRAM_ADMIN_IDS })
 }
