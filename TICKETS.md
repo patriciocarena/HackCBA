@@ -27,6 +27,7 @@ The critical chain is A1 → A2 → A3 → A4 → C4 → E1 → E4. Everything e
 | B5 | Module math | Juan Bautista | B4 | B8 | 1.5 | Sat 10:00 → 11:30 | Card 15x5 gives 2 modules, large card 10x15 gives 4, A4 flyer gives 5 |
 | B7 | Facts and their fenced injection | unassigned | A3, D1 | - | 1.5 | Sat 13:00 → 14:30 | A question about an unloaded fact returns escalate, not a plausible answer |
 | B8 | Ten business card pricing cases | unassigned | B3, B5 | - | 1.5 | Sat 14:30 → 16:00 | bun test green |
+| B10 | Load the catalog into a FamilyContract | unassigned | B3 | A5, E1 | 1 | Sat 14:00 → 15:00 | A module in src/ reads the seed and returns the FamilyContract and its rows, and test/support/catalog.ts is gone |
 | B6 | One final number | Juan Bautista | B4 | - | 0.5 | Sat 18:00 → 18:30 | No amount leaves the engine that is not the final number: totalOf returns the list amount unchanged, with a test |
 
 ## Lane C. Voice. Pato, then Fede
