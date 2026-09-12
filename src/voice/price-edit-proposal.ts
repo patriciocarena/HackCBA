@@ -9,7 +9,7 @@ import type {
   PriceEditProposal,
   PriceEditSource,
 } from '../domain/types'
-import { isActionable, type PriceChange, type PriceEditIntent } from './price-edit-intent'
+import { isActionable, MAX_PERCENT, type PriceChange, type PriceEditIntent } from './price-edit-intent'
 
 export type SavePriceEdit = (proposal: PriceEditProposal) => Promise<void>
 
@@ -49,7 +49,7 @@ export function proposePriceEdit(input: ProposeInput): Proposal {
   }
 
   const operation = operationOf(intent.change)
-  if (operation === null) return reviewed('ambiguous', 'the amount is not a whole number of pesos')
+  if (operation === null) return reviewed('ambiguous', 'the amount is not a price this can propose')
 
   const lines = saleRows(rows).map((row) => lineOf(row, operation))
   if (lines.length === 0) return reviewed('no_match', `${intent.target} has no price to change`)
@@ -83,12 +83,16 @@ function reviewed(reason: EscalationReason, detail: string): Proposal {
   return { ok: false, review: { kind: 'review', reason, detail } }
 }
 
+// The ceiling and the floor are also in the OpenRouter parser, which is one producer. This is
+// the funnel every producer passes, and it is the last place before an amount becomes pesos.
 function operationOf(change: PriceChange): PriceEditOperation | null {
   if (change.kind === 'percent') {
+    if (change.value <= 0 || change.value > MAX_PERCENT) return null
+
     return { op: 'percent', direction: change.direction, rate: change.value / 100 }
   }
 
-  if (!isArs(change.amount)) return null
+  if (!isArs(change.amount) || change.amount === 0) return null
 
   return { op: 'absolute', amount: ars(change.amount) }
 }

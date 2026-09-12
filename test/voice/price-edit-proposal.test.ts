@@ -142,3 +142,29 @@ describe('proposePriceEdit, on where the edit came from', () => {
     }
   })
 })
+
+describe('proposePriceEdit, on an amount no producer should get past it', () => {
+  it('refuses a percent beyond the ceiling, whichever producer built the intent', () => {
+    for (const value of [101, 1e6]) {
+      const intent: PriceEditIntent = {
+        kind: 'edit',
+        target: 'las tarjetas',
+        change: { kind: 'percent', direction: 'raise', value },
+      }
+
+      expect(propose(intent)).toMatchObject({ ok: false, review: { reason: 'ambiguous' } })
+    }
+  })
+
+  it('refuses a free price, because zero pesos is a whole number of them', () => {
+    for (const change of [
+      { kind: 'absolute', amount: 0 } as const,
+      { kind: 'percent', direction: 'raise', value: 0 } as const,
+    ]) {
+      expect(propose({ kind: 'edit', target: 'las tarjetas', change })).toMatchObject({
+        ok: false,
+        review: { reason: 'ambiguous' },
+      })
+    }
+  })
+})

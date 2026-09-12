@@ -41,6 +41,16 @@ Nothing records that the owner was once vague. An escalation rate by audio would
 inbound log, which already keeps the media id, joined against what followed it. `B9` was cut
 for the same reason on the text side, so this is consistent rather than a gap.
 
+`PriceEditExtractionPort.extract` takes a plain `string`, not `UntrustedText`, so the audio
+path has the fence enforced by one adapter's own code rather than by the type system. The text
+path does have it. A second adapter would be unfenced with no compile error. Narrowing the port
+is the fix and it is not this ticket.
+
+The ceiling and the floor on a dictated amount are enforced twice on purpose: in the OpenRouter
+parser, which is one producer, and in `operationOf`, which is the funnel every producer passes
+and the last place before an amount becomes pesos. `absolute 0` passes `isArs`, and a free price
+confirmed at the bottom of a long diff is the money path failing quietly.
+
 A fourth state stays available if the owner ever needs to see his own failed dictations in
 the same list as his edits. Adding it later costs a migration and this decision; adding it
 now costs a row that means "no edit", which every reader of the table then has to exclude.
