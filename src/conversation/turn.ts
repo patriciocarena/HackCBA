@@ -4,8 +4,10 @@ import { priceFor, type CatalogRow, type PriceForConfig } from '../domain/price-
 import { askText, pesos, quoteText } from '../domain/quote-text'
 import {
   quoteIntentSchema,
+  type FactIntent,
   type FamilyContract,
-  type Intent,
+  type OtherIntent,
+  type QuoteIntent,
   type Resolution,
   type TurnState,
 } from '../domain/types'
@@ -25,8 +27,10 @@ export type TurnDeps = {
   write: Write
 }
 
+/** `resolution` is what was said, so it carries a value exactly when `reply` does. */
 export type TurnResult = {
   reply: string | null
+  resolution: Resolution | null
   state: TurnState
 }
 
@@ -35,8 +39,8 @@ export async function turn(
   message: InboundMessage,
   state: TurnState,
 ): Promise<TurnResult> {
-  if (state.escalated) return { reply: null, state }
-  if (message.role !== 'customer' || message.text === null) return { reply: null, state }
+  if (state.escalated) return silence(state)
+  if (message.role !== 'customer' || message.text === null) return silence(state)
 
   const family = deps.config.family
   const fenced = fence(message.text, 'message')
@@ -52,10 +56,14 @@ export async function turn(
     .catch(() => null)
 
   if (reply === null || !amountsHold(reply, answer, settled)) {
-    return { reply: null, state: { ...state, escalated: true } }
+    return silence({ ...state, escalated: true })
   }
 
-  return { reply, state: nextState(state, settled) }
+  return { reply, resolution: settled, state: nextState(state, settled) }
+}
+
+function silence(state: TurnState): TurnResult {
+  return { reply: null, resolution: null, state }
 }
 
 const DELEGATE = 'te delego con un humano'
@@ -67,6 +75,10 @@ async function resolve(deps: TurnDeps, family: FamilyContract, fenced: string): 
     schema: extractionSchema(family),
   })
 
+  if ((raw as Record<string, unknown>)?.kind === 'admin_edit') {
+    return { kind: 'escalate', reason: 'not_authorized', detail: DELEGATE }
+  }
+
   const intent = readIntent(raw, family)
 
   switch (intent.kind) {
@@ -74,18 +86,18 @@ async function resolve(deps: TurnDeps, family: FamilyContract, fenced: string): 
       return priceFor(intent, deps.rows, deps.config)
     case 'fact':
       return answerFromFacts(intent.key, deps.facts)
-    case 'admin_edit':
-      return { kind: 'escalate', reason: 'not_authorized', detail: DELEGATE }
     case 'other':
       return { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE }
   }
 }
 
-function readIntent(raw: unknown, family: FamilyContract): Intent {
+function readIntent(
+  raw: unknown,
+  family: FamilyContract,
+): QuoteIntent | FactIntent | OtherIntent {
   const answered = raw as Record<string, unknown>
 
   if (answered?.kind === 'fact') return { kind: 'fact', key: String(answered.factKey ?? '') }
-  if (answered?.kind === 'admin_edit') return { kind: 'other' }
   if (answered?.kind !== 'quote') return { kind: 'other' }
 
   const parsed = quoteIntentSchema(family).safeParse({

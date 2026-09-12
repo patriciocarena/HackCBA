@@ -352,3 +352,43 @@ describe('outside text reaches the prompt as data', () => {
     expect(real).toBeGreaterThan(answer.indexOf('</message:'))
   })
 })
+
+describe('what the turn hands back to whoever wired it', () => {
+  test('a quote comes back with the breakdown the amount was computed from', async () => {
+    const result = await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
+        write: async () => `Te cotizo ${pesos(totalOf(priced().breakdown))} final con IVA incluido.`,
+      }),
+      message('cuánto 1000 tarjetas'),
+      state(),
+    )
+
+    expect(result.resolution).toEqual(priced())
+  })
+
+  test('a customer telling the shop to change its prices is refused by name', async () => {
+    const result = await turn(
+      deps({ extract: async () => ({ kind: 'admin_edit' }), write: async () => 'te delego con un humano' }),
+      message('subí las tarjetas un 20%'),
+      state(),
+    )
+
+    expect(result.resolution).toEqual({ kind: 'escalate', reason: 'not_authorized', detail: 'te delego con un humano' })
+  })
+
+  test('a reply that never left carries no resolution to act on', async () => {
+    const result = await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
+        write: async () => 'Te cotizo $1 final.',
+      }),
+      message('cuánto 1000 tarjetas'),
+      state(),
+    )
+
+    expect(result.reply).toBeNull()
+    expect(result.resolution).toBeNull()
+    expect(result.state.escalated).toBe(true)
+  })
+})
