@@ -2,11 +2,9 @@ import { describe, expect, it } from 'bun:test'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
 import type { TurnDeps } from '@/conversation/turn'
-import { totalOf } from '@/domain/breakdown'
-import { priceFor } from '@/domain/price-for'
-import { pesos } from '@/domain/quote-text'
-import { telegramWebhook } from '@/telegram/webhook'
+import type { PriceForConfig } from '@/domain/price-for'
 import type { Send } from '@/telegram/send'
+import { telegramWebhook } from '@/telegram/webhook'
 import { OFFSET_1000 } from '@test/support/fixtures'
 
 const SECRET = 'a-long-random-string'
@@ -20,35 +18,47 @@ const QUOTE = {
   factKey: null,
 }
 
-/** The number the engine computed, which is the only number the customer may read. */
-function quotedTotal(): string {
-  const resolution = priceFor(
-    { kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [] },
-    catalogRows,
-    baseConfig,
-  )
-  if (resolution.kind !== 'price') throw new Error(`the seed no longer prices 1000 offset cards: ${resolution.kind}`)
+/**
+ * What the owner's list charges for 1000 offset cards, written out rather than computed.
+ * Asking `priceFor` what `priceFor` should say proves the wiring and nothing about the
+ * price: double every row in the seed and a derived expectation follows it up.
+ */
+const QUOTED = '$45.000'
 
-  return pesos(totalOf(resolution.breakdown))
-}
+/** The same order once VAT is the engine's to add, which is 45000 x 1.21. */
+const QUOTED_NET_LIST = '$54.450'
 
-function sent(): Send & { replies: { chatId: string; text: string }[] } {
+const QUOTED_REPLY = `Te cotizo ${QUOTED} final con IVA incluido.`
+
+/** A family whose list is net, so `totalOf` has to apply the rate instead of passing it through. */
+const NET_LIST: PriceForConfig = { ...baseConfig, family: { ...baseConfig.family, vatIncluded: false } }
+
+/**
+ * The whole vertical behind one webhook, recording both ends: what the writer was asked and
+ * what the customer was sent. A test overrides only the phase it is about.
+ */
+function vertical(overrides: Partial<TurnDeps> = {}, send?: Send) {
   const replies: { chatId: string; text: string }[] = []
-  const send = (async (chatId: string, text: string) => { replies.push({ chatId, text }) }) as ReturnType<typeof sent>
-  send.replies = replies
+  const requests: { system: string; user: string }[] = []
 
-  return send
-}
-
-function deps(overrides: Partial<TurnDeps> = {}): TurnDeps {
-  return {
+  const deps: TurnDeps = {
     rows: catalogRows,
     config: baseConfig,
     facts: [],
     extract: async () => QUOTE,
-    write: async () => `Te cotizo ${quotedTotal()} final con IVA incluido.`,
+    write: async (request) => {
+      requests.push(request)
+
+      return QUOTED_REPLY
+    },
     ...overrides,
   }
+
+  const record: Send = async (chatId, text) => {
+    replies.push({ chatId, text })
+  }
+
+  return { webhook: telegramWebhook({ secret: SECRET, turn: customerTurn(deps, send ?? record) }), replies, requests }
 }
 
 function delivery(updateId: number, text: string): Request {
@@ -64,51 +74,76 @@ function delivery(updateId: number, text: string): Request {
 
 describe('a customer message crosses the whole vertical', () => {
   it('comes back with the exact pesos the engine computed, VAT included', async () => {
-    const send = sent()
-    const webhook = telegramWebhook({ secret: SECRET, turn: customerTurn(deps(), send) })
+    const { webhook, replies } = vertical()
 
     const response = await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
 
     expect(response.status).toBe(200)
-    expect(send.replies).toEqual([{ chatId: '-100', text: `Te cotizo ${quotedTotal()} final con IVA incluido.` }])
-    expect(quotedTotal()).not.toBe(pesos(0))
+    expect(replies).toEqual([{ chatId: '-100', text: QUOTED_REPLY }])
+  })
+
+  it('adds the VAT itself when the list is net, and sends that number', async () => {
+    const reply = `Te cotizo ${QUOTED_NET_LIST} final con IVA incluido.`
+    const { webhook, replies } = vertical({ config: NET_LIST, write: async () => reply })
+
+    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
+
+    expect(replies).toEqual([{ chatId: '-100', text: reply }])
+  })
+
+  it('refuses the list amount when the list is net, because the customer reads the gross', async () => {
+    const { webhook, replies } = vertical({ config: NET_LIST, write: async () => QUOTED_REPLY })
+
+    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
+
+    expect(replies).toBeEmpty()
   })
 
   it('says nothing when the writer states an amount the engine did not compute', async () => {
-    const send = sent()
-    const webhook = telegramWebhook({
-      secret: SECRET,
-      turn: customerTurn(deps({ write: async () => 'Te cotizo $1 final con IVA incluido.' }), send),
-    })
+    const { webhook, replies } = vertical({ write: async () => 'Te cotizo $1 final con IVA incluido.' })
 
     const response = await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
 
     expect(response.status).toBe(200)
-    expect(send.replies).toBeEmpty()
+    expect(replies).toBeEmpty()
   })
 
   it('carries one message of state into the next, so the introduction happens once', async () => {
-    const send = sent()
-    const systems: string[] = []
-    const webhook = telegramWebhook({
-      secret: SECRET,
-      turn: customerTurn(
-        deps({
-          write: async ({ system }) => {
-            systems.push(system)
-
-            return `Te cotizo ${quotedTotal()} final con IVA incluido.`
-          },
-        }),
-        send,
-      ),
-    })
+    const { webhook, requests } = vertical()
 
     await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
     await webhook(delivery(71, 'y 500?'))
 
+    const systems = requests.map((request) => request.system)
+
     expect(systems).toHaveLength(2)
     expect(systems[0]).not.toBe(systems[1])
     expect(systems[0]!.startsWith(systems[1]!)).toBe(true)
+  })
+})
+
+describe('one message, one delimiter', () => {
+  it('hands the writer the block the webhook fenced, not a fence around a fence', async () => {
+    const { webhook, requests } = vertical()
+
+    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
+
+    expect(requests[0]!.user.match(/<message:[0-9a-f]{32}>/g)).toHaveLength(1)
+  })
+})
+
+describe('a reply Telegram refused', () => {
+  it('leaves the conversation where it was, so the next message starts over', async () => {
+    let refuse = true
+    const { webhook, requests } = vertical({}, async () => {
+      if (refuse) throw new Error('telegram sendMessage 400: chat not found')
+    })
+
+    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas')).catch(() => {})
+    refuse = false
+    await webhook(delivery(71, 'hola, cuánto 1000 tarjetas'))
+
+    expect(requests).toHaveLength(2)
+    expect(requests[0]!.system).toBe(requests[1]!.system)
   })
 })
