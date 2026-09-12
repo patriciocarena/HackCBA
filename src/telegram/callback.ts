@@ -25,7 +25,10 @@ export function readCallback(body: unknown): Callback | null {
   if (!update.success) return null
 
   const query = update.data.callback_query
-  const [kind, proposalId, answer] = query.data.split(':')
+  const parts = query.data.split(':')
+  if (parts.length !== 3) return null
+
+  const [kind, proposalId, answer] = parts
   if (kind !== 'edit') return null
   if (proposalId === undefined || proposalId.length === 0) return null
   if (answer !== 'yes' && answer !== 'no') return null
