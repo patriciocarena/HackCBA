@@ -2,35 +2,42 @@ export type Transcription =
   | { ok: true; text: string }
   | { ok: false; reason: string };
 
+export type FetchLike = (
+  url: string,
+  init?: RequestInit,
+) => Promise<Response>;
+
 export interface TranscriptionPort {
-  transcribe(audio: Uint8Array, filename?: string): Promise<Transcription>;
+  transcribe(
+    audio: Uint8Array<ArrayBuffer>,
+    filename?: string,
+  ): Promise<Transcription>;
 }
 
 export interface ElevenLabsConfig {
   apiKey: string;
   modelId: string;
   languageCode: string;
-  fetchImpl?: typeof fetch;
+  fetchImpl?: FetchLike;
+  timeoutMs?: number;
 }
 
 const ENDPOINT = "https://api.elevenlabs.io/v1/speech-to-text";
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 export function elevenLabsTranscription(
   config: ElevenLabsConfig,
 ): TranscriptionPort {
-  const { apiKey, modelId, languageCode, fetchImpl = fetch } = config;
+  const {
+    apiKey,
+    modelId,
+    languageCode,
+    fetchImpl = fetch,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+  } = config;
 
   return {
-    async transcribe(audio, filename = "audio.ogg") {
-      const missing = [
-        !apiKey && "ELEVENLABS_API_KEY",
-        !modelId && "ELEVENLABS_MODEL_ID",
-        !languageCode && "TRANSCRIPTION_LANGUAGE",
-      ].filter(Boolean);
-
-      if (missing.length > 0) {
-        return { ok: false, reason: `missing ${missing.join(", ")}` };
-      }
+    async transcribe(audio, filename = "voice.oga") {
       if (audio.byteLength === 0) {
         return { ok: false, reason: "empty audio" };
       }
@@ -46,6 +53,7 @@ export function elevenLabsTranscription(
           method: "POST",
           headers: { "xi-api-key": apiKey },
           body: form,
+          signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (error) {
         return { ok: false, reason: `network: ${String(error)}` };
@@ -79,9 +87,19 @@ export function elevenLabsTranscription(
 export function transcriptionFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): TranscriptionPort {
+  const missing = [
+    "ELEVENLABS_API_KEY",
+    "ELEVENLABS_MODEL_ID",
+    "TRANSCRIPTION_LANGUAGE",
+  ].filter((name) => !env[name]);
+
+  if (missing.length > 0) {
+    throw new Error(`missing ${missing.join(", ")}`);
+  }
+
   return elevenLabsTranscription({
-    apiKey: env.ELEVENLABS_API_KEY ?? "",
-    modelId: env.ELEVENLABS_MODEL_ID ?? "",
-    languageCode: env.TRANSCRIPTION_LANGUAGE ?? "",
+    apiKey: env.ELEVENLABS_API_KEY!,
+    modelId: env.ELEVENLABS_MODEL_ID!,
+    languageCode: env.TRANSCRIPTION_LANGUAGE!,
   });
 }

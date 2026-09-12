@@ -1,5 +1,8 @@
-// Mirrors ESCALATION_REASONS in PLAN.md section 4. Swap for an import from
-// ../domain/types the moment A2 lands; it is one line and the values are identical.
+import type { FetchLike } from "./transcription";
+
+// Mirrors ESCALATION_REASONS in PLAN.md section 4 until A2 lands and this can
+// import from ../domain/types. The mirror is not trusted: price-edit-intent.test.ts
+// parses the frozen block out of PLAN.md and fails if the two ever drift.
 export const ESCALATION_REASONS = [
   "no_match",
   "ambiguous",
@@ -36,10 +39,12 @@ export function isActionable(
 export interface OpenRouterConfig {
   apiKey: string;
   model: string;
-  fetchImpl?: typeof fetch;
+  fetchImpl?: FetchLike;
+  timeoutMs?: number;
 }
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_TIMEOUT_MS = 30_000;
 
 const SYSTEM_PROMPT = `You read a transcript of a voice note dictated by the owner of a print shop in Argentina, who wants to change prices in his catalog.
 
@@ -127,18 +132,15 @@ export function toIntent(raw: RawIntent): PriceEditIntent {
 export function openRouterExtraction(
   config: OpenRouterConfig,
 ): PriceEditExtractionPort {
-  const { apiKey, model, fetchImpl = fetch } = config;
+  const {
+    apiKey,
+    model,
+    fetchImpl = fetch,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+  } = config;
 
   return {
     async extract(transcript) {
-      const missing = [
-        !apiKey && "OPENROUTER_API_KEY",
-        !model && "OPENROUTER_MODEL",
-      ].filter(Boolean);
-
-      if (missing.length > 0) {
-        return review("ambiguous", `missing ${missing.join(", ")}`);
-      }
       if (transcript.trim() === "") {
         return review("ambiguous", "empty transcript");
       }
@@ -170,6 +172,7 @@ export function openRouterExtraction(
               },
             },
           }),
+          signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (error) {
         return review("ambiguous", `network: ${String(error)}`);
@@ -207,8 +210,16 @@ export function openRouterExtraction(
 export function extractionFromEnv(
   env: Record<string, string | undefined> = process.env,
 ): PriceEditExtractionPort {
+  const missing = ["OPENROUTER_API_KEY", "OPENROUTER_MODEL"].filter(
+    (name) => !env[name],
+  );
+
+  if (missing.length > 0) {
+    throw new Error(`missing ${missing.join(", ")}`);
+  }
+
   return openRouterExtraction({
-    apiKey: env.OPENROUTER_API_KEY ?? "",
-    model: env.OPENROUTER_MODEL ?? "",
+    apiKey: env.OPENROUTER_API_KEY!,
+    model: env.OPENROUTER_MODEL!,
   });
 }

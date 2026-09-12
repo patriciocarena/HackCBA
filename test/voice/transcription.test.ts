@@ -4,7 +4,7 @@ import {
   transcriptionFromEnv,
   type ElevenLabsConfig,
   type TranscriptionPort,
-} from "./transcription";
+} from "../../src/voice/transcription";
 
 const AUDIO = new Uint8Array([1, 2, 3, 4]);
 
@@ -12,6 +12,12 @@ const CONFIG: Omit<ElevenLabsConfig, "fetchImpl"> = {
   apiKey: "test-key",
   modelId: "scribe_v2",
   languageCode: "es",
+};
+
+const ENV = {
+  ELEVENLABS_API_KEY: "k",
+  ELEVENLABS_MODEL_ID: "scribe_v2",
+  TRANSCRIPTION_LANGUAGE: "es",
 };
 
 function portReturning(response: Response | Error): TranscriptionPort {
@@ -119,42 +125,66 @@ describe("elevenLabsTranscription", () => {
   });
 });
 
-describe("configuration fails closed", () => {
-  test("a missing key names what is missing", async () => {
-    const port = transcriptionFromEnv({
-      ELEVENLABS_MODEL_ID: "scribe_v2",
-      TRANSCRIPTION_LANGUAGE: "es",
+describe("a hung provider does not hang the turn", () => {
+  test("every request carries a deadline", async () => {
+    let signal: AbortSignal | undefined;
+    const port = elevenLabsTranscription({
+      ...CONFIG,
+      fetchImpl: async (_url, init) => {
+        signal = init?.signal ?? undefined;
+        return jsonResponse({ text: "ok" });
+      },
     });
 
-    const result = await port.transcribe(AUDIO);
+    await port.transcribe(AUDIO);
 
-    expect(result).toEqual({ ok: false, reason: "missing ELEVENLABS_API_KEY" });
+    expect(signal).toBeInstanceOf(AbortSignal);
   });
 
-  test("an unconfigured environment names every missing variable", async () => {
-    const port = transcriptionFromEnv({});
+  test("the deadline expiring fails closed, like any other network failure", async () => {
+    const port = elevenLabsTranscription({
+      ...CONFIG,
+      timeoutMs: 1,
+      fetchImpl: async (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(new Error("TimeoutError: signal timed out")),
+          );
+        }),
+    });
 
     const result = await port.transcribe(AUDIO);
 
-    expect(result).toEqual({
-      ok: false,
-      reason:
-        "missing ELEVENLABS_API_KEY, ELEVENLABS_MODEL_ID, TRANSCRIPTION_LANGUAGE",
-    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toContain("Timeout");
+  });
+});
+
+describe("configuration is a boot concern, not a transcription outcome", () => {
+  test("a fully configured environment builds a port", () => {
+    expect(() => transcriptionFromEnv(ENV)).not.toThrow();
   });
 
-  test("the language is never assumed when it is not configured", async () => {
-    const port = transcriptionFromEnv({
-      ELEVENLABS_API_KEY: "k",
-      ELEVENLABS_MODEL_ID: "scribe_v2",
-    });
+  test("a missing key throws at construction, not on the owner's first audio", () => {
+    const { ELEVENLABS_API_KEY: _, ...withoutKey } = ENV;
 
-    const result = await port.transcribe(AUDIO);
+    expect(() => transcriptionFromEnv(withoutKey)).toThrow(
+      "missing ELEVENLABS_API_KEY",
+    );
+  });
 
-    expect(result).toEqual({
-      ok: false,
-      reason: "missing TRANSCRIPTION_LANGUAGE",
-    });
+  test("an unconfigured environment names every missing variable at once", () => {
+    expect(() => transcriptionFromEnv({})).toThrow(
+      "missing ELEVENLABS_API_KEY, ELEVENLABS_MODEL_ID, TRANSCRIPTION_LANGUAGE",
+    );
+  });
+
+  test("the language is never assumed when it is not configured", () => {
+    const { TRANSCRIPTION_LANGUAGE: _, ...withoutLanguage } = ENV;
+
+    expect(() => transcriptionFromEnv(withoutLanguage)).toThrow(
+      "missing TRANSCRIPTION_LANGUAGE",
+    );
   });
 });
 
