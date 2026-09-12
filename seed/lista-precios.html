@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Lista de precios MULTI</title>
+<style>
+  @page { size: A4; margin: 14mm 12mm 12mm 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 8.6pt; color: #16181d; margin: 0; line-height: 1.35;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1 { font-size: 19pt; margin: 0 0 2mm; letter-spacing: -.02em; }
+  .sub { color: #5b6270; font-size: 9pt; max-width: 165mm; margin: 0 0 6mm; }
+  section { page-break-before: always; page-break-inside: auto; }
+  section.first { page-break-before: auto; }
+  h2 {
+    font-size: 12.5pt; margin: 0 0 3mm; padding-bottom: 1.5mm;
+    border-bottom: 1.6pt solid #16181d; letter-spacing: .01em; text-transform: uppercase;
+  }
+  h3 {
+    font-size: 8.6pt; margin: 5mm 0 1.5mm; color: #16181d;
+    background: #eceef2; padding: 1.2mm 2mm; font-weight: 700;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 0 0 1mm; }
+  th {
+    text-align: right; font-size: 7.4pt; text-transform: uppercase; letter-spacing: .04em;
+    color: #5b6270; font-weight: 600; padding: 1mm 2mm; border-bottom: .6pt solid #c8ccd4;
+  }
+  th.l { text-align: left; }
+  td { padding: 1.05mm 2mm; border-bottom: .4pt solid #e6e8ec; vertical-align: top; }
+  td.p { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; width: 26mm; }
+  td.u { text-align: center; white-space: nowrap; width: 20mm; color: #444a55; font-size: 8pt; }
+  tr.mod td { background: #f7f8fa; color: #444a55; font-size: 8pt; }
+  .tag {
+    display: inline-block; font-size: 6.6pt; text-transform: uppercase; letter-spacing: .05em;
+    padding: .3mm 1.2mm; border-radius: 1pt; margin-right: 1.5mm; vertical-align: 1px; font-weight: 700;
+  }
+  .tag.a { background: #dfe8f7; color: #1c3d75; }
+  .tag.d { background: #e2f0e4; color: #1e5127; }
+  .na { color: #9aa0ac; }
+  .cons { color: #8a5a00; font-weight: 600; white-space: nowrap; }
+  .note { color: #5b6270; font-size: 7.6pt; margin: 1mm 0 0; font-style: italic; }
+  .rule {
+    border-left: 2.4pt solid #16181d; background: #f4f5f8; padding: 2mm 3mm;
+    margin: 2mm 0 3mm; font-size: 8pt; color: #2b303a;
+  }
+  .rule b { color: #16181d; }
+  .legend { display: grid; grid-template-columns: 26mm 1fr; gap: 1mm 3mm; font-size: 8pt; margin-bottom: 6mm; }
+  .legend div:nth-child(odd) { font-weight: 700; }
+  table.chg td { font-size: 7.9pt; }
+  table.chg td:first-child { width: 8mm; font-weight: 700; color: #5b6270; }
+  table.chg td:nth-child(2) { width: 56mm; }
+  .foot { color: #8a90a0; font-size: 7.2pt; margin-top: 6mm; border-top: .4pt solid #e6e8ec; padding-top: 2mm; }
+</style>
+</head>
+<body>
+
+<section class="first">
+  <h1>Lista de precios MULTI</h1>
+  <p class="sub">Versión final. Incorpora las dieciséis respuestas de Javier a los puntos que habían quedado
+  marcados en la versión anterior, más las nueve aclaraciones de la segunda vuelta. Esta es la lista vigente: la fecha del
+  archivo original no rige.</p>
+
+  <div class="rule">
+    <b>Los precios no incluyen IVA.</b> Se cotiza siempre como precio más IVA.<br>
+    <b>Validez.</b> Un presupuesto vale 15 días. Pasado ese plazo sigue valiendo mientras la lista no
+    haya cambiado.<br>
+    <b>Cantidades.</b> Son las de cada tabla y el cliente elige entre ellas. No se cotizan cantidades
+    intermedias.<br>
+    <b>Porcentajes.</b> Cuando se aplica más de uno, se aplican uno sobre otro, no se suman.
+  </div>
+
+  <h3>Cómo leer esta lista</h3>
+  <div class="legend">
+    <div><span class="tag a">adicional</span></div><div>Fila que se suma al producto de arriba. No es un precio de venta por sí sola.</div>
+    <div><span class="tag d">descuento</span></div><div>Fila que se resta del producto de arriba.</div>
+    <div>—</div><div>No se ofrece en esa terminación o en esa columna.</div>
+    <div><span class="cons">A consultar</span></div><div>El precio se cotiza caso por caso. No hay importe de lista.</div>
+    <div>Módulo</div><div>La medida estándar de impresión. En tarjetas el módulo es 8,5 x 5 cm; en folletos, 10 x 15 cm. Una pieza más grande usa varios módulos y se corta el sobrante: una tarjeta de 15 x 5 cm entra en 2 módulos, un tarjetón de 10 x 15 cm en 4. El precio se multiplica por la cantidad de módulos y después se aplica el descuento por módulos de la tabla.</div>
+    <div>ECO y UV</div><div>La calidad de impresión. ECO es ecosolvente; UV es impresión UV, más resistente al roce y con colores que duran más.</div>
+    <div>Mínimo</div><div>0,50 m² o 0,50 metro lineal, según cómo se venda el producto. Una pieza más chica se cobra igual como mínimo.</div>
+  </div>
+
+  <h3>Qué cambió respecto de la versión anterior</h3>
+  <table class="chg">
+    <tr><td>1</td><td>Fecha de vigencia</td><td>Es la lista vigente. Se sacó la referencia al 8 de abril y la nota de fecha dudosa.</td></tr>
+    <tr><td>2</td><td>Columna "Papel común" en tarjetas</td><td>Es precio de venta. La columna pasa a llamarse "Papel ilustración 300g". La otra columna son papeles especiales.</td></tr>
+    <tr><td>3</td><td>"Porcentaje 780%"</td><td>Dato interno de aumento. Sacado de la lista al cliente.</td></tr>
+    <tr><td>4</td><td>Tarjetas c/OPP sólo frente (4/1 - 4/0)</td><td>Discontinuado. La fila se eliminó.</td></tr>
+    <tr><td>5</td><td>Perforación circular x 1000</td><td>A consultar.</td></tr>
+    <tr><td>6</td><td>Numerado simple o doble x 1000</td><td>A consultar. Se descartó el precio propuesto de $ 40.300: no es el mismo trabajo que el numerado de rifas.</td></tr>
+    <tr><td>7</td><td>Postura x 1000</td><td>A consultar.</td></tr>
+    <tr><td>8</td><td>Rifas color</td><td>Corregido: 1200 números $ 138.000 y 2000 números $ 220.000.</td></tr>
+    <tr><td>9</td><td>Acrílico por detrás 2 mm</td><td>Medidas y precios se actualizan próximamente. La sección queda marcada como pendiente.</td></tr>
+    <tr><td>10</td><td>Cartelería sobre rígidos</td><td>Las medidas son estándar. Se agregó la regla de cuándo se cobra por medida y cuándo por m².</td></tr>
+    <tr><td>11</td><td>Gigantografías, unidad de cada fila</td><td>Confirmada la columna Unidad con la regla de Javier: por unidad los portabanners, fly banner, pie, ojales y cambio de lona; por metro lineal las filas que declaran el ancho; el resto por m².</td></tr>
+    <tr><td>12</td><td>Vinilo de corte, ancho 120 cm</td><td>"Corte solamente sin material" es el doble que en 60 cm: $ 14.000 por metro lineal.</td></tr>
+    <tr><td>13</td><td>Importes escritos con coma</td><td>Confirmado. $ 15, $ 25, $ 10, $ 30, $ 3.500 y $ 4.000.</td></tr>
+    <tr><td>14</td><td>Almanaques 30 x 22 cm, 300 unidades</td><td>Verificado. $ 176.000 es correcto.</td></tr>
+    <tr><td>15</td><td>Lista de talonarios</td><td>Desestimada. La hoja se eliminó.</td></tr>
+    <tr><td>16</td><td>Celdas vacías en tablas de dos columnas</td><td>Confirmado: significan que no se ofrece en esa terminación.</td></tr>
+  </table>
+
+  <h3>Segunda vuelta de aclaraciones</h3>
+  <table class="chg">
+    <tr><td>a</td><td>IVA</td><td>Los precios son sin IVA. Se agregó al encabezado.</td></tr>
+    <tr><td>b</td><td>Cantidades</td><td>El cliente elige entre las cantidades de cada tabla. No hay intermedias.</td></tr>
+    <tr><td>c</td><td>Porcentajes</td><td>Se aplican uno sobre otro, no se suman.</td></tr>
+    <tr><td>d</td><td>Módulos</td><td>Definido en "Cómo leer esta lista", con las medidas de tarjeta y de folleto.</td></tr>
+    <tr><td>e</td><td>MAXI</td><td>Es un cliente con descuentos propios, no una línea de producto. La fila salió de la lista.</td></tr>
+    <tr><td>f</td><td>SEA</td><td>Desestimado. Salió de las dos filas de descuento de tarjetas.</td></tr>
+    <tr><td>g</td><td>Diseño</td><td>Los $ 20.000 son un mínimo. Un isologotipo desde cero se cotiza aparte.</td></tr>
+    <tr><td>h</td><td>Mínimo de impresión</td><td>0,50 m² o 0,50 metro lineal, según cómo se venda el producto.</td></tr>
+    <tr><td>i</td><td>ECO y UV</td><td>Son calidades de impresión: ecosolvente y UV. Explicado en la leyenda y en gigantografías.</td></tr>
+  </table>
+
+  <p class="foot">Correcciones de texto aplicadas sobre el original:
+  TAJETAS → TARJETAS · ALTO IMPCATO → ALTO IMPACTO · AFICEHS → AFICHES · chueque grande → cheque grande ·
+  2ra CALIDAD → 2da CALIDAD · SA3 adhesivaI → SA3 adhesiva · ILUSTRACION → ILUSTRACIÓN</p>
+</section>
+
+<section>
+  <h2>Tarjetas personales</h2>
+
+  <h3>Papeles especiales, tramados y perlados / papel ilustración 300g</h3>
+  <table>
+    <tr><th class="l">Producto</th><th>Papel especial</th><th>Papel ilustración 300g</th></tr>
+    <tr><td>100 tarjetas color sólo frente</td><td class="p">$ 12.100</td><td class="p">$ 10.300</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Laminado</td><td class="p">$ 5.100</td><td class="p na">—</td></tr>
+    <tr><td>100 tarjetas color frente y dorso</td><td class="p">$ 20.200</td><td class="p">$ 18.400</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Laminado</td><td class="p">$ 6.800</td><td class="p na">—</td></tr>
+    <tr><td>200 tarjetas color sólo frente</td><td class="p">$ 21.600</td><td class="p">$ 19.800</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Laminado</td><td class="p">$ 6.800</td><td class="p na">—</td></tr>
+    <tr><td>200 tarjetas color frente y dorso</td><td class="p">$ 32.200</td><td class="p">$ 28.800</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Laminado</td><td class="p">$ 11.000</td><td class="p na">—</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Diseño (mínimo)</td><td class="p">$ 20.000</td><td class="p na">—</td></tr>
+  </table>
+
+  <h3>Papel ilustración común 300g</h3>
+  <table>
+    <tr class="mod"><td><span class="tag d">descuento</span>100 tarjetas 4/0 o 4/4, descontar</td><td class="p">$ 1.800</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>200 tarjetas 4/0 o 4/4, descontar</td><td class="p">$ 3.400</td></tr>
+  </table>
+
+  <h3>Offset papel ilustración 350g x 1000</h3>
+  <table>
+    <tr><td>Tarjetas full color 300g<div class="note">Frente full color, dorso escala de grises (4/1)</div></td><td class="p">$ 45.000</td></tr>
+    <tr><td>Tarjetas full color 300g, 500 unidades<div class="note">Frente full color, dorso escala de grises (4/1)</div></td><td class="p">$ 34.000</td></tr>
+    <tr><td>Tarjetas full color frente y dorso<div class="note">Frente y dorso full color, con UV sólo en el frente (4/4)</div></td><td class="p">$ 49.000</td></tr>
+    <tr><td>Tarjetas frente y dorso full color c/OPP F/D (4/4)</td><td class="p">$ 58.000</td></tr>
+    <tr><td>Tarjeta full color c/OPP F/D + sectorizado UV en una cara</td><td class="p">$ 63.000</td></tr>
+    <tr><td>Tarjeta full color c/OPP F/D + sectorizado UV en ambas caras</td><td class="p">$ 95.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Diseño (mínimo)</td><td class="p">$ 20.000</td></tr>
+    <tr class="mod"><td colspan="2"><span class="tag d">descuento</span>Módulos: 3 a 5 -10% / 6 a 8 -15% / 9 a 12 -20% / 13 o más -25%</td></tr>
+  </table>
+  <p class="note">El diseño de $ 20.000 es un mínimo y cubre un trabajo sin demasiada complejidad y sin
+  muchos cambios. Un isologotipo desde cero se cotiza aparte y lo evalúan los diseñadores.</p>
+
+  <h3>Terminaciones</h3>
+  <table>
+    <tr><td>Corte extra</td><td class="p">$ 1.600</td></tr>
+    <tr><td>Perforación etiqueta (2 días hábiles más) x millar</td><td class="p">$ 13.300</td></tr>
+    <tr><td>Puntas redondeadas (2 días hábiles más) x 100</td><td class="p">$ 2.200</td></tr>
+    <tr><td>Puntas redondeadas (2 días hábiles más) x 200</td><td class="p">$ 3.100</td></tr>
+    <tr><td>Puntas redondeadas (2 días hábiles más) x 1000</td><td class="p">$ 8.800</td></tr>
+    <tr><td>Corte circular de 4 a 12 cm de diámetro (sumar al producto) x millar</td><td class="p">$ 52.800</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Folletos full color, offset</h2>
+
+  <h3>Frente solo 4/0 · 130g</h3>
+  <table>
+    <tr><td>1000 folletos 10 x 15 full color</td><td class="p">$ 48.000</td></tr>
+    <tr><td>1000 volantes 10 x 15 full color 4/0 papel obra</td><td class="p">$ 34.000</td></tr>
+    <tr><td>2000 folletos 10 x 15 full color</td><td class="p">$ 76.000</td></tr>
+    <tr><td>5000 folletos 10 x 15 full color</td><td class="p">$ 136.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Diseño (mínimo)</td><td class="p">$ 20.000</td></tr>
+    <tr class="mod"><td colspan="2"><span class="tag d">descuento</span>Módulos: 3 a 5 -10% / 6 a 8 -15% / 9 a 12 -20% / 13 o más -25%</td></tr>
+  </table>
+  <p class="note">El módulo de folleto es 10 x 15 cm. Un A4 se pasa por un centímetro de los cuatro
+  módulos, así que conviene hacerlo de 20 x 30 cm y aprovechar el espacio completo.</p>
+
+  <h3>Frente y dorso 4/4 · 130g</h3>
+  <table>
+    <tr><td>1000 folletos 10 x 15 full color</td><td class="p">$ 55.000</td></tr>
+    <tr><td>2000 folletos 10 x 15 full color ilustración brillante</td><td class="p">$ 84.000</td></tr>
+    <tr><td>5000 folletos 10 x 15 full color ilustración brillante</td><td class="p">$ 163.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Diseño (mínimo)</td><td class="p">$ 25.000</td></tr>
+    <tr class="mod"><td colspan="2"><span class="tag d">descuento</span>Módulos: 3 a 5 -10% / 6 a 8 -15% / 9 a 12 -20% / 13 o más -25%</td></tr>
+  </table>
+
+  <h3>Afiches 30 x 40 cm y 60 x 40 cm</h3>
+  <table>
+    <tr><td>1000 afiches papel obra color negro 1/0</td><td class="p">$ 195.000</td></tr>
+    <tr><td>1000 afiches papel obra full color A3 4/0</td><td class="p">$ 215.000</td></tr>
+    <tr><td>1000 afiches ilustración full color 30 x 40 cm 4/0</td><td class="p">$ 315.000</td></tr>
+    <tr><td>1000 afiches ilustración full color 60 x 40 cm 4/0</td><td class="p">$ 550.000</td></tr>
+    <tr class="mod"><td colspan="2"><span class="tag d">descuento</span>Módulos: 3 a 5 -10% / 6 a 8 -15% / 9 a 12 -20% / 13 o más -25%</td></tr>
+  </table>
+
+  <h3>Extras</h3>
+  <table>
+    <tr><td>Doblado de díptico o tríptico x 1000</td><td class="p">$ 19.000</td></tr>
+    <tr><td>Doblado de díptico o tríptico x 2000</td><td class="p">$ 29.500</td></tr>
+    <tr><td>Doblado de díptico o tríptico x 5000</td><td class="p">$ 51.500</td></tr>
+    <tr><td>Perforación circular x 1000</td><td class="p cons">A consultar</td></tr>
+    <tr><td>Numerado simple o doble x 1000</td><td class="p cons">A consultar</td></tr>
+    <tr><td>Postura x 1000</td><td class="p cons">A consultar</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Facturas</h2>
+
+  <h3>1/2 oficio 22 x 34</h3>
+  <table>
+    <tr><th class="l">Cantidad</th><th>B/N</th><th>Color</th></tr>
+    <tr><td>1 talonario</td><td class="p">$ 16.000</td><td class="p">$ 26.000</td></tr>
+    <tr><td>2 talonarios</td><td class="p">$ 24.000</td><td class="p">$ 45.500</td></tr>
+    <tr><td>4 talonarios</td><td class="p">$ 35.000</td><td class="p">$ 55.000</td></tr>
+    <tr><td>6 talonarios</td><td class="p">$ 45.000</td><td class="p">$ 68.000</td></tr>
+    <tr><td>8 talonarios</td><td class="p">$ 52.000</td><td class="p">$ 89.500</td></tr>
+    <tr><td>10 talonarios</td><td class="p">$ 58.000</td><td class="p">$ 110.500</td></tr>
+    <tr><td>20 talonarios</td><td class="p">$ 98.000</td><td class="p">$ 190.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Por triplicado, sumar</td><td class="p" colspan="2">40%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Por cuadruplicado, sumar</td><td class="p" colspan="2">80%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Con papel químico, sumar</td><td class="p" colspan="2">60%</td></tr>
+  </table>
+  <p class="note">La impresión a color es sólo del original. El duplicado se imprime en escala de grises.</p>
+
+  <h3>Tamaño A4</h3>
+  <table>
+    <tr><th class="l">Cantidad</th><th>B/N</th><th>Color</th></tr>
+    <tr><td>1 talonario</td><td class="p">$ 24.000</td><td class="p">$ 39.000</td></tr>
+    <tr><td>2 talonarios</td><td class="p">$ 35.000</td><td class="p">$ 70.500</td></tr>
+    <tr><td>4 talonarios</td><td class="p">$ 57.000</td><td class="p">$ 110.000</td></tr>
+    <tr><td>6 talonarios</td><td class="p">$ 71.500</td><td class="p">$ 136.500</td></tr>
+    <tr><td>8 talonarios</td><td class="p">$ 91.000</td><td class="p">$ 158.500</td></tr>
+    <tr><td>10 talonarios</td><td class="p">$ 105.500</td><td class="p">$ 178.000</td></tr>
+    <tr><td>20 talonarios</td><td class="p">$ 195.000</td><td class="p">$ 325.500</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Por triplicado, sumar</td><td class="p" colspan="2">40%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Por cuadruplicado, sumar</td><td class="p" colspan="2">80%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Con papel químico, sumar</td><td class="p" colspan="2">70%</td></tr>
+  </table>
+  <p class="note">La impresión a color es sólo del original. El duplicado se imprime en escala de grises.
+  En 1/2 oficio el papel químico suma 60% y en A4 suma 70%.</p>
+</section>
+
+<section>
+  <h2>Folletos full color, láser</h2>
+  <p class="note">Papel ilustración 150g, en 24 horas.</p>
+
+  <h3>Semi pleno, sólo frente</h3>
+  <table>
+    <tr><td>500 folletos 10 x 15 (1/4 A4) 4/0</td><td class="p">$ 69.500</td></tr>
+    <tr><td>1000 folletos 10 x 15 (1/4 A4) 4/0</td><td class="p">$ 128.500</td></tr>
+  </table>
+
+  <h3>Pleno, sólo frente</h3>
+  <table>
+    <tr><td>500 folletos 10 x 15 (1/4 A4)</td><td class="p">$ 74.000</td></tr>
+    <tr><td>1000 folletos 10 x 15 (1/4 A4)</td><td class="p">$ 134.000</td></tr>
+  </table>
+
+  <h3>Semi pleno, frente y dorso</h3>
+  <table>
+    <tr><td>500 folletos 10 x 15 (1/4 A4) 4/4</td><td class="p">$ 123.000</td></tr>
+    <tr><td>1000 folletos 10 x 15 (1/4 A4) 4/4</td><td class="p">$ 220.000</td></tr>
+  </table>
+
+  <h3>Pleno, frente y dorso</h3>
+  <table>
+    <tr><td>500 folletos 10 x 15 (1/4 A4) 4/4</td><td class="p">$ 132.000</td></tr>
+    <tr><td>1000 folletos 10 x 15 (1/4 A4) 4/4</td><td class="p">$ 246.500</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Volantes papel obra, a 1 color</h2>
+
+  <h3>1/4 de A4 u oficio, B/N</h3>
+  <table>
+    <tr><td>1000 1/4 papel blanco tinta negra</td><td class="p">$ 23.000</td></tr>
+    <tr><td>2000 1/4 papel blanco tinta negra</td><td class="p">$ 43.000</td></tr>
+    <tr><td>1000 1/4 F/D papel blanco tinta negra</td><td class="p">$ 36.500</td></tr>
+    <tr><td>2000 1/4 F/D papel color tinta negra</td><td class="p">$ 67.000</td></tr>
+  </table>
+
+  <h3>Tinta color 1/0 (rojo, azul, verde, etc.)</h3>
+  <table>
+    <tr><td>2000 1/4 papel blanco tinta color</td><td class="p">$ 64.500</td></tr>
+    <tr><td>4000 1/4 papel blanco tinta color</td><td class="p">$ 94.000</td></tr>
+    <tr><td>10000 1/4 papel blanco tinta color</td><td class="p">$ 168.000</td></tr>
+  </table>
+  <p class="note">Con tinta color no se imprime frente y dorso.</p>
+</section>
+
+<section>
+  <h2>RP médicos y anotadores</h2>
+  <h3>Tamaño 1/4 A4 u oficio</h3>
+  <table>
+    <tr><th class="l">Cantidad</th><th>B/N</th><th>Color</th></tr>
+    <tr><td>4 talonarios x 100 hojas</td><td class="p">$ 15.000</td><td class="p">$ 38.000</td></tr>
+    <tr><td>8 talonarios x 100 hojas</td><td class="p">$ 24.000</td><td class="p">$ 59.000</td></tr>
+    <tr><td>12 talonarios x 100 hojas</td><td class="p">$ 32.500</td><td class="p">$ 78.500</td></tr>
+    <tr><td>16 talonarios x 100 hojas</td><td class="p">$ 39.500</td><td class="p">$ 95.000</td></tr>
+    <tr><td>20 talonarios x 100 hojas</td><td class="p">$ 46.000</td><td class="p">$ 111.000</td></tr>
+    <tr><td>40 talonarios x 100 hojas</td><td class="p">$ 83.500</td><td class="p">$ 200.500</td></tr>
+  </table>
+  <p class="note">RP con hojas lisas: mitad del precio de la columna B/N.</p>
+
+  <h2 style="margin-top:8mm">Rifas y entradas</h2>
+  <p class="note">Con doble numerado y un puntillado. Tamaño 1/4 A4 u oficio en papel obra.</p>
+  <table>
+    <tr><th class="l">Cantidad</th><th>B/N</th><th>Color</th></tr>
+    <tr><td>200 números (2 talonarios)</td><td class="p">$ 24.500</td><td class="p">$ 36.000</td></tr>
+    <tr><td>400 números (4 talonarios)</td><td class="p">$ 37.000</td><td class="p">$ 59.000</td></tr>
+    <tr><td>800 números (8 talonarios)</td><td class="p">$ 48.500</td><td class="p">$ 97.500</td></tr>
+    <tr><td>1200 números (12 talonarios)</td><td class="p">$ 56.500</td><td class="p">$ 138.000</td></tr>
+    <tr><td>2000 números (20 talonarios)</td><td class="p">$ 71.500</td><td class="p">$ 220.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Con doble puntillado, sumar</td><td class="p" colspan="2">15%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Con triple puntillado, sumar</td><td class="p" colspan="2">25%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Con papel ilustración 150g, sumar</td><td class="p" colspan="2">25%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Impresión doble faz, sumar</td><td class="p" colspan="2">60%</td></tr>
+  </table>
+  <table style="margin-top:3mm">
+    <tr><td>Puntillado x millar (1000)</td><td class="p">$ 47.100</td></tr>
+    <tr><td>Numerado x millar (1000)</td><td class="p">$ 40.300</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Stickers con laca UV brillo</h2>
+  <table>
+    <tr><td>1000 stickers full color plastificados, 35 x 60 mm</td><td class="p">$ 28.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Corte circular de 4 a 12 cm de diámetro x millar</td><td class="p">$ 39.500</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Imanes</h2>
+
+  <h3>Imanes 3,6 x 6 cm laminados</h3>
+  <table>
+    <tr><td>100 unidades con imán completo (2 planchas)</td><td class="p">$ 19.500</td></tr>
+    <tr><td>200 unidades con imán completo (4 planchas)</td><td class="p">$ 37.800</td></tr>
+    <tr><td>300 unidades con imán completo (6 planchas)</td><td class="p">$ 56.300</td></tr>
+    <tr><td>500 unidades con imán completo (10 planchas)</td><td class="p">$ 92.700</td></tr>
+  </table>
+
+  <h3>Imanes 5 x 5 cm laminados</h3>
+  <table>
+    <tr><td>100 unidades con imán completo (2 planchas)</td><td class="p">$ 19.500</td></tr>
+    <tr><td>200 unidades con imán completo (4 planchas)</td><td class="p">$ 37.800</td></tr>
+    <tr><td>300 unidades con imán completo (6 planchas)</td><td class="p">$ 56.300</td></tr>
+    <tr><td>500 unidades con imán completo (10 planchas)</td><td class="p">$ 92.700</td></tr>
+  </table>
+
+  <h3>Imanes 8,5 x 5 cm laminados</h3>
+  <table>
+    <tr><td>120 unidades con imán completo (4 planchas)</td><td class="p">$ 37.800</td></tr>
+    <tr><td>240 unidades con imán completo (8 planchas)</td><td class="p">$ 73.900</td></tr>
+    <tr><td>360 unidades con imán completo (12 planchas)</td><td class="p">$ 105.600</td></tr>
+    <tr><td>600 unidades con imán completo (20 planchas)</td><td class="p">$ 173.400</td></tr>
+  </table>
+
+  <h3>Planchas sueltas</h3>
+  <table>
+    <tr><td>Plancha individual SA3 con imán, sin cortar</td><td class="p">$ 10.300</td></tr>
+    <tr><td>Plancha individual SA3 con imán, cortada</td><td class="p">$ 11.900</td></tr>
+    <tr><td>Plancha sin laminar SA3 con imán, sin cortar</td><td class="p">$ 9.600</td></tr>
+    <tr><td>Plancha sin laminar SA3 con imán, cortada</td><td class="p">$ 11.000</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>Imanes sin laminar (menor tiempo de producción)</td><td class="p">-8%</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Carpetas institucionales A4</h2>
+
+  <h3>Láser color</h3>
+  <table>
+    <tr><td>1 carpeta láser color con solapa blanca</td><td class="p">$ 8.000</td></tr>
+    <tr><td>5 carpetas láser color con solapa blanca</td><td class="p">$ 23.000</td></tr>
+    <tr><td>10 carpetas láser color con solapa blanca</td><td class="p">$ 39.000</td></tr>
+    <tr><td>20 carpetas láser color con solapa blanca</td><td class="p">$ 66.000</td></tr>
+    <tr><td>30 carpetas láser color con solapa blanca</td><td class="p">$ 94.000</td></tr>
+    <tr><td>50 carpetas láser color con solapa blanca</td><td class="p">$ 142.000</td></tr>
+    <tr><td>100 carpetas láser color con solapa blanca</td><td class="p">$ 269.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Solapa impresa, por cada carpeta</td><td class="p">$ 600</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>OPP mate o brillante, por cada carpeta</td><td class="p">$ 600</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Impresas frente y dorso, sumar</td><td class="p">70%</td></tr>
+  </table>
+
+  <h3>Offset</h3>
+  <table>
+    <tr><td>200 carpetas 4/0 con barniz UV y solapa impresa</td><td class="p">$ 565.000</td></tr>
+    <tr><td>400 carpetas 4/0 con barniz UV y solapa impresa</td><td class="p">$ 1.074.000</td></tr>
+    <tr><td>1000 carpetas 4/0 con barniz UV y solapa impresa</td><td class="p">$ 2.015.000</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Hojas membretadas A4 color</h2>
+  <h3>Impresión 4/0, papel 90g</h3>
+  <table>
+    <tr><td>100 hojas A4 full color, encabezado y/o pie</td><td class="p">$ 37.000</td></tr>
+    <tr><td>250 hojas A4 full color, encabezado y/o pie</td><td class="p">$ 79.000</td></tr>
+    <tr><td>500 hojas A4 full color, encabezado y/o pie</td><td class="p">$ 141.000</td></tr>
+    <tr><td>1000 hojas A4 full color, encabezado y/o pie</td><td class="p">$ 264.000</td></tr>
+  </table>
+  <p class="note">Por mayor cantidad, solicitar presupuesto por mail.</p>
+
+  <h2 style="margin-top:8mm">Sobres</h2>
+  <h3>Sobres oficio inglés. Impresión 4/0, papel 90g</h3>
+  <table>
+    <tr><td>100 sobres, impresión color (no pleno)</td><td class="p">$ 53.000</td></tr>
+    <tr><td>250 sobres, impresión color (no pleno)</td><td class="p">$ 124.000</td></tr>
+    <tr><td>500 sobres, impresión color (no pleno)</td><td class="p">$ 213.000</td></tr>
+  </table>
+  <h3>Sobres A4. Impresión 4/0, papel 90g</h3>
+  <table>
+    <tr><td>100 sobres, impresión color (no pleno)</td><td class="p">$ 82.000</td></tr>
+    <tr><td>250 sobres, impresión color (no pleno)</td><td class="p">$ 176.000</td></tr>
+    <tr><td>500 sobres, impresión color (no pleno)</td><td class="p">$ 317.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Sobres para hoja oficio, sumar</td><td class="p">15%</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Gigantografías</h2>
+  <div class="rule">
+    <b>Cómo se cobra cada fila.</b> Por <b>unidad</b>: portabanners, fly banner, pie de fly banner, ojales y
+    cambio de lona de roll up. Por <b>metro lineal</b>: las filas que declaran el ancho del material.
+    Todo el resto va por <b>metro cuadrado</b>. La columna Unidad de abajo aplica esa regla fila por fila.<br>
+    <b>Mínimo de impresión.</b> 0,50 m² o 0,50 metro lineal. Una lona de 20 x 30 cm se cobra como 0,50.<br>
+    <b>ECO o UV.</b> Para cartelería y ploteo de vidrieras se pasan los dos precios. Para stickers y todo
+    lo que tenga roce o contacto constante se recomienda UV, que es más resistente y mantiene el color.
+  </div>
+  <table>
+    <tr><th class="l">Material</th><th>Unidad</th><th>ECO</th><th>UV</th></tr>
+    <tr><td>Lona FRONT brillante 13oz</td><td class="u">m²</td><td class="p">$ 13.000</td><td class="p">$ 17.000</td></tr>
+    <tr><td>Lona FRONT mate 13oz</td><td class="u">m²</td><td class="p">$ 15.000</td><td class="p">$ 19.000</td></tr>
+    <tr><td>Lona MESH (microperforada)</td><td class="u">m²</td><td class="p">$ 16.300</td><td class="p">$ 20.300</td></tr>
+    <tr><td>Lona BACK light 13oz</td><td class="u">m²</td><td class="p">$ 16.300</td><td class="p">$ 20.300</td></tr>
+    <tr><td>Vinilo Promociona</td><td class="u">m²</td><td class="p">$ 11.000</td><td class="p">$ 14.500</td></tr>
+    <tr><td>Vinilo mate base gris</td><td class="u">m²</td><td class="p">$ 13.200</td><td class="p">$ 17.200</td></tr>
+    <tr><td>Vinilo premium base gris (mayor adherencia)</td><td class="u">m²</td><td class="p">$ 15.000</td><td class="p">$ 19.000</td></tr>
+    <tr><td>Vinilo transparente</td><td class="u">m²</td><td class="p">$ 13.200</td><td class="p">$ 17.200</td></tr>
+    <tr><td>Vinilo microperforado</td><td class="u">m²</td><td class="p">$ 17.300</td><td class="p na">—</td></tr>
+    <tr><td>Vinilo microperforado UV (127 y 152 cm)</td><td class="u">m²</td><td class="p na">—</td><td class="p">$ 22.000</td></tr>
+    <tr><td>Vinilo tornasolado, ancho 62 cm</td><td class="u">m lineal</td><td class="p na">—</td><td class="p">$ 20.000</td></tr>
+    <tr><td>Vinilo oro / plata, ancho 62 cm</td><td class="u">m lineal</td><td class="p na">—</td><td class="p">$ 20.000</td></tr>
+    <tr><td>Vinilo esmerilado gris o blanco, ancho 60 cm</td><td class="u">m lineal</td><td class="p">$ 9.700</td><td class="p">$ 12.000</td></tr>
+    <tr><td>Vinilo esmerilado gris o blanco, ancho 120 cm</td><td class="u">m lineal</td><td class="p">$ 19.000</td><td class="p">$ 23.000</td></tr>
+    <tr><td>Troquelado Promo (medio corte)</td><td class="u">m²</td><td class="p">$ 22.000</td><td class="p">$ 25.000</td></tr>
+    <tr><td>Troquelado transparente o mate (medio corte)</td><td class="u">m²</td><td class="p">$ 24.000</td><td class="p">$ 28.000</td></tr>
+    <tr><td>Troquelado premium (medio corte)</td><td class="u">m²</td><td class="p">$ 26.000</td><td class="p">$ 30.000</td></tr>
+    <tr><td>Troquelado tornasolado, ancho 62 cm</td><td class="u">m lineal</td><td class="p na">—</td><td class="p">$ 26.400</td></tr>
+    <tr><td>Portabanner dos velas 1,90 x 0,90 m, sólo estructura</td><td class="u">unidad</td><td class="p">$ 26.400</td><td class="p na">—</td></tr>
+    <tr><td>Portabanner dos velas 1,90 x 0,90 m + lona</td><td class="u">unidad</td><td class="p">$ 51.000</td><td class="p">$ 59.000</td></tr>
+    <tr><td>Portabanner Roll Up 2,00 x 0,85 m, sólo estructura</td><td class="u">unidad</td><td class="p">$ 35.200</td><td class="p na">—</td></tr>
+    <tr><td>Portabanner Roll Up 2,00 x 0,85 m + lona</td><td class="u">unidad</td><td class="p">$ 61.600</td><td class="p">$ 70.400</td></tr>
+    <tr><td>Portabanner fondo de prensa 2 x 2 m, estructura</td><td class="u">unidad</td><td class="p">$ 69.500</td><td class="p na">—</td></tr>
+    <tr><td>Portabanner fondo de prensa 2 x 2 m + lona</td><td class="u">unidad</td><td class="p">$ 136.400</td><td class="p">$ 167.200</td></tr>
+    <tr><td>Portabanner fondo de prensa 2,00 x 3,00 m + lona</td><td class="u">unidad</td><td class="p">$ 180.400</td><td class="p">$ 211.200</td></tr>
+    <tr><td>Fly banner set x 2 unidades, con estaca, sin pie</td><td class="u">set</td><td class="p">$ 180.400</td><td class="p na">—</td></tr>
+    <tr><td>Pie para interior de fly banner</td><td class="u">unidad</td><td class="p">$ 20.200</td><td class="p na">—</td></tr>
+    <tr><td>Imán heladera, espesor 0,3 mm + vinilo, ancho 60 cm</td><td class="u">m lineal</td><td class="p">$ 24.000</td><td class="p">$ 28.000</td></tr>
+    <tr><td>Imán autos, espesor 0,7 mm + vinilo, ancho 60 cm</td><td class="u">m lineal</td><td class="p">$ 33.000</td><td class="p">$ 37.000</td></tr>
+    <tr><td>Vulcanizado de lona</td><td class="u">m lineal</td><td class="p">$ 2.900</td><td class="p na">—</td></tr>
+    <tr><td>Ojales</td><td class="u">unidad</td><td class="p">$ 400</td><td class="p na">—</td></tr>
+    <tr><td>Laminado común</td><td class="u">m²</td><td class="p">$ 6.500</td><td class="p na">—</td></tr>
+    <tr><td>Laminado alto tránsito para pisos</td><td class="u">m²</td><td class="p">$ 17.000</td><td class="p na">—</td></tr>
+    <tr><td>Posicionador colocado</td><td class="u">m²</td><td class="p">$ 5.500</td><td class="p na">—</td></tr>
+    <tr><td>Cambio de lona Roll Up</td><td class="u">unidad</td><td class="p">$ 12.500</td><td class="p na">—</td></tr>
+  </table>
+  <p class="note">Lonas y vinilos sin impresión: 50% del precio ECO.</p>
+</section>
+
+<section>
+  <h2>Cartel con estructura</h2>
+  <p class="note">Precio aproximado por m², sin colocación.</p>
+  <table>
+    <tr><td>Con estructura caño 20 x 20 + lona front impresa</td><td class="p">$ 62.000</td></tr>
+    <tr><td>Con estructura caño 20 x 20 + backlight luminoso</td><td class="p">$ 167.000</td></tr>
+    <tr><td>Colocación e instalación</td><td class="p cons">A consultar</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Letras polyfan</h2>
+  <h3>Por placa de 60 x 120 cm, sin pintar</h3>
+  <table>
+    <tr><td>2 cm de espesor</td><td class="p">$ 49.000</td></tr>
+    <tr><td>3 cm de espesor</td><td class="p">$ 75.000</td></tr>
+    <tr><td>4 cm de espesor</td><td class="p">$ 99.000</td></tr>
+    <tr><td>5 cm de espesor</td><td class="p">$ 125.000</td></tr>
+  </table>
+  <h3>Por placa de 60 x 120 cm, pintada</h3>
+  <table>
+    <tr><td>2 cm de espesor</td><td class="p">$ 84.000</td></tr>
+    <tr><td>3 cm de espesor</td><td class="p">$ 132.000</td></tr>
+    <tr><td>4 cm de espesor</td><td class="p">$ 176.000</td></tr>
+    <tr><td>5 cm de espesor</td><td class="p">$ 211.000</td></tr>
+  </table>
+  <p class="note">Se fracciona de a media placa. Corte mínimo de letra: 3 cm de altura.</p>
+</section>
+
+<section>
+  <h2>Cartelería sobre rígidos</h2>
+  <div class="rule">
+    <b>Cómo se cobra.</b> Estas son medidas estándar. Un cartel que entra dentro de una de ellas, y en poca
+    cantidad, se cobra por esa medida. Si es más grande, o son muchas unidades, el precio sale de
+    <b>Carteles rígidos por metro</b>. Todos full color o vinilo de corte. Medidas menores, consultar.
+  </div>
+
+  <h3>Corrugado plástico</h3>
+  <table>
+    <tr><td>17 x 25 cm</td><td class="p">$ 2.200</td></tr>
+    <tr><td>25 x 35 cm</td><td class="p">$ 3.700</td></tr>
+    <tr><td>35 x 50 cm</td><td class="p">$ 5.400</td></tr>
+    <tr><td>50 x 70 cm</td><td class="p">$ 9.000</td></tr>
+    <tr><td>70 x 100 cm</td><td class="p">$ 15.000</td></tr>
+    <tr><td>100 x 200 cm (ej.: cheque grande)</td><td class="p">$ 49.000</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>5 o más -5% / 10 o más -10% / 20 o más -15%</td><td class="p"></td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Impresión UV, sumar</td><td class="p">25%</td></tr>
+  </table>
+
+  <h3>Alto impacto 1 mm, PVC 3 mm, foam board 5 mm</h3>
+  <table>
+    <tr><td>17 x 25 cm</td><td class="p">$ 2.900</td></tr>
+    <tr><td>25 x 35 cm</td><td class="p">$ 5.300</td></tr>
+    <tr><td>35 x 50 cm</td><td class="p">$ 10.300</td></tr>
+    <tr><td>50 x 70 cm</td><td class="p">$ 20.700</td></tr>
+    <tr><td>60 x 100 cm</td><td class="p">$ 31.700</td></tr>
+    <tr><td>100 x 200 cm (ej.: cheque grande)</td><td class="p cons">Por m²</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>5 o más -5% / 10 o más -10% / 20 o más -15%</td><td class="p"></td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Impresión UV, sumar</td><td class="p">25%</td></tr>
+  </table>
+
+  <h3>Alto impacto 2 mm</h3>
+  <table>
+    <tr><td>17 x 25 cm</td><td class="p">$ 4.400</td></tr>
+    <tr><td>25 x 35 cm</td><td class="p">$ 8.800</td></tr>
+    <tr><td>35 x 50 cm</td><td class="p">$ 14.800</td></tr>
+    <tr><td>50 x 70 cm</td><td class="p">$ 29.600</td></tr>
+    <tr><td>60 x 100 cm</td><td class="p">$ 44.000</td></tr>
+    <tr><td>100 x 200 cm</td><td class="p cons">Por m²</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>5 o más -5% / 10 o más -10% / 20 o más -15%</td><td class="p"></td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Impresión UV, sumar</td><td class="p">25%</td></tr>
+  </table>
+
+  <h3>Ojales para corrugado plástico</h3>
+  <table>
+    <tr><td>Juego de 4 ojales</td><td class="p">$ 1.300</td></tr>
+    <tr><td>Juego de 6 ojales</td><td class="p">$ 2.000</td></tr>
+    <tr><td>Juego de 8 ojales</td><td class="p">$ 2.600</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Rígidos doblados</h2>
+  <h3>Alto impacto 1 mm y PVC 3 mm, doblados</h3>
+  <table>
+    <tr><td>Cartel con impresión 17 x 25 cm</td><td class="p">$ 5.900</td></tr>
+    <tr><td>Cartel con impresión 25 x 35 cm</td><td class="p">$ 8.800</td></tr>
+    <tr><td>Cartel con impresión 35 x 50 cm</td><td class="p">$ 16.700</td></tr>
+  </table>
+  <h3>Alto impacto 2 mm, doblados</h3>
+  <table>
+    <tr><td>Cartel con impresión 17 x 25 cm</td><td class="p">$ 8.800</td></tr>
+    <tr><td>Cartel con impresión 25 x 35 cm</td><td class="p">$ 15.400</td></tr>
+    <tr><td>Cartel con impresión 35 x 50 cm</td><td class="p">$ 23.800</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Carteles rígidos por metro</h2>
+  <p class="note">Superando 0,70 m². Corrugado, alto impacto, PVC, foam.</p>
+  <table>
+    <tr><th class="l">Vinilo montado sobre</th><th>Simple faz</th><th>Doble faz</th></tr>
+    <tr><td>Corrugado plástico</td><td class="p">$ 24.200</td><td class="p">$ 38.300</td></tr>
+    <tr><td>Alto impacto 1 mm</td><td class="p">$ 40.000</td><td class="p">$ 55.100</td></tr>
+    <tr><td>Alto impacto 2 mm</td><td class="p">$ 60.500</td><td class="p">$ 75.200</td></tr>
+    <tr><td>PVC espumado 3 mm</td><td class="p">$ 46.400</td><td class="p">$ 61.200</td></tr>
+    <tr><td>Foamboard 5 mm</td><td class="p">$ 51.000</td><td class="p">$ 66.800</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Impresión en UV, sumar</td><td class="p">$ 4.000</td><td class="p">$ 8.100</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>En vinilo premium, sumar</td><td class="p">$ 4.100</td><td class="p">$ 8.100</td></tr>
+    <tr class="mod"><td colspan="3"><span class="tag d">descuento</span>5 o más -5% / 10 o más -10% / 20 o más -15%</td></tr>
+  </table>
+  <p class="note">Por más cantidad, consultar precios.</p>
+
+  <h2 style="margin-top:8mm">Acrílico por detrás 2 mm</h2>
+  <div class="rule">
+    <b>Pendiente de actualización.</b> Javier avisó que las medidas y los precios de esta sección se actualizan
+    próximamente. Consultar antes de cotizar.
+  </div>
+  <table>
+    <tr><td>17 x 25 cm</td><td class="p">$ 4.400</td></tr>
+    <tr><td>25 x 35 cm</td><td class="p">$ 8.800</td></tr>
+    <tr><td>35 x 50 cm</td><td class="p">$ 14.800</td></tr>
+    <tr><td>50 x 70 cm</td><td class="p">$ 29.600</td></tr>
+    <tr><td>60 x 100 cm</td><td class="p">$ 44.000</td></tr>
+    <tr><td>100 x 200 cm</td><td class="p">$ 132.000</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>5 o más -5% / 10 o más -10% / 20 o más -15%</td><td class="p"></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Vinilo de corte</h2>
+  <table>
+    <tr><td>Cartel VENDO auto (blanco) 20 x 30 cm, 1 unidad</td><td class="p">$ 7.000</td></tr>
+    <tr><td>Cartel VENDO auto (blanco) 20 x 30 cm, 2 unidades</td><td class="p">$ 10.000</td></tr>
+  </table>
+
+  <h3>Ancho 60 cm, precio por metro lineal</h3>
+  <table>
+    <tr><td>Corte solamente, sin material</td><td class="p">$ 7.000</td></tr>
+    <tr><td>Corte solamente, con material</td><td class="p">$ 13.200</td></tr>
+    <tr><td>Corte + pelado + posicionador</td><td class="p">$ 21.000</td></tr>
+  </table>
+
+  <h3>Ancho 120 cm, precio por metro lineal</h3>
+  <table>
+    <tr><td>Corte solamente, sin material</td><td class="p">$ 14.000</td></tr>
+    <tr><td>Corte solamente, con material</td><td class="p">$ 26.400</td></tr>
+    <tr><td>Corte + pelado + posicionador</td><td class="p">$ 42.000</td></tr>
+  </table>
+
+  <h3>Instalación</h3>
+  <table>
+    <tr><td>Colocación estimada por m², sin material</td><td class="p">$ 8.300</td></tr>
+    <tr><td>Colocación de esmerilado sin corte, por m² (incluye material)</td><td class="p">$ 25.000</td></tr>
+  </table>
+  <p class="note">Vinilo esmerilado con corte: +10%. En "corte + pelado + posicionador" el material se cobra al 50%.
+  Mínimo de corte: 0,50 metro lineal. Tamaño mínimo de objeto o letra: 1 cm de altura. El diseño es aparte y varía
+  según complejidad. Para mayor exactitud del presupuesto, enviar el diseño o un boceto con medidas exactas.</p>
+
+  <h2 style="margin-top:8mm">Stickers adhesivos</h2>
+  <h3>SA3 adhesiva 325 x 475 mm</h3>
+  <table>
+    <tr><th class="l">Trabajo</th><th>Papel ilustración</th><th>OPP ilustración</th></tr>
+    <tr><td>Impresión + medio corte (troquel)</td><td class="p">$ 3.100</td><td class="p">$ 4.800</td></tr>
+    <tr><td>Impresión + medio corte + laminado brillo</td><td class="p">$ 3.800</td><td class="p">$ 5.700</td></tr>
+    <tr><td>Impresión + medio corte + laminado mate</td><td class="p">$ 4.000</td><td class="p">$ 5.900</td></tr>
+    <tr class="mod"><td colspan="3"><span class="tag d">descuento</span>Más de 10 planchas -10% / más de 30 -15% / más de 50 -20%</td></tr>
+  </table>
+  <p class="note">El material OPP es resistente al agua.</p>
+
+  <h2 style="margin-top:8mm">Stickers DTF UV</h2>
+  <table>
+    <tr><td>Impresión full color por metro lineal, ancho del rollo 28 cm</td><td class="p">$ 35.000</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Placas profesionales</h2>
+  <p class="note">Acrílico o símil aluminio / bronce, con taco de madera.</p>
+  <table>
+    <tr><td>10 x 20 cm, hasta 3 líneas</td><td class="p">$ 44.000</td></tr>
+    <tr><td>15 x 25 cm, hasta 4 líneas</td><td class="p">$ 70.000</td></tr>
+    <tr><td>20 x 30 cm, hasta 6 líneas</td><td class="p">$ 89.000</td></tr>
+    <tr><td>25 x 35 cm, hasta 6 líneas</td><td class="p">$ 123.000</td></tr>
+    <tr><td>30 x 40 cm, hasta 6 líneas</td><td class="p">$ 164.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Líneas excedentes</td><td class="p">$ 3.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Placas de promoción con muchos nombres, por línea excedente</td><td class="p">$ 1.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Juego de embellecedores (opcional)</td><td class="p">$ 12.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Juego de separadores (opcional)</td><td class="p">$ 44.000</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Plaquetas de cristal</h2>
+  <table>
+    <tr><th class="l">Modelo</th><th>Espesor</th><th>Precio</th><th>Caja</th></tr>
+    <tr><td>Trapecio 11,5 x 17 cm</td><td class="u">6 mm</td><td class="p">$ 23.000</td><td class="p">$ 9.600</td></tr>
+    <tr><td>Octogonal 16 cm</td><td class="u">6 mm</td><td class="p">$ 26.000</td><td class="p">$ 9.600</td></tr>
+    <tr><td>Bandeja 13,5 x 17,5 cm</td><td class="u">6 mm</td><td class="p">$ 26.000</td><td class="p">$ 9.600</td></tr>
+    <tr><td>Gota 17 x 14,5 cm fina</td><td class="u">6 mm</td><td class="p">$ 23.000</td><td class="p">$ 9.600</td></tr>
+    <tr><td>Modelo "300" (diagonal arriba) 20 x 13,5 cm</td><td class="u">6 mm</td><td class="p">$ 26.000</td><td class="p">$ 9.600</td></tr>
+    <tr><td>Pico 13 x 19 cm Mod. A</td><td class="u">10 mm</td><td class="p">$ 42.000</td><td class="p">$ 9.600</td></tr>
+    <tr><td>Pico 16 x 23 cm Mod. A</td><td class="u">10 mm</td><td class="p">$ 49.500</td><td class="p">$ 11.400</td></tr>
+    <tr><td>Diamante 19 x 16 cm</td><td class="u">10 mm</td><td class="p">$ 40.500</td><td class="p">$ 11.400</td></tr>
+    <tr><td>Gota 17 x 14,5 cm</td><td class="u">10 mm</td><td class="p">$ 37.000</td><td class="p">$ 9.600</td></tr>
+    <tr class="mod"><td colspan="4"><span class="tag d">descuento</span>Más de 5 unidades -5% / más de 10 -10% / más de 20 -15%</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Cuadro homenaje</h2>
+  <p class="note">Incluyen 6 líneas de texto.</p>
+  <table>
+    <tr><td>Cuadro Nº1 (marco con vidrio) 22 x 26,5 cm</td><td class="p">$ 57.000</td></tr>
+    <tr><td>Cuadro Nº2 (art. 1400 con batea) 22 x 27,5 cm</td><td class="p">$ 83.500</td></tr>
+    <tr><td>Cuadro Nº3 (batea plana) 26 x 30 cm</td><td class="p">$ 91.500</td></tr>
+    <tr><td>Cuadro Nº4 (art. 1400 con batea) 27,5 x 32 cm</td><td class="p">$ 102.000</td></tr>
+    <tr><td>Cuadro Nº5 (art. 1400 con batea) 30,5 x 35,5 cm</td><td class="p">$ 141.000</td></tr>
+    <tr><td>Cuadro Nº6 (art. 1400 con batea) 35 x 39,5 cm</td><td class="p">$ 156.500</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Líneas excedentes</td><td class="p">$ 2.500</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Placas de promoción con muchos nombres, por línea excedente</td><td class="p">$ 1.500</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Agendas y cuadernos</h2>
+
+  <h3>Agendas A5 personalizadas</h3>
+  <p class="note">Tapa dura (impresa y laminada) con 110 hojas impresas B/N. Anillado metálico. Página excedente $ 15.</p>
+  <table>
+    <tr><th class="l">Cantidad</th><th>Precio unitario</th></tr>
+    <tr><td>1</td><td class="p">$ 19.400</td></tr>
+    <tr><td>2 a 5</td><td class="p">$ 17.900</td></tr>
+    <tr><td>6 a 10</td><td class="p">$ 16.700</td></tr>
+    <tr><td>11 a 20</td><td class="p">$ 15.100</td></tr>
+    <tr><td>21 a 30</td><td class="p">$ 13.700</td></tr>
+    <tr><td>Más de 30</td><td class="p">$ 13.200</td></tr>
+  </table>
+
+  <h3>Cuadernos A5 personalizados</h3>
+  <p class="note">Tapa dura (impresa y laminada) con 80 hojas lisas o rayadas. Anillado metálico.
+  Hoja lisa excedente $ 10, rayada $ 30.</p>
+  <table>
+    <tr><th class="l">Cantidad</th><th>Precio unitario</th></tr>
+    <tr><td>1 a 5, lisas</td><td class="p">$ 12.100</td></tr>
+    <tr><td>6 a 20, lisas</td><td class="p">$ 10.600</td></tr>
+    <tr><td>Más de 20, lisas</td><td class="p">$ 9.000</td></tr>
+    <tr><td>1 a 5, rayadas</td><td class="p">$ 14.800</td></tr>
+    <tr><td>6 a 20, rayadas</td><td class="p">$ 13.200</td></tr>
+    <tr><td>Más de 20, rayadas</td><td class="p">$ 11.500</td></tr>
+  </table>
+
+  <h3>Agendas y cuadernos A4</h3>
+  <p class="note">Tapa dura (impresa y laminada) con 110 hojas impresas B/N. Anillado metálico. Página excedente $ 25.</p>
+  <table>
+    <tr><th class="l">Cantidad</th><th>Precio unitario</th></tr>
+    <tr><td>1</td><td class="p">$ 34.100</td></tr>
+    <tr><td>2 a 5</td><td class="p">$ 31.700</td></tr>
+    <tr><td>6 a 10</td><td class="p">$ 29.000</td></tr>
+    <tr><td>11 a 20</td><td class="p">$ 27.300</td></tr>
+    <tr><td>Más de 20</td><td class="p">$ 26.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Hoja adicional papel obra 4/0</td><td class="p">$ 200</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Hoja adicional papel obra 4/4</td><td class="p">$ 370</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Hoja adicional ilustración 4/0</td><td class="p">$ 250</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Hoja adicional ilustración 4/4</td><td class="p">$ 450</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Remeras, chombas y buzos</h2>
+
+  <h3>Remeras</h3>
+  <p class="note">Colores: negro, blanco, gris, azul marino, azul Francia, rojo. Con 2 estampas, pecho y espalda.
+  Estampa extra $ 3.500.</p>
+  <table>
+    <tr><th class="l">1ra calidad, algodón 20/1 peinado (hasta XL)</th><th>Precio unitario</th></tr>
+    <tr><td>5 a 20</td><td class="p">$ 29.900</td></tr>
+    <tr><td>Más de 20</td><td class="p">$ 26.700</td></tr>
+    <tr class="mod"><td><span class="tag d">descuento</span>Remera 1ra calidad para verano 24/1 peinado, restar</td><td class="p">$ 1.000</td></tr>
+  </table>
+  <table style="margin-top:2mm">
+    <tr><th class="l">2da calidad, algodón 20/1 cardado (hasta XL)</th><th>Precio unitario</th></tr>
+    <tr><td>5 a 20</td><td class="p">$ 23.300</td></tr>
+    <tr><td>Más de 20</td><td class="p">$ 21.000</td></tr>
+  </table>
+  <table style="margin-top:2mm">
+    <tr><th class="l">3ra calidad, algodón 24/1 cardado (hasta XL)</th><th>Precio unitario</th></tr>
+    <tr><td>5 a 20</td><td class="p">$ 18.900</td></tr>
+    <tr><td>Más de 20</td><td class="p">$ 17.600</td></tr>
+  </table>
+
+  <h3>Chombas 1ra calidad (hasta XL)</h3>
+  <p class="note">Colores: azul marino, gris melange, negro, blanco. Con 2 estampas, pecho y espalda. Estampa extra $ 3.500.</p>
+  <table>
+    <tr><th class="l">Cantidad</th><th>Precio unitario</th></tr>
+    <tr><td>5 a 20</td><td class="p">$ 42.000</td></tr>
+    <tr><td>Más de 20</td><td class="p">$ 40.000</td></tr>
+  </table>
+
+  <h3>Buzos 1ra calidad</h3>
+  <p class="note">Colores: azul marino, gris melange, negro, blanco. Con 2 estampas, pecho y espalda. Estampa extra $ 4.000.</p>
+  <table>
+    <tr><th class="l">Cantidad</th><th>Precio unitario</th></tr>
+    <tr><td>5 a 20</td><td class="p">$ 42.000</td></tr>
+    <tr><td>Más de 20</td><td class="p">$ 40.000</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Talles XXL</td><td class="p">+10%</td></tr>
+    <tr class="mod"><td><span class="tag a">adicional</span>Talles XXXL</td><td class="p">+20%</td></tr>
+  </table>
+
+  <h3>Talles: ancho y largo</h3>
+  <table>
+    <tr><th class="l">Talle</th><th>Ancho</th><th>Largo</th><th class="l">Talle</th><th>Ancho</th><th>Largo</th></tr>
+    <tr><td>2</td><td class="p">32 cm</td><td class="p">36 cm</td><td>16</td><td class="p">45 cm</td><td class="p">61 cm</td></tr>
+    <tr><td>4</td><td class="p">33 cm</td><td class="p">40 cm</td><td>XS</td><td class="p">50 cm</td><td class="p">69 cm</td></tr>
+    <tr><td>6</td><td class="p">35 cm</td><td class="p">44 cm</td><td>S</td><td class="p">52 cm</td><td class="p">70 cm</td></tr>
+    <tr><td>8</td><td class="p">37 cm</td><td class="p">46 cm</td><td>M</td><td class="p">54 cm</td><td class="p">72 cm</td></tr>
+    <tr><td>10</td><td class="p">39 cm</td><td class="p">51 cm</td><td>L</td><td class="p">56 cm</td><td class="p">75 cm</td></tr>
+    <tr><td>12</td><td class="p">41 cm</td><td class="p">55 cm</td><td>XL</td><td class="p">58 cm</td><td class="p">77 cm</td></tr>
+    <tr><td>14</td><td class="p">42 cm</td><td class="p">56 cm</td><td>XXL</td><td class="p">64 cm</td><td class="p">82 cm</td></tr>
+    <tr><td></td><td class="p"></td><td class="p"></td><td>XXXL</td><td class="p">70 cm</td><td class="p">93 cm</td></tr>
+  </table>
+  <p class="note">Las medidas son aproximadas. Se toman de sisa a sisa y de cuello a ruedo.</p>
+</section>
+
+<section>
+  <h2>Almanaques 2026</h2>
+  <table>
+    <tr><th class="l">Cantidad</th><th>45 x 30 cm (SA3)</th><th>30 x 22 cm (1/2 SA3)</th><th>22 x 15 cm (1/4 SA3)</th><th>15 x 11 cm (1/8 SA3)</th></tr>
+    <tr><td>100</td><td class="p">$ 150.000</td><td class="p">$ 79.000</td><td class="p">$ 42.000</td><td class="p">$ 34.000</td></tr>
+    <tr><td>200</td><td class="p">$ 286.000</td><td class="p">$ 150.000</td><td class="p">$ 75.000</td><td class="p">$ 49.000</td></tr>
+    <tr><td>300</td><td class="p">$ 413.000</td><td class="p">$ 176.000</td><td class="p">$ 106.000</td><td class="p">$ 68.000</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Almanaques carpa</h2>
+  <table>
+    <tr><th class="l">Cantidad</th><th>Carpa simple 21 x 11 cm</th><th>Mini carpa simple 10,5 x 11 cm</th><th>Carpa + hojas anillado 21 x 11 cm</th><th>Mini carpa + hojas anillado 10,5 x 11 cm</th></tr>
+    <tr><td>100</td><td class="p">$ 76.600</td><td class="p">$ 39.600</td><td class="p">$ 378.400</td><td class="p">$ 193.600</td></tr>
+    <tr><td>200</td><td class="p">$ 146.100</td><td class="p">$ 74.800</td><td class="p">$ 712.800</td><td class="p">$ 352.000</td></tr>
+    <tr><td>300</td><td class="p">$ 202.400</td><td class="p">$ 105.600</td><td class="p">$ 1.056.000</td><td class="p">$ 528.000</td></tr>
+  </table>
+  <p class="note">Las versiones con hojas anilladas incluyen 6 hojas 120g 4/4.</p>
+
+  <h2 style="margin-top:8mm">Patentes</h2>
+  <table>
+    <tr><th class="l">Vehículo</th><th>1 unidad</th><th>2 unidades</th></tr>
+    <tr><td>Auto Argentina</td><td class="p">$ 28.160</td><td class="p">$ 42.240</td></tr>
+    <tr><td>Auto Mercosur</td><td class="p">$ 36.960</td><td class="p">$ 51.040</td></tr>
+    <tr><td>Moto negra vieja</td><td class="p">$ 24.640</td><td class="p na">—</td></tr>
+    <tr><td>Moto Argentina</td><td class="p">$ 26.400</td><td class="p na">—</td></tr>
+    <tr><td>Moto Mercosur</td><td class="p">$ 29.920</td><td class="p na">—</td></tr>
+    <tr><td>Tráilers Argentina</td><td class="p">$ 24.640</td><td class="p">$ 36.960</td></tr>
+    <tr><td>Tráilers Mercosur azul</td><td class="p">$ 28.160</td><td class="p">$ 42.240</td></tr>
+    <tr><td>Tráilers Mercosur bordó</td><td class="p">$ 28.160</td><td class="p">$ 42.240</td></tr>
+    <tr><td>Negras auto</td><td class="p">$ 28.160</td><td class="p">$ 42.240</td></tr>
+    <tr><td>Deportivas</td><td class="p">$ 33.440</td><td class="p">$ 51.040</td></tr>
+    <tr><td>Concesionaria</td><td class="p">$ 33.440</td><td class="p">$ 51.040</td></tr>
+    <tr><td>Taxi / remis (Córdoba)</td><td class="p">$ 38.720</td><td class="p">$ 59.840</td></tr>
+  </table>
+  <p class="note">Las patentes de moto se venden sólo por unidad.</p>
+</section>
+
+<section>
+  <h2>Letras y números</h2>
+  <p class="note">Material: símil acrílico, aluminio o bronce.</p>
+  <table>
+    <tr><th class="l">Altura</th><th>Precio</th></tr>
+    <tr><td>5 cm</td><td class="p">$ 4.400</td></tr>
+    <tr><td>7,5 cm</td><td class="p">$ 6.200</td></tr>
+    <tr><td>10 cm</td><td class="p">$ 8.800</td></tr>
+    <tr><td>12,5 cm</td><td class="p">$ 11.400</td></tr>
+    <tr><td>15 cm</td><td class="p">$ 14.800</td></tr>
+    <tr><td>20 cm</td><td class="p">$ 24.600</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Identificadores</h2>
+  <table>
+    <tr><th class="l">Tipo</th><th>Simple faz</th><th>Doble faz</th></tr>
+    <tr><td>Con broche y alfiler de gancho</td><td class="p">$ 1.900</td><td class="p na">—</td></tr>
+    <tr><td>Tira con bolsillo transparente + credencial (9,5 x 6,5 cm, 11 x 7,5 cm)</td><td class="p">$ 2.600</td><td class="p">$ 3.100</td></tr>
+    <tr><td>Tira con credencial plastificada (9 x 6, 9 x 7, 10 x 7 cm)</td><td class="p">$ 3.300</td><td class="p">$ 3.700</td></tr>
+    <tr><td>Tira con credencial de alto impacto UV 1,5 mm (hasta 9,5 x 14 cm)</td><td class="p">$ 4.200</td><td class="p">$ 5.000</td></tr>
+    <tr><td>Impresión de tira, por unidad (mínimo 100 unidades)</td><td class="p">$ 700</td><td class="p">$ 700</td></tr>
+    <tr class="mod"><td colspan="3"><span class="tag d">descuento</span>Más de 100 unidades -10%</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Impresiones láser</h2>
+  <table>
+    <tr><th class="l">Tamaño</th><th>B/N</th><th>Color</th><th>Doble faz</th></tr>
+    <tr><td>Hojas de tarjetas (oficio 300g)</td><td class="p na">—</td><td class="p">$ 1.250</td><td class="p">$ 2.300</td></tr>
+    <tr><td>Hojas especiales tarjetas</td><td class="p na">—</td><td class="p">$ 1.900</td><td class="p">$ 3.600</td></tr>
+    <tr><td>A4 vegetal</td><td class="p">$ 1.200</td><td class="p">$ 1.500</td><td class="p na">—</td></tr>
+    <tr><td>A3 vegetal</td><td class="p">$ 1.700</td><td class="p">$ 2.100</td><td class="p na">—</td></tr>
+    <tr><td>A4 obra</td><td class="p na">—</td><td class="p">$ 800</td><td class="p">$ 1.500</td></tr>
+    <tr><td>A4 obra 150g</td><td class="p">$ 400</td><td class="p">$ 900</td><td class="p">$ 1.700</td></tr>
+    <tr><td>A4 ilustración 150g</td><td class="p na">—</td><td class="p">$ 950</td><td class="p">$ 1.800</td></tr>
+    <tr><td>A4 ilustración u obra 300g</td><td class="p na">—</td><td class="p">$ 1.000</td><td class="p">$ 1.900</td></tr>
+    <tr><td>A4 adhesivo</td><td class="p na">—</td><td class="p">$ 1.100</td><td class="p na">—</td></tr>
+    <tr><td>A3 obra 80g</td><td class="p">$ 450</td><td class="p">$ 1.250</td><td class="p">$ 2.400</td></tr>
+    <tr><td>A3 kraft madera 80g</td><td class="p">$ 850</td><td class="p">$ 1.500</td><td class="p">$ 2.750</td></tr>
+    <tr><td>SA3 ilustración 150g</td><td class="p na">—</td><td class="p">$ 1.600</td><td class="p">$ 3.000</td></tr>
+    <tr><td>SA3 ilustración u obra 300g</td><td class="p na">—</td><td class="p">$ 1.700</td><td class="p">$ 3.200</td></tr>
+    <tr><td>SA3 adhesivo</td><td class="p na">—</td><td class="p">$ 1.800</td><td class="p na">—</td></tr>
+    <tr><td>SA3 adhesivo kraft</td><td class="p na">—</td><td class="p">$ 2.000</td><td class="p na">—</td></tr>
+    <tr><td>SA3 adhesivo OPP</td><td class="p na">—</td><td class="p">$ 2.600</td><td class="p na">—</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Cortes</h2>
+  <table>
+    <tr><th class="l">Tamaño</th><th>Manual</th><th>Bajada de guillotina</th></tr>
+    <tr><td>Hojas especiales, c/u</td><td class="p">$ 460</td><td class="p">$ 1.380</td></tr>
+    <tr><td>Tamaño A4, c/u</td><td class="p">$ 460</td><td class="p">$ 1.380</td></tr>
+    <tr><td>Tamaño SA3, c/u</td><td class="p">$ 700</td><td class="p">$ 1.380</td></tr>
+  </table>
+  <p class="note">El corte manual con regla y trincheta tiene demora. En corte con guillotina no se aceptan reclamos
+  si el trabajo no se imprimió acá.</p>
+</section>
+
+<section>
+  <h2>Anillados</h2>
+  <table>
+    <tr><th class="l">Anillado plástico</th><th>Precio</th><th class="l">Anillado metálico</th><th>Precio</th></tr>
+    <tr><td>Nº 9</td><td class="p">$ 2.700</td><td>Nº 9,5</td><td class="p">$ 3.500</td></tr>
+    <tr><td>Nº 12</td><td class="p">$ 3.100</td><td>Nº 12</td><td class="p">$ 4.000</td></tr>
+    <tr><td>Nº 14</td><td class="p">$ 3.300</td><td>Nº 16</td><td class="p">$ 5.100</td></tr>
+    <tr><td>Nº 17</td><td class="p">$ 3.700</td><td>Nº 19</td><td class="p">$ 5.800</td></tr>
+    <tr><td>Nº 20</td><td class="p">$ 4.000</td><td>Nº 22</td><td class="p">$ 6.800</td></tr>
+    <tr><td>Nº 23</td><td class="p">$ 4.600</td><td>Nº 25</td><td class="p">$ 7.700</td></tr>
+    <tr><td>Nº 25</td><td class="p">$ 5.500</td><td class="na"></td><td class="p"></td></tr>
+    <tr><td>Nº 29</td><td class="p">$ 6.200</td><td class="na"></td><td class="p"></td></tr>
+    <tr><td>Nº 33</td><td class="p">$ 7.500</td><td class="na"></td><td class="p"></td></tr>
+    <tr><td>Nº 40</td><td class="p">$ 8.400</td><td class="na"></td><td class="p"></td></tr>
+    <tr><td>Nº 50</td><td class="p">$ 11.400</td><td class="na"></td><td class="p"></td></tr>
+  </table>
+  <p class="note">Los anillados incluyen tapa y contratapa plástica.</p>
+
+  <h2 style="margin-top:8mm">Fotocopias e impresiones</h2>
+  <table>
+    <tr><th class="l">Cantidad</th><th>Simple faz</th><th>Doble faz</th></tr>
+    <tr><td>Hasta 10</td><td class="p">$ 115</td><td class="p na">—</td></tr>
+    <tr><td>Más de 10</td><td class="p">$ 85</td><td class="p">$ 80</td></tr>
+    <tr><td>Más de 100</td><td class="p">$ 80</td><td class="p">$ 75</td></tr>
+    <tr><td>Más de 300</td><td class="p">$ 75</td><td class="p">$ 70</td></tr>
+    <tr><td>Más de 500</td><td class="p">$ 70</td><td class="p">$ 63</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Plastificados</h2>
+  <table>
+    <tr><td>Carnet</td><td class="p">$ 2.300</td></tr>
+    <tr><td>9 x 13 cm</td><td class="p">$ 2.700</td></tr>
+    <tr><td>1/2 A4</td><td class="p">$ 3.300</td></tr>
+    <tr><td>A4</td><td class="p">$ 4.100</td></tr>
+    <tr><td>Oficio</td><td class="p">$ 4.400</td></tr>
+    <tr><td>A3</td><td class="p">$ 5.900</td></tr>
+  </table>
+
+  <h2 style="margin-top:8mm">Laminado OPP</h2>
+  <table>
+    <tr><th class="l">Tamaño</th><th>Mate</th><th>Brillante</th></tr>
+    <tr><td>Primera hoja</td><td class="p">$ 1.800</td><td class="p">$ 1.800</td></tr>
+    <tr><td>Súper A3</td><td class="p">$ 1.150</td><td class="p">$ 900</td></tr>
+    <tr><td>A4 u oficio</td><td class="p">$ 700</td><td class="p">$ 500</td></tr>
+    <tr class="mod"><td colspan="3"><span class="tag d">descuento</span>Más de 10 hojas -10% / más de 20 hojas -15%</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

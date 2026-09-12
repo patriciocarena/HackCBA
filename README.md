@@ -107,7 +107,10 @@ from the first deploy; the reasoning is in ADR 0001.
 | `docs/assumptions.md` | What we take as true because the client has not answered yet |
 | `docs/amenazas.md` | The threat model, ticket D7 |
 | `docs/adr/` | The decisions this repo made and why |
+| `seed/lista-precios.html` | The owner's price list, 19 families, the source every seed is typed from |
 | `seed/business-cards.json` | The cards catalog: items, add-ons, discounts and the module table |
+| `seed/facts.json` | What the shop may say about itself. A row with no value escalates |
+| `scripts/parse-price-list.ts` | Reads the list and audits a seed's amounts against it, `bun run parse:list` |
 | `scripts/eval-flows.ts` | The two flows the shop sells on, driven through the real route with real models |
 
 The long product plan and the domain glossary live in the client repo. The ADRs here cover

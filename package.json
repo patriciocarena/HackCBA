@@ -15,7 +15,8 @@
     "set-webhook": "bun src/telegram/set-webhook.ts",
     "check:schemas": "bun scripts/check-structured-output.ts",
     "eval": "bun scripts/eval-flows.ts",
-    "eval:demo": "bun scripts/eval-demo.ts"
+    "eval:demo": "bun scripts/eval-demo.ts",
+    "parse:list": "bun scripts/parse-price-list.ts"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",
