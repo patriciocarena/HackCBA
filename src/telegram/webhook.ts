@@ -8,6 +8,7 @@ import {
   type Fence,
   type InboundLog,
   type IsAdmin,
+  type InboundMessage,
   type Turn,
 } from './inbound'
 import { inMemorySeenUpdates, type SeenUpdates } from './seen-updates'
@@ -48,7 +49,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
     if (await seenUpdates.seen(update.updateId)) return acknowledged()
 
     const role: Role = isAdmin(update.senderId) ? 'admin' : 'customer'
-    const message = {
+    const message: InboundMessage = {
       updateId: update.updateId,
       conversationId: conversationId(CHANNEL, update.chatId, role),
       role,
