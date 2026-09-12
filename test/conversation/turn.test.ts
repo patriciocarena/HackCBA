@@ -541,10 +541,15 @@ describe('the amount guard reads numbers, not only pesos signs', () => {
     expect(await sent(written, quote, 'cuánto 1000 tarjetas ilustración 350 4/1')).toBe(written)
   })
 
-  test('a number under the floor is a quantity or a gramaje, and the catalog has no row that cheap', async () => {
+  // This asserted the same reply was sent, on the grounds that nothing under 1000 can be a price.
+  // True of prices, and it exempted every other number a quote states. The customer here said no
+  // number at all, so `350 gramos`, `4/1` and `en 90 días` were all invented, and the last one is
+  // a delivery promise the shop is held to. A gramaje the customer did name still passes, which
+  // the test above and number-guard.test.ts both cover.
+  test('a number nobody said is refused, even under the old floor, because a promise is not free', async () => {
     const written = `Te cotizo ${total} final con IVA incluido. Son 350 gramos, 4/1, en 90 días.`
 
-    expect(await sent(written, quote, 'cuánto tarjetas')).toBe(written)
+    expect(await sent(written, quote, 'cuánto tarjetas')).toBeNull()
   })
 })
 

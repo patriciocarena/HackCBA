@@ -211,18 +211,29 @@ const AMOUNT = /\$\s*[\d.,]*\d/g
 const NUMBER = /\d[\d.,]*/g
 const DELIMITER = /<\/?[a-z][a-z0-9_]*:[0-9a-f]{32}>/g
 
-// ponytail: the floor is what keeps a quantity from reading as a price. The cheapest row in
-// the catalog is 12100, so nothing a customer is charged can hide under it. Drop the floor and
-// compare against the catalog's own minimum when a row goes cheaper than this.
-const FLOOR = 1000
+/**
+ * A number wearing a currency, whichever side the currency sits on. `$` was the only marker the
+ * guard knew, and ADR 0010 named the two that got past it, `37190 pesos` and `ARS 30.000`, then
+ * left them to the floor to catch. The floor is gone, and these are now read as amounts.
+ */
+const CURRENCY = /(?:\$|\bARS\b)\s*(\d[\d.,]*)|(\d[\d.,]*)\s*(?:pesos?\b|ARS\b)/gi
 
 export function amountsIn(text: string): string[] {
   return text.match(AMOUNT) ?? []
 }
 
+/** Every amount in the text, as a bare run of digits, so `$37.190` and `37190 pesos` are one. */
+function currencyIn(text: string): string[] {
+  return [...text.matchAll(CURRENCY)].map((match) => plain(match[1] ?? match[2] ?? ''))
+}
+
+function plain(run: string): string {
+  return run.replace(/[.,]/g, '')
+}
+
 /** Every number as the guard compares them, so `37.190` and `37190` are one value. */
 function numbersIn(text: string): string[] {
-  return (text.match(NUMBER) ?? []).map((run) => run.replace(/[.,]/g, ''))
+  return (text.match(NUMBER) ?? []).map(plain)
 }
 
 /** The customer's words without the fence around them: a nonce is hex and hex carries digits. */
@@ -231,16 +242,25 @@ function said(fenced: string): string {
 }
 
 /**
- * A reply may stand only on numbers it was given. A pesos sign is the shape a price usually
- * has, and the prompt cannot stop a model writing `37190 pesos` or `ARS 30.000` instead, so
- * every number above the floor has to come from the answer or from the customer's own message.
+ * A reply may stand only on numbers it was given, and only the engine may hand it a price.
+ *
+ * Two rules, because the two failures are different. An amount is a claim about what the shop
+ * charges, so it has to come from the answer and from nowhere else: the customer's own message is
+ * not a source of prices, however they phrase it, because the message is also the one channel an
+ * attacker writes. A plain number is not a claim about money, so a reply may repeat the quantity
+ * or the paper weight the customer asked for.
+ *
+ * The floor is gone. It exempted every number under 1000 from the second rule, which is every
+ * number a quote actually states except the price: the validity window, the module count, the
+ * discount rate. A reply promising ninety days on a fifteen day quote passed, and the shop is
+ * held to what it says.
  */
 function amountsHold(reply: string, answer: string, fenced: string, resolution: Resolution): boolean {
-  const shaped = new Set(amountsIn(answer))
-  if (amountsIn(reply).some((amount) => !shaped.has(amount))) return false
+  const quoted = new Set(currencyIn(answer))
+  if (currencyIn(reply).some((amount) => !quoted.has(amount))) return false
 
   const given = new Set([...numbersIn(answer), ...numbersIn(said(fenced))])
-  if (numbersIn(reply).some((number) => Number(number) >= FLOOR && !given.has(number))) return false
+  if (numbersIn(reply).some((number) => !given.has(number))) return false
 
   return resolution.kind !== 'price' || reply.includes(pesos(totalOf(resolution.breakdown)))
 }
