@@ -93,18 +93,6 @@ export async function recordReceipt(
   }
 }
 
-// ponytail: in memory, A3's table when a receipt has to outlive the process. No accessor, so
-// the seam a later lane picks up cannot read a receipt back either.
-export function inMemoryReceipts(): ReceiptStore {
-  const receipts: Receipt[] = []
-
-  return {
-    async record(receipt) {
-      receipts.push(receipt)
-    },
-  }
-}
-
 export type ConfirmInput = {
   by: Actor
   now: string

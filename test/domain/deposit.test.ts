@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import {
   confirmDeposit,
-  inMemoryReceipts,
   recordReceipt,
   requestDeposit,
   type Receipt,
@@ -183,12 +182,12 @@ describe('only an admin confirms, and confirming never shows the receipt', () =>
     expect(JSON.stringify(confirmed.order)).not.toContain(FORGED)
   })
 
-  test('the store the demo actually runs on has no reader either', () => {
-    const store: ReceiptStore = inMemoryReceipts()
+  test('the store type has one member, so no reader can be added without failing typecheck', () => {
+    // Compile time, not runtime. Naming a key would only guard that name; this fails on any
+    // added member whatever it is called, which is what ADR 0012 claims.
+    const writeOnly: keyof ReceiptStore extends 'record' ? true : never = true
 
-    // @ts-expect-error a ReceiptStore writes and never reads. Adding any reader fails typecheck
-    // here, which is what keeps a confirmation screen from ever being able to show a receipt.
-    expect(store.find).toBeUndefined()
+    expect(writeOnly).toBe(true)
   })
 })
 
