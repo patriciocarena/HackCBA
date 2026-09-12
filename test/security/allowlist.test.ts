@@ -109,6 +109,13 @@ describe('the denial record', () => {
     expect(recorded).toEqual([{ telegramUserId: null }])
   })
 
+  test('records a denial when the list itself is unreadable', () => {
+    const { recorded, recordDenial } = denials()
+    adminAllowlist({ ids: 'abc,123', recordDenial })('123')
+
+    expect(recorded).toEqual([{ telegramUserId: '123' }])
+  })
+
   test('records nothing when the sender is allowed', () => {
     const { recorded, recordDenial } = denials()
     adminAllowlist({ ids: '123', recordDenial })('123')
