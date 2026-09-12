@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
+import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { priceFor } from '../../src/domain/price-for'
 import { askText, quoteText } from '../../src/domain/quote-text'
 import type { QuoteIntent, Resolution } from '../../src/domain/types'
-import { baseConfig, catalogRows, intent, OFFSET_1000, SPECIAL_100 } from '../support/catalog'
+import { intent, OFFSET_1000, SPECIAL_100 } from '../support/fixtures'
 
 const resolve = (overrides: Partial<QuoteIntent>): Resolution =>
   priceFor(intent(overrides), catalogRows, baseConfig)

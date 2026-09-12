@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test'
+import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { priceFor, type PriceForConfig } from '../../src/domain/price-for'
 import { quoteText } from '../../src/domain/quote-text'
 import type { PriceBreakdown, QuoteIntent, Resolution, Size } from '../../src/domain/types'
-import { baseConfig, catalogRows, intent, OFFSET_1000, priceOf, withVat } from '../support/catalog'
+import { intent, OFFSET_1000, priceOf, withVat } from '../support/fixtures'
 
 const quote = (overrides: Partial<QuoteIntent>, config: PriceForConfig = baseConfig): Resolution =>
   priceFor(intent({ attributes: OFFSET_1000, ...overrides }), catalogRows, config)
@@ -106,7 +107,7 @@ describe('what the customer reads about modules', () => {
 })
 
 describe('a piece that is no longer a business card', () => {
-  test('a 500 x 300 cm piece is refused, not quoted', () => {
+  test('case 20: a 500 x 300 cm piece is refused, not quoted', () => {
     // 3530 modules is a billboard. Quoting it confidently is the failure this project prevents.
     expect(quote({ size: { widthCm: 500, heightCm: 300 } }).kind).toBe('escalate')
   })

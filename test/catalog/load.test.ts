@@ -1,47 +1,75 @@
-import type { Client } from '@libsql/client'
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { loadCatalog } from '@/catalog/load'
-import { migratedDb } from '@test/support/db'
-
-const RECORDED_AT = '2026-09-12T08:00:00.000Z'
-
-let client: Client
-
-beforeEach(async () => {
-  client = await migratedDb()
-  await loadCatalog(client, await Bun.file('seed/business-cards.json').json(), RECORDED_AT)
-})
-
-afterEach(() => {
-  client.close()
-})
-
-async function one(sql: string): Promise<Record<string, unknown>> {
-  const result = await client.execute(sql)
-
-  return result.rows[0] as unknown as Record<string, unknown>
-}
+import { describe, expect, it } from 'bun:test'
+import seed from '../../seed/business-cards.json'
+import { loadCatalog } from '../../src/catalog/load'
+import { ars } from '../../src/domain/money'
 
 describe('loadCatalog', () => {
-  it('writes the family with its unit and its module', async () => {
-    const family = await one('SELECT * FROM families')
+  it('reads the family contract off the seed', () => {
+    const { config } = loadCatalog(seed)
 
-    expect(family.slug).toBe('business_cards')
-    expect(family.unit).toBe('unit')
-    expect(family.module_width_cm).toBe(8.5)
-    expect(family.module_height_cm).toBe(5)
+    expect(config.family.slug).toBe('business_cards')
+    expect(config.family.label).toBe('Tarjetas personales')
+    expect(config.family.unit).toBe('unit')
+    expect(config.family.vatRate).toBe(0.21)
+    expect(config.family.vatIncluded).toBe(true)
+    expect(config.family.module).toEqual({ widthCm: 8.5, heightCm: 5 })
   })
 
-  it('derives the attribute contracts from the sale rows, so no value is invented', async () => {
-    const family = await one('SELECT attributes FROM families')
+  it('maps every seed item into a catalog row', () => {
+    const { rows } = loadCatalog(seed)
 
-    expect(JSON.parse(String(family.attributes))).toEqual([
-      { name: 'quantity', kind: 'number', values: [100, 200, 500, 1000] },
-      {
-        name: 'paper',
-        kind: 'enum',
-        values: ['illustration_300', 'illustration_350', 'special'],
-      },
+    expect(rows).toHaveLength(seed.items.length)
+    expect(rows.filter((row) => row.kind === 'sale')).toHaveLength(14)
+    expect(rows.filter((row) => row.kind === 'add_on')).toHaveLength(11)
+    expect(rows.filter((row) => row.kind === 'discount')).toHaveLength(2)
+  })
+
+  it('carries the fields the engine reads off a row', () => {
+    const { rows } = loadCatalog(seed)
+
+    expect(rows.find((row) => row.slug === 'bc_special_100_front')).toEqual({
+      slug: 'bc_special_100_front',
+      kind: 'sale',
+      label: '100 tarjetas color sólo frente',
+      group: undefined,
+      provisional: undefined,
+      attributes: { quantity: 100, paper: 'special', sides: 'front', finish: 'none' },
+      appliesTo: undefined,
+      appliesToFamily: undefined,
+      price: ars(12100),
+    })
+  })
+
+  it('carries group, appliesTo and provisional where the seed sets them', () => {
+    const { rows } = loadCatalog(seed)
+    const lamination = rows.find((row) => row.slug === 'bc_addon_lamination_special_100_front')
+    const discount = rows.find((row) => row.slug === 'bc_discount_illustration_plain_100')
+
+    expect(lamination?.group).toBe('lamination')
+    expect(lamination?.appliesTo).toEqual(['bc_special_100_front'])
+    expect(rows.find((row) => row.slug === 'bc_addon_design')?.appliesToFamily).toBe(true)
+    expect(discount?.provisional).toBe(true)
+  })
+
+  it('reads the module discount tiers and the quote validity off the seed', () => {
+    const { config } = loadCatalog(seed)
+
+    expect(config.quoteValidityDays).toBe(15)
+    expect(config.moduleDiscounts).toEqual([
+      { fromModules: 3, toModules: 5, rate: 0.1 },
+      { fromModules: 6, toModules: 8, rate: 0.15 },
+      { fromModules: 9, toModules: 12, rate: 0.2 },
+      { fromModules: 13, toModules: null, rate: 0.25 },
+    ])
+  })
+
+  it('derives each attribute contract from the values the sale rows carry', () => {
+    const { config } = loadCatalog(seed)
+
+    expect(config.family.askOrder).toEqual(['quantity', 'paper', 'sides', 'finish'])
+    expect(config.family.attributes).toEqual([
+      { name: 'quantity', kind: 'number', values: [100, 200, 1000, 500] },
+      { name: 'paper', kind: 'enum', values: ['special', 'illustration_300', 'illustration_350'] },
       {
         name: 'sides',
         kind: 'enum',
@@ -52,91 +80,51 @@ describe('loadCatalog', () => {
         kind: 'enum',
         values: [
           'none',
-          'opp_both_sides',
-          'opp_both_sides_uv_both_sides',
-          'opp_both_sides_uv_one_side',
           'uv_front',
+          'opp_both_sides',
+          'opp_both_sides_uv_one_side',
+          'opp_both_sides_uv_both_sides',
         ],
       },
     ])
   })
 
-  it('writes every row of the list under its tier', async () => {
-    const counts = await client.execute(
-      'SELECT tier, count(*) AS n FROM items GROUP BY tier ORDER BY tier',
-    )
+  it('leaves out a paper the list names but no sale row carries', () => {
+    const { config } = loadCatalog(seed)
+    const paper = config.family.attributes.find((attribute) => attribute.name === 'paper')
 
-    expect(counts.rows.map((row) => [String(row.tier), Number(row.n)])).toEqual([
-      ['add_on', 11],
-      ['discount', 2],
-      ['sale', 14],
+    expect(seed.papers.map((entry) => entry.slug)).toContain('illustration_300_plain')
+    expect(paper?.values).not.toContain('illustration_300_plain')
+  })
+
+  it('refuses a declared attribute that no sale row carries', () => {
+    const withGhost = {
+      ...seed,
+      family: { ...seed.family, attributes: [...seed.family.attributes, 'varnish'] },
+    }
+
+    expect(() => loadCatalog(withGhost)).toThrow('varnish is declared but no sale row carries it')
+  })
+
+  it('offers each add-on group once, whatever number of rows prices it', () => {
+    const { config } = loadCatalog(seed)
+
+    expect(config.family.addOns).toEqual([
+      'lamination',
+      'design',
+      'extra_cut',
+      'label_perforation',
+      'rounded_corners',
+      'circular_cut',
     ])
   })
 
-  it('puts the price in a version, and the view reads the latest one', async () => {
-    const item = await one("SELECT price FROM catalog_items WHERE slug = 'bc_special_100_front'")
+  it('refuses a row whose kind the engine does not price', () => {
+    const withTypo = {
+      ...seed,
+      items: [...seed.items, { id: 'bc_typo', kind: 'sales', label: 'typo', price: 100 }],
+    }
 
-    expect(item.price).toBe(12100)
-  })
-
-  it('resolves applies_to into rows, not into a list of strings', async () => {
-    const applied = await client.execute(`SELECT sale.slug AS slug
-      FROM item_applications AS link
-      JOIN items AS addon ON addon.id = link.item_id
-      JOIN items AS sale ON sale.id = link.applies_to_id
-      WHERE addon.slug = 'bc_addon_lamination_special_100_front'`)
-
-    expect(applied.rows.map((row) => String(row.slug))).toEqual(['bc_special_100_front'])
-  })
-
-  it('marks the add-ons the whole family can take', async () => {
-    const item = await one("SELECT applies_to_family FROM items WHERE slug = 'bc_addon_design'")
-
-    expect(item.applies_to_family).toBe(1)
-  })
-
-  it('loads twice without duplicating a row or a price', async () => {
-    await loadCatalog(client, await Bun.file('seed/business-cards.json').json(), RECORDED_AT)
-
-    const counts = await one(`SELECT
-      (SELECT count(*) FROM items) AS items,
-      (SELECT count(*) FROM price_versions) AS versions,
-      (SELECT count(*) FROM item_applications) AS links`)
-
-    expect(counts).toMatchObject({ items: 27, versions: 27, links: 8 })
-  })
-})
-
-describe('a catalog that cannot be trusted', () => {
-  it('leaves nothing behind when a row fails halfway', async () => {
-    const seed = await Bun.file('seed/business-cards.json').json()
-    seed.items[0].applies_to = ['a_row_that_is_not_in_the_list']
-
-    await client.execute('DELETE FROM items')
-    await client.execute('DELETE FROM families')
-
-    await expect(loadCatalog(client, seed, RECORDED_AT)).rejects.toThrow()
-
-    const counts = await one('SELECT count(*) AS n FROM items')
-
-    expect(counts.n).toBe(0)
-  })
-
-  it('refuses an attribute the family declares and no sale row carries', async () => {
-    const seed = await Bun.file('seed/business-cards.json').json()
-    seed.family.attributes.push('varnish')
-
-    await expect(loadCatalog(client, seed, RECORDED_AT)).rejects.toThrow(
-      'varnish is declared and no sale row carries it',
-    )
-  })
-
-  it('refuses an attribute whose values are half numbers and half words', async () => {
-    const seed = await Bun.file('seed/business-cards.json').json()
-    seed.items.find((item: { id: string }) => item.id === 'bc_special_100_front').attributes.quantity = 'cien'
-
-    await expect(loadCatalog(client, seed, RECORDED_AT)).rejects.toThrow(
-      'quantity carries both numbers and words',
-    )
+    expect(() => loadCatalog(withTypo)).toThrow('bc_typo has kind sales')
   })
 })

@@ -1,194 +1,127 @@
-import type { Client } from '@libsql/client'
-import { z } from 'zod'
-import type { ModuleDiscount } from '@/domain/price-for'
-import { unitSchema, type AttributeContract } from '@/domain/types'
-import { recordPrice, type Writer } from '@/storage/price-versions'
-import { canonicalAttributes, type AttributeBag } from './attributes'
-import { itemTierSchema } from './tiers'
+import { ars } from '../domain/money'
+import type { CatalogItemKind, CatalogRow, ModuleDiscount, PriceForConfig } from '../domain/price-for'
+import { unitSchema, type AttributeContract, type FamilyContract } from '../domain/types'
 
-const attributeValueSchema = z.union([z.string(), z.number()])
-
-const seedItemSchema = z.object({
-  id: z.string(),
-  kind: itemTierSchema,
-  label: z.string(),
-  unit: unitSchema.optional(),
-  attributes: z.record(z.string(), attributeValueSchema).default({}),
-  applies_to: z.array(z.string()).default([]),
-  applies_to_family: z.boolean().default(false),
-  price: z.number().int().nonnegative(),
-  extra_business_days: z.number().int().default(0),
-  note: z.string().optional(),
-  source_note: z.string().optional(),
-})
-
-const seedSchema = z.object({
-  vat_rate: z.number(),
-  vat_included: z.boolean(),
-  quote_validity_days: z.number().int().optional(),
-  family: z.object({
-    slug: z.string(),
-    label: z.string(),
-    unit: unitSchema,
-    module: z.object({ width_cm: z.number(), height_cm: z.number() }).nullish(),
-    attributes: z.array(z.string()),
-  }),
-  items: z.array(seedItemSchema),
-  module_discounts: z
-    .array(
-      z.object({
-        from_modules: z.number().int(),
-        to_modules: z.number().int().nullable(),
-        rate: z.number(),
-      }),
-    )
-    .default([]),
-})
-
-type Seed = z.infer<typeof seedSchema>
-type SeedItem = z.infer<typeof seedItemSchema>
-
-export async function loadCatalog(client: Client, file: unknown, recordedAt: string): Promise<void> {
-  const seed = seedSchema.parse(file)
-  const write = await client.transaction('write')
-
-  try {
-    await writeFamily(write, seed)
-
-    for (const item of seed.items) {
-      await writeItem(write, seed.family.slug, item)
-    }
-
-    const ids = await itemIds(write, seed.family.slug)
-
-    for (const item of seed.items) {
-      const id = ids[item.id] as number
-
-      await writeApplications(write, id, item.applies_to.map((slug) => ids[slug] as number))
-      await recordPrice(write, { itemId: id, price: item.price, recordedAt })
-    }
-
-    await write.commit()
-  } finally {
-    write.close()
-  }
+export type CatalogSeedItem = {
+  id: string
+  kind: string
+  label: string
+  group?: string
+  provisional?: boolean
+  attributes?: Record<string, string | number | undefined>
+  applies_to?: readonly string[]
+  applies_to_family?: boolean
+  price: number
 }
 
-async function writeFamily(client: Writer, seed: Seed): Promise<void> {
-  await client.execute({
-    sql: `INSERT INTO families
-      (slug, label, unit, vat_rate, vat_included, quote_validity_days,
-       module_width_cm, module_height_cm, attributes, module_discounts)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT (slug) DO UPDATE SET
-        label = excluded.label,
-        unit = excluded.unit,
-        vat_rate = excluded.vat_rate,
-        vat_included = excluded.vat_included,
-        quote_validity_days = excluded.quote_validity_days,
-        module_width_cm = excluded.module_width_cm,
-        module_height_cm = excluded.module_height_cm,
-        attributes = excluded.attributes,
-        module_discounts = excluded.module_discounts`,
-    args: [
-      seed.family.slug,
-      seed.family.label,
-      seed.family.unit,
-      seed.vat_rate,
-      seed.vat_included ? 1 : 0,
-      seed.quote_validity_days ?? null,
-      seed.family.module?.width_cm ?? null,
-      seed.family.module?.height_cm ?? null,
-      JSON.stringify(attributeContracts(seed)),
-      JSON.stringify(moduleDiscounts(seed)),
+export type CatalogSeed = {
+  vat_rate: number
+  vat_included: boolean
+  quote_validity_days: number
+  family: {
+    slug: string
+    label: string
+    unit: string
+    module: { width_cm: number; height_cm: number } | null
+    attributes: readonly string[]
+    ask_order: readonly string[]
+  }
+  items: readonly CatalogSeedItem[]
+  module_discounts: readonly { from_modules: number; to_modules: number | null; rate: number }[]
+}
+
+const CATALOG_ITEM_KINDS: readonly CatalogItemKind[] = ['sale', 'add_on', 'discount']
+
+export type Catalog = {
+  rows: CatalogRow[]
+  config: PriceForConfig
+}
+
+export function loadCatalog(seed: CatalogSeed): Catalog {
+  const rows = seed.items.map(catalogRow)
+  const sales = rows.filter((row) => row.kind === 'sale')
+
+  const family: FamilyContract = {
+    slug: seed.family.slug,
+    label: seed.family.label,
+    unit: unitSchema.parse(seed.family.unit),
+    vatRate: seed.vat_rate,
+    vatIncluded: seed.vat_included,
+    module:
+      seed.family.module === null
+        ? null
+        : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
+    attributes: seed.family.attributes.map((name) => attributeContract(name, sales)),
+    askOrder: [...seed.family.ask_order],
+    addOns: [
+      ...new Set(
+        rows.filter((row) => row.kind === 'add_on').map((row) => row.group ?? row.slug),
+      ),
     ],
-  })
-}
-
-async function writeItem(client: Writer, familySlug: string, item: SeedItem): Promise<void> {
-  await client.execute({
-    sql: `INSERT INTO items
-      (slug, family_slug, tier, label, unit, attributes, applies_to_family,
-       extra_business_days, note, source_note)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT (slug) DO UPDATE SET
-        family_slug = excluded.family_slug,
-        tier = excluded.tier,
-        label = excluded.label,
-        unit = excluded.unit,
-        attributes = excluded.attributes,
-        applies_to_family = excluded.applies_to_family,
-        extra_business_days = excluded.extra_business_days,
-        note = excluded.note,
-        source_note = excluded.source_note`,
-    args: [
-      item.id,
-      familySlug,
-      item.kind,
-      item.label,
-      item.unit ?? null,
-      canonicalAttributes(item.attributes),
-      item.applies_to_family ? 1 : 0,
-      item.extra_business_days,
-      item.note ?? null,
-      item.source_note ?? null,
-    ],
-  })
-}
-
-async function writeApplications(
-  client: Writer,
-  itemId: number,
-  appliesTo: number[],
-): Promise<void> {
-  await client.execute({
-    sql: 'DELETE FROM item_applications WHERE item_id = ?',
-    args: [itemId],
-  })
-
-  for (const id of appliesTo) {
-    await client.execute({
-      sql: 'INSERT INTO item_applications (item_id, applies_to_id) VALUES (?, ?)',
-      args: [itemId, id],
-    })
-  }
-}
-
-async function itemIds(client: Writer, familySlug: string): Promise<Record<string, number>> {
-  const rows = await client.execute({
-    sql: 'SELECT id, slug FROM items WHERE family_slug = ?',
-    args: [familySlug],
-  })
-
-  return Object.fromEntries(rows.rows.map((row) => [String(row.slug), Number(row.id)]))
-}
-
-function attributeContracts(seed: Seed): AttributeContract[] {
-  const bags = seed.items.filter((item) => item.kind === 'sale').map((item) => item.attributes)
-
-  return seed.family.attributes.map((name) => contractFor(name, bags))
-}
-
-function contractFor(name: string, bags: AttributeBag[]): AttributeContract {
-  const values = [...new Set(bags.map((bag) => bag[name]).filter((value) => value !== undefined))]
-
-  if (values.length === 0) throw new Error(`${name} is declared and no sale row carries it`)
-
-  const numbers = values.filter((value) => typeof value === 'number')
-
-  if (numbers.length === values.length) {
-    return { name, kind: 'number', values: numbers.sort((one, other) => one - other) }
   }
 
-  if (numbers.length > 0) throw new Error(`${name} carries both numbers and words`)
-
-  return { name, kind: 'enum', values: values.map(String).sort() }
-}
-
-function moduleDiscounts(seed: Seed): ModuleDiscount[] {
-  return seed.module_discounts.map((discount) => ({
+  const moduleDiscounts: ModuleDiscount[] = seed.module_discounts.map((discount) => ({
     fromModules: discount.from_modules,
     toModules: discount.to_modules,
     rate: discount.rate,
   }))
+
+  return {
+    rows,
+    config: { family, quoteValidityDays: seed.quote_validity_days, moduleDiscounts },
+  }
+}
+
+function catalogRow(item: CatalogSeedItem): CatalogRow {
+  return {
+    slug: item.id,
+    kind: catalogItemKind(item),
+    label: item.label,
+    group: item.group,
+    provisional: item.provisional,
+    attributes: item.attributes === undefined ? undefined : declaredValues(item.attributes),
+    appliesTo: item.applies_to === undefined ? undefined : [...item.applies_to],
+    appliesToFamily: item.applies_to_family,
+    price: ars(item.price),
+  }
+}
+
+function catalogItemKind(item: CatalogSeedItem): CatalogItemKind {
+  const kind = CATALOG_ITEM_KINDS.find((candidate) => candidate === item.kind)
+
+  if (kind === undefined) {
+    throw new Error(`${item.id} has kind ${item.kind}, which the engine does not price`)
+  }
+
+  return kind
+}
+
+function attributeContract(name: string, rows: CatalogRow[]): AttributeContract {
+  const values = [
+    ...new Set(
+      rows
+        .map((row) => row.attributes?.[name])
+        .filter((value): value is string | number => value !== undefined),
+    ),
+  ]
+
+  if (values.length === 0) {
+    throw new Error(`${name} is declared but no sale row carries it`)
+  }
+
+  if (values.every((value) => typeof value === 'number')) {
+    return { name, kind: 'number', values: values as number[] }
+  }
+
+  return { name, kind: 'enum', values: values.map(String) }
+}
+
+function declaredValues(
+  attributes: Record<string, string | number | undefined>,
+): Record<string, string | number> {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(
+      (entry): entry is [string, string | number] => entry[1] !== undefined,
+    ),
+  )
 }
