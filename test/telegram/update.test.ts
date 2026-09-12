@@ -10,6 +10,7 @@ describe('readUpdate', () => {
     expect(readUpdate(message({ text: 'cuánto 1000 tarjetas' }))).toEqual({
       updateId: 70,
       chatId: '-100',
+      privateChat: true,
       senderId: '42',
       text: 'cuánto 1000 tarjetas',
       mediaId: null,
@@ -30,8 +31,17 @@ describe('readUpdate', () => {
     expect(parsed).toMatchObject({ text: 'la lista nueva', mediaId: 'large' })
   })
 
+  it('reports a group chat as not private, so a role decision can see it', () => {
+    const parsed = readUpdate({
+      update_id: 70,
+      message: { chat: { id: -100, type: 'supergroup' }, from: { id: 42 }, text: 'hola' },
+    })
+
+    expect(parsed).toMatchObject({ privateChat: false })
+  })
+
   it('refuses an update with no sender, because there is no id to place a role against', () => {
-    expect(readUpdate({ update_id: 70, message: { chat: { id: -100 }, text: 'hola' } })).toBeNull()
+    expect(readUpdate({ update_id: 70, message: { chat: { id: -100, type: 'private' }, text: 'hola' } })).toBeNull()
   })
 
   it('refuses a message carrying neither text nor media', () => {

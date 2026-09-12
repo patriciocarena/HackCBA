@@ -16,7 +16,7 @@ function delivery(secret: string): Request {
     headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
     body: JSON.stringify({
       update_id: 70,
-      message: { chat: { id: -100 }, from: { id: 42 }, text: 'cuánto 1000 tarjetas' },
+      message: { chat: { id: -100, type: 'supergroup' }, from: { id: 42 }, text: 'cuánto 1000 tarjetas' },
     }),
   })
 }

@@ -37,9 +37,12 @@ A delivery is handled in this order, and the order is the decision:
    not produce one.
 3. Claim the `update_id`. `seen(updateId)` reports whether the id was already claimed and
    claims it in the same call. A claimed id returns 200 and runs nothing.
-4. Resolve the role from the sender's Telegram user id through the allowlist, build the
-   `ConversationId` from channel, chat and role, record the inbound message, and await the
-   turn.
+4. Resolve the role from the sender's Telegram user id through the allowlist, and only in a
+   private chat. An allowlisted sender writing in a group is a customer, because both roles
+   reply into the chat a person is looking at, and an owner confirming a price edit in a
+   group confirms it in front of the customer. Storage separation does not cover that.
+5. Build the `ConversationId` from channel, chat and role, record the inbound message, and
+   await the turn.
 
 Claiming before the turn rather than after is at most once, not at least once. If the turn
 throws after the claim, that message is lost, because the retry is deduped into a no-op.

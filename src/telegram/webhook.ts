@@ -48,7 +48,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
     if (update === null) return acknowledged()
     if (await seenUpdates.seen(update.updateId)) return acknowledged()
 
-    const role: Role = isAdmin(update.senderId) ? 'admin' : 'customer'
+    const role: Role = update.privateChat && isAdmin(update.senderId) ? 'admin' : 'customer'
     const message: InboundMessage = {
       updateId: update.updateId,
       conversationId: conversationId(CHANNEL, update.chatId, role),

@@ -18,7 +18,7 @@ function delivery(body: unknown, secret: string | null = SECRET): Request {
 function update(updateId: number, fields: Record<string, unknown> = {}, senderId = 42) {
   return {
     update_id: updateId,
-    message: { chat: { id: -100 }, from: { id: senderId }, text: 'subí las tarjetas un 20%', ...fields },
+    message: { chat: { id: 42, type: 'private' }, from: { id: senderId }, text: 'subí las tarjetas un 20%', ...fields },
   }
 }
 
@@ -50,7 +50,7 @@ describe('telegramWebhook', () => {
     expect(turns).toHaveLength(1)
     expect(turns[0]).toMatchObject({
       updateId: 70,
-      conversationId: 'telegram:-100:customer',
+      conversationId: 'telegram:42:customer',
       role: 'customer',
       senderId: '42',
       text: 'subí las tarjetas un 20%',
@@ -66,10 +66,19 @@ describe('telegramWebhook', () => {
     await webhook(delivery(update(71, {}, 42)))
 
     expect(turns.map((message) => String(message.conversationId))).toEqual([
-      'telegram:-100:admin',
-      'telegram:-100:customer',
+      'telegram:42:admin',
+      'telegram:42:customer',
     ])
     expect(turns.map((message) => message.role)).toEqual(['admin', 'customer'])
+  })
+
+  it('keeps an allowlisted sender a customer in a group, so no edit is confirmed in front of one', async () => {
+    const { turns, turn } = spy()
+    const group = update(70, { chat: { id: -100, type: 'supergroup' } }, 7)
+
+    await telegramWebhook({ secret: SECRET, turn, isAdmin: (id) => id === '7' })(delivery(group))
+
+    expect(turns[0]?.role).toBe('customer')
   })
 
   it('claims nothing for a rejected delivery, so a forged one cannot silence a real update', async () => {
@@ -104,7 +113,7 @@ describe('telegramWebhook', () => {
 
     expect(log.messages).toHaveLength(1)
     expect(log.messages[0]).toMatchObject({
-      conversationId: 'telegram:-100:customer',
+      conversationId: 'telegram:42:customer',
       mediaId: 'voice-1',
       text: null,
       receivedAt: '2026-09-12T09:30:00.000Z',

@@ -3,7 +3,7 @@ import { z } from 'zod'
 const fileSchema = z.object({ file_id: z.string() })
 
 const messageSchema = z.object({
-  chat: z.object({ id: z.number().int() }),
+  chat: z.object({ id: z.number().int(), type: z.string() }),
   from: z.object({ id: z.number().int() }).optional(),
   text: z.string().optional(),
   caption: z.string().optional(),
@@ -19,6 +19,7 @@ const updateSchema = z.object({
 type Update = {
   updateId: number
   chatId: string
+  privateChat: boolean
   senderId: string
   text: string | null
   mediaId: string | null
@@ -38,6 +39,7 @@ export function readUpdate(body: unknown): Update | null {
   return {
     updateId: update.data.update_id,
     chatId: String(message.chat.id),
+    privateChat: message.chat.type === 'private',
     senderId: String(message.from.id),
     text,
     mediaId,
