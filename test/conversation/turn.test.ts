@@ -179,6 +179,7 @@ describe('it introduces itself once', () => {
 
     expect(result.reply).toBeNull()
     expect(result.state.introduced).toBe(false)
+    expect(result.state.escalated).toBe(true)
   })
 })
 
