@@ -7,7 +7,7 @@ import {
   type Review,
   type SavePriceEdit,
 } from '../voice/price-edit-proposal'
-import type { TranscriptionPort } from '../voice/transcription'
+import type { FetchLike, TranscriptionPort } from '../voice/transcription'
 import type { InboundMessage, Turn } from './inbound'
 
 export type FetchAudio = (mediaId: string) => Promise<Uint8Array<ArrayBuffer> | null>
@@ -68,4 +68,26 @@ export function adminAudioTurn(deps: AdminAudioDeps): Turn {
   const read = readAdminAudio(deps)
 
   return async (message) => void (await read(message))
+}
+
+const API = 'https://api.telegram.org'
+
+export function telegramAudio(token: string, fetchImpl: FetchLike = fetch): FetchAudio {
+  return async (mediaId) => {
+    try {
+      const located = await fetchImpl(`${API}/bot${token}/getFile?file_id=${encodeURIComponent(mediaId)}`)
+      if (!located.ok) return null
+
+      const body = (await located.json()) as { ok?: boolean; result?: { file_path?: unknown } }
+      const path = body.ok === true && typeof body.result?.file_path === 'string' ? body.result.file_path : null
+      if (path === null) return null
+
+      const download = await fetchImpl(`${API}/file/bot${token}/${path}`)
+      if (!download.ok) return null
+
+      return new Uint8Array(await download.arrayBuffer())
+    } catch {
+      return null
+    }
+  }
 }
