@@ -57,6 +57,21 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:4111/telegram/webhook
 A `401` on the second is the right answer: the secret header is missing. A `404` means the
 image predates the route and the build did not pick up `src/mastra/index.ts`.
 
+## The app and the volume, as they stand
+
+Confirmed with `fly status` and `fly volumes list` on 2026-09-12:
+
+```
+app     dante-multimpresos      hostname dante-multimpresos.fly.dev
+machine 2865136f169958  version 5  region gru  started  1 check passing
+volume  dante_data  1GB  gru  attached to 2865136f169958
+```
+
+That matches what `fly.toml` assumes: the mount `source = "dante_data"` exists and is
+attached, and the health check on `/health/db` is passing. The machine's last update predates
+the webhook route, which is why the route 404s while the health check is green: they are
+different paths and only one of them is in the deployed image.
+
 Then deploy. **One command**, and it is the user's call, not an agent's:
 
 ```bash
@@ -68,13 +83,62 @@ What it changes: it builds this `Dockerfile` on Fly, replaces the machine runnin
 returning 404. It does not touch secrets, the volume, or the Telegram webhook registration.
 `fly.toml` already points the health check at `/health/db`, which the image answers.
 
-Secrets must exist on Fly before that, once, and they are not in this repo:
+## Secrets, checked against Fly on 2026-09-12
+
+`fly secrets list` gives names and digests, never values. Three are already set:
+
+```
+TELEGRAM_WEBHOOK_SECRET   Deployed
+TELEGRAM_BOT_TOKEN        Deployed
+OPENROUTER_API_KEY        Deployed
+```
+
+Every other key the boot path reads is missing. This was not inferred from the source: the
+image was built and run with exactly what Fly supplies, `fly.toml [env]` plus those three
+names, and it exited 1 on the first one it could not find.
+
+**Six names must be set before the container can boot.** Missing any one of them kills the
+machine at startup, which is the design: a key is read at boot so a deployment without it
+dies instead of acknowledging customers it can never answer.
 
 ```bash
-fly secrets set TELEGRAM_BOT_TOKEN=... TELEGRAM_WEBHOOK_SECRET=... \
-  OPENROUTER_API_KEY=... OPENROUTER_MODEL=... DEPOSIT_ALIAS=... TELEGRAM_ADMIN_IDS=... \
-  FENCE_SECRET=...
+fly secrets set -a dante-multimpresos \
+  OPENROUTER_MODEL=... \
+  DEPOSIT_ALIAS=... \
+  OWNER_CHAT_ID=... \
+  ELEVENLABS_API_KEY=... \
+  ELEVENLABS_MODEL_ID=... \
+  TRANSCRIPTION_LANGUAGE=...
 ```
+
+The three ElevenLabs and transcription keys are reported together, because
+`transcriptionFromEnv` names all the missing ones at once:
+
+```
+error: missing ELEVENLABS_API_KEY, ELEVENLABS_MODEL_ID, TRANSCRIPTION_LANGUAGE
+```
+
+**Two more are not fatal and are still wrong to leave unset.** The container boots without
+them; it just behaves incorrectly, which is worse to discover on camera.
+
+```bash
+fly secrets set -a dante-multimpresos TELEGRAM_ADMIN_IDS=... FENCE_SECRET=...
+```
+
+`TELEGRAM_ADMIN_IDS` unset means `adminAllowlistFromEnv` denies everyone, so the owner is
+never `admin`, and steps 5 and 6 of the demo have no owner. That is fail-closed by design
+and silent.
+
+`FENCE_SECRET` unset makes `src/security/fence.ts` generate a random one per boot. Fences
+still hold within a process, so nothing is insecure, but a nonce does not survive a restart
+and the inbound log then holds blocks whose delimiter cannot be recomputed. It is new since
+the last deploy and is almost certainly not set.
+
+`fly.toml [env]` already supplies `DATA_DIR`, `MASTRA_HOST`, `NODE_ENV`, `TZ` and
+`TELEGRAM_WEBHOOK_URL`, so none of those five belong in `fly secrets set`.
+
+Setting secrets restarts the machine, so do it before `fly deploy` rather than after, or you
+pay for two restarts.
 
 `fly.toml` supplies `DATA_DIR`, `MASTRA_HOST`, `NODE_ENV`, `TZ` and `TELEGRAM_WEBHOOK_URL`
 already. Every key is read at boot on purpose, so a missing one kills the machine at startup
