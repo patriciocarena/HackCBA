@@ -65,4 +65,26 @@ describe('adminAllowlist', () => {
 
     expect(isAdmin('123')).toBe(false)
   })
+
+  test('denies an id that is only a prefix of an allowed one', () => {
+    const isAdmin = adminAllowlist({ ids: '1234', recordDenial: ignore })
+
+    expect(isAdmin('123')).toBe(false)
+    expect(isAdmin('12345')).toBe(false)
+    expect(isAdmin('1234')).toBe(true)
+  })
+
+  test('never trims the id the sender arrived with', () => {
+    const isAdmin = adminAllowlist({ ids: '123', recordDenial: ignore })
+
+    expect(isAdmin(' 123 ')).toBe(false)
+    expect(isAdmin('123 ')).toBe(false)
+  })
+
+  test('reads a duplicated entry once', () => {
+    const isAdmin = adminAllowlist({ ids: '123,123', recordDenial: ignore })
+
+    expect(isAdmin('123')).toBe(true)
+    expect(isAdmin('456')).toBe(false)
+  })
 })
