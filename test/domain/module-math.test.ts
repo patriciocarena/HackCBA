@@ -89,3 +89,57 @@ describe('module math, the three examples the owner gave', () => {
     expect(resolution.amount).toBe(Math.round(45000 * 1.21))
   })
 })
+
+describe('the module discount reaches the modules only', () => {
+  test('a family wide add-on is added at full price, after the discount', () => {
+    const resolution = quote({ ...standard, width_cm: 10, height_cm: 15, finish: 'corte extra' })
+
+    expect(resolution.kind).toBe('price')
+    if (resolution.kind !== 'price') return
+    // 4 modules x 45.000 = 180.000, less 10% = 162.000, plus the 1.600 cut at full price.
+    // Discounting the add-on too would give 197.762, which is the wrong answer.
+    expect(resolution.amount).toBe(Math.round((4 * 45000 * 0.9 + 1600) * 1.21))
+  })
+})
+
+describe('what the customer reads about modules', () => {
+  const moduleQuote = () => {
+    const resolution = quote({ ...standard, width_cm: 10, height_cm: 15 })
+    if (resolution.kind !== 'price') throw new Error('expected a price')
+    return resolution
+  }
+
+  test('says the module count and the discount, and nothing else', () => {
+    const { explanation } = moduleQuote()
+
+    expect(explanation).toContain('4 módulos')
+    expect(explanation).toContain('10%')
+    expect(explanation).toContain('$196.020')
+    expect(explanation).toContain('15 días')
+  })
+
+  test('does not read like a spreadsheet', () => {
+    const { explanation } = moduleQuote()
+
+    for (const noise of ['cm²', '42.5', '42,5', ' / ', 'neto', '3.53']) {
+      expect(explanation).not.toContain(noise)
+    }
+    expect(explanation.length).toBeLessThan(220)
+  })
+
+  test('never leaks an internal catalog label into the chat', () => {
+    const { explanation } = moduleQuote()
+
+    expect(explanation).not.toContain('Tarjetas full color')
+    expect(explanation).not.toContain('escala de grises')
+  })
+
+  test('keeps the full arithmetic available for the team, with a decimal comma', () => {
+    const priced = moduleQuote() as typeof moduleQuote extends never ? never : any
+
+    expect(priced.derivation).toBeString()
+    expect(priced.derivation).toContain('8,5')
+    expect(priced.derivation).not.toContain('8.5')
+    expect(priced.derivation).toContain('4 módulos')
+  })
+})

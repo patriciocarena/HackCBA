@@ -60,11 +60,13 @@ describe('what the customer reads', () => {
     expect(text).not.toContain('dias')
   })
 
-  test('adds an add-on with an accented más', () => {
-    const text = customerText(quote({ quantity: 100, paper: 'special', sides: 'front', finish: 'lamination' }))
+  test('names an add-on the customer asked for, without the arithmetic', () => {
+    const resolution = quote({ quantity: 100, paper: 'special', sides: 'front', finish: 'lamination' })
+    if (resolution.kind !== 'price') throw new Error('expected a price')
 
-    expect(text).toContain('más')
-    expect(text).not.toMatch(/\bmas\b/)
+    expect(resolution.explanation).toContain('Incluye Laminado')
+    expect(resolution.explanation).not.toContain('$5.100')
+    expect(resolution.derivation).toContain('más $5.100 por Laminado')
   })
 
   test('names the missing attributes in Spanish, in the order the family declares', () => {
@@ -72,5 +74,33 @@ describe('what the customer reads', () => {
 
     expect(text.indexOf('papel')).toBeLessThan(text.indexOf('caras'))
     expect(text.indexOf('caras')).toBeLessThan(text.indexOf('terminación'))
+  })
+})
+
+describe('a plain quote reads like a person too', () => {
+  const plain = () => {
+    const resolution = quote({ quantity: 1000, paper: 'illustration_350', sides: 'front_color_back_grayscale', finish: 'none' })
+    if (resolution.kind !== 'price') throw new Error('expected a price')
+    return resolution
+  }
+
+  test('never shows the internal catalog label', () => {
+    const { explanation } = plain()
+
+    expect(explanation).not.toContain('Tarjetas full color')
+    expect(explanation).not.toContain('escala de grises')
+  })
+
+  test('states the amount and the validity, and stays short', () => {
+    const { explanation } = plain()
+
+    expect(explanation).toContain('$54.450')
+    expect(explanation).toContain('15 días')
+    expect(explanation).not.toContain('redondeo al peso')
+    expect(explanation.length).toBeLessThan(140)
+  })
+
+  test('keeps the arithmetic for the team', () => {
+    expect(plain().derivation).toBeString()
   })
 })

@@ -13,7 +13,7 @@ export type Intent = {
 }
 
 export type Resolution =
-  | { kind: 'price'; amount: number; itemId: number; explanation: string }
+  | { kind: 'price'; amount: number; itemId: number; explanation: string; derivation?: string }
   | { kind: 'escalate'; reason: EscalationReason; detail: string }
 
 export const ESCALATION_REASONS = [

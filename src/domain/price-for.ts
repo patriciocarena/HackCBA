@@ -186,11 +186,42 @@ function moduleMathPlaceholderStrategy(context: PriceContext): Resolution | null
     return { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE_DETAIL }
   }
 
+  const explicitAddOn = requestedExplicitAddOn(context.intent)
+  let saleRow = directMatches[0]
+  let requestedAddOn = explicitAddOn
+
   if (directMatches.length === 0) {
+    const finish = context.intent.attributes.finish
+    if (typeof finish !== 'string' || finish === 'none') {
+      return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+    }
+
+    const baseMatches = saleRows(context.rows).filter((row) =>
+      declaredAttributesMatch(row, context.intent, context.config.family.attributes, { finish: 'none' }),
+    )
+
+    if (baseMatches.length > 1) {
+      return { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE_DETAIL }
+    }
+
+    if (baseMatches.length === 0) {
+      return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+    }
+
+    saleRow = baseMatches[0]
+    requestedAddOn = explicitAddOn ?? finish
+  }
+
+  const addOnRows = requestedAddOn === null ? [] : matchingAddOns(context.rows, saleRow, requestedAddOn)
+
+  if (requestedAddOn !== null && addOnRows.length === 0) {
     return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
   }
 
-  const saleRow = directMatches[0]
+  if (addOnRows.length > 1) {
+    return { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE_DETAIL }
+  }
+
   const pieceArea = dimensions.widthCm * dimensions.heightCm
   const moduleArea = module.widthCm * module.heightCm
   if (pieceArea <= 0 || moduleArea <= 0) {
@@ -206,7 +237,8 @@ function moduleMathPlaceholderStrategy(context: PriceContext): Resolution | null
     (total, discount) => total * (1 - discount.rate),
     moduleSubtotal,
   )
-  const grossTotal = grossAmount(discountedNetTotal, context.config.vatRate)
+  const addOnNetTotal = addOnRows.reduce((total, row) => total + row.price, 0)
+  const grossTotal = grossAmount(discountedNetTotal + addOnNetTotal, context.config.vatRate)
 
   return {
     kind: 'price',
@@ -214,7 +246,13 @@ function moduleMathPlaceholderStrategy(context: PriceContext): Resolution | null
     itemId: saleRow.id,
     explanation: modulePriceExplanation({
       grossTotal,
+      moduleCount,
+      appliedDiscounts,
+      config: context.config,
+    }),
+    derivation: modulePriceDerivation({
       saleRow,
+      addOnRows,
       widthCm: dimensions.widthCm,
       heightCm: dimensions.heightCm,
       moduleWidthCm: module.widthCm,
@@ -224,6 +262,8 @@ function moduleMathPlaceholderStrategy(context: PriceContext): Resolution | null
       moduleCount,
       moduleSubtotal,
       discountedNetTotal,
+      addOnNetTotal,
+      grossTotal,
       appliedDiscounts,
       config: context.config,
     }),
@@ -265,6 +305,7 @@ function priceMatchedSaleRow(
     amount: grossTotal,
     itemId: saleRow.id,
     explanation: priceExplanation(grossTotal, parts, context.config),
+    derivation: priceDerivation(grossTotal, parts, context.config),
   }
 }
 
@@ -297,12 +338,25 @@ function matchingAddOns(
     }
 
     const appliesToSale = row.appliesTo?.includes(saleRow.slug) ?? false
-    if (!appliesToSale) {
+    const appliesToFamily = row.appliesToFamily === true || (row.appliesTo === undefined && row.appliesToFamily !== false)
+    if (!appliesToSale && !appliesToFamily) {
+      return false
+    }
+
+    if (!addOnAttributesMatch(row, saleRow)) {
       return false
     }
 
     return normalizeToken(row.slug).includes(normalizedRequest) || normalizeToken(row.label).includes(normalizedRequest)
   })
+}
+
+function addOnAttributesMatch(row: PriceForCatalogRow, saleRow: PriceForCatalogRow): boolean {
+  if (row.attributes === undefined) {
+    return true
+  }
+
+  return Object.entries(row.attributes).every(([attribute, expected]) => saleRow.attributes?.[attribute] === expected)
 }
 
 function listDiscounts(
@@ -378,7 +432,16 @@ function missingAttributeDetail(attributes: string[]): string {
 }
 
 function priceExplanation(grossTotal: number, parts: PricedPart[], config: PriceForConfig): string {
-  const derivation = parts
+  // What a customer reads: the amount, what they asked to add, and how long it holds.
+  // The arithmetic belongs in the derivation, which never reaches the chat.
+  const addOns = parts.filter((part) => part.operation === 'add').map((part) => part.label)
+  const included = addOns.length > 0 ? ` Incluye ${joinSpanishList(addOns)}.` : ''
+
+  return `Te cotizo ${formatPesos(grossTotal)} final con IVA incluido.${included} La cotización es válida por ${config.quoteValidityDays} días.`
+}
+
+function priceDerivation(grossTotal: number, parts: PricedPart[], config: PriceForConfig): string {
+  const steps = parts
     .map((part) => {
       const prefix = part.operation === 'subtract' ? 'menos' : part.operation === 'add' ? 'más' : 'base'
       return `${prefix} ${formatPesos(part.amount)} por ${part.label}`
@@ -386,12 +449,26 @@ function priceExplanation(grossTotal: number, parts: PricedPart[], config: Price
     .join('; ')
   const vatPercent = Math.round(config.vatRate * 100)
 
-  return `Te cotizo ${formatPesos(grossTotal)} final con IVA incluido. Sale de: ${derivation}; IVA ${vatPercent}% y redondeo al peso al final. La cotización es válida por ${config.quoteValidityDays} días.`
+  return `${steps}; más IVA ${vatPercent}% = ${formatPesos(grossTotal)} final, redondeado al peso al final.`
 }
 
 function modulePriceExplanation(input: {
   grossTotal: number
+  moduleCount: number
+  appliedDiscounts: ModuleDiscount[]
+  config: PriceForConfig
+}): string {
+  const discountText =
+    input.appliedDiscounts.length === 0
+      ? ''
+      : ` y por eso lleva ${input.appliedDiscounts.map((discount) => formatPercent(discount.rate)).join(' compuesto con ')} de descuento`
+
+  return `Te cotizo ${formatPesos(input.grossTotal)} final con IVA incluido. La medida entra en ${input.moduleCount} ${pluralizeModule(input.moduleCount)}${discountText}. La cotización es válida por ${input.config.quoteValidityDays} días.`
+}
+
+function modulePriceDerivation(input: {
   saleRow: PriceForCatalogRow
+  addOnRows: PriceForCatalogRow[]
   widthCm: number
   heightCm: number
   moduleWidthCm: number
@@ -401,6 +478,8 @@ function modulePriceExplanation(input: {
   moduleCount: number
   moduleSubtotal: number
   discountedNetTotal: number
+  addOnNetTotal: number
+  grossTotal: number
   appliedDiscounts: ModuleDiscount[]
   config: PriceForConfig
 }): string {
@@ -410,8 +489,12 @@ function modulePriceExplanation(input: {
     input.appliedDiscounts.length === 0
       ? 'sin descuento por módulos'
       : `descuento por módulos ${input.appliedDiscounts.map((discount) => formatPercent(discount.rate)).join(' compuesto con ')}`
+  const addOnText =
+    input.addOnRows.length === 0
+      ? 'sin adicionales'
+      : input.addOnRows.map((row) => `más ${formatPesos(row.price)} por ${row.label}`).join('; ')
 
-  return `Te cotizo ${formatPesos(input.grossTotal)} final con IVA incluido. Sale de: ${formatDecimal(input.widthCm)} x ${formatDecimal(input.heightCm)} cm = ${formatDecimal(input.pieceArea)} cm²; módulo ${formatDecimal(input.moduleWidthCm)} x ${formatDecimal(input.moduleHeightCm)} cm = ${formatDecimal(input.moduleArea)} cm²; ${formatDecimal(input.pieceArea)} / ${formatDecimal(input.moduleArea)} = ${formatDecimal(quotient)}, redondeado hacia arriba son ${input.moduleCount} ${pluralizeModule(input.moduleCount)}; ${formatPesos(input.saleRow.price)} por módulo según ${input.saleRow.label} x ${input.moduleCount} = ${formatPesos(input.moduleSubtotal)} neto; ${discountText}, queda ${formatPesos(input.discountedNetTotal)} neto; más IVA ${vatPercent}% y redondeo al peso al final. La cotización es válida por ${input.config.quoteValidityDays} días.`
+  return `${formatDecimal(input.widthCm)} x ${formatDecimal(input.heightCm)} cm = ${formatDecimal(input.pieceArea)} cm²; módulo ${formatDecimal(input.moduleWidthCm)} x ${formatDecimal(input.moduleHeightCm)} cm = ${formatDecimal(input.moduleArea)} cm²; ${formatDecimal(input.pieceArea)} / ${formatDecimal(input.moduleArea)} = ${formatDecimal(quotient)}, redondeado hacia arriba son ${input.moduleCount} ${pluralizeModule(input.moduleCount)}; ${formatPesos(input.saleRow.price)} por módulo según ${input.saleRow.label} x ${input.moduleCount} = ${formatPesos(input.moduleSubtotal)} neto; ${discountText}, queda ${formatPesos(input.discountedNetTotal)} neto; ${addOnText}; total adicionales ${formatPesos(input.addOnNetTotal)}; más IVA ${vatPercent}% = ${formatPesos(input.grossTotal)} final, redondeado al peso al final.`
 }
 
 function requestedExplicitAddOn(intent: Intent): string | null {
@@ -474,7 +557,7 @@ function formatPesos(amount: number): string {
 }
 
 function formatDecimal(amount: number): string {
-  return Number.isInteger(amount) ? amount.toString() : amount.toFixed(2).replace(/\.?0+$/, '')
+  return (Number.isInteger(amount) ? amount.toString() : amount.toFixed(2).replace(/\.?0+$/, '')).replace('.', ',')
 }
 
 function formatPercent(rate: number): string {

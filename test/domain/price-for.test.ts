@@ -45,7 +45,7 @@ describe('priceFor', () => {
 
     expectPrice(resolution, 54_450, numericIdForSlug('bc_offset_1000_4_1'))
     expect(resolution.explanation).toBe(
-      'Te cotizo $54.450 final con IVA incluido. Sale de: base $45.000 por Tarjetas full color, frente full color y dorso escala de grises; IVA 21% y redondeo al peso al final. La cotización es válida por 15 días.',
+      'Te cotizo $54.450 final con IVA incluido. La cotización es válida por 15 días.',
     )
   })
 
@@ -182,7 +182,8 @@ describe('priceFor', () => {
     })
 
     expectPrice(resolution, 20_812, numericIdForSlug('bc_special_100_front'))
-    expect(resolution.explanation).toContain('más $5.100 por Laminado')
+    expect(resolution.explanation).toContain('Incluye Laminado')
+    expect(resolution.derivation).toContain('más $5.100 por Laminado')
     expect(resolution.explanation).toContain('La cotización es válida por 15 días.')
   })
 
@@ -231,7 +232,7 @@ describe('priceFor', () => {
     )
 
     expectPrice(resolution, 10_285, numericIdForSlug('bc_illustration300_100_front'))
-    expect(resolution.explanation).toContain('menos $1.800')
+    expect(resolution.derivation).toContain('menos $1.800')
   })
 
   test('case 14: a requested commercial discount is escalated', () => {
