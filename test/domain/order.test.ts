@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test'
+import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
 import { acceptQuote, advanceOrder, quoteFrom, type Actor } from '../../src/domain/order'
 import { priceFor } from '../../src/domain/price-for'
 import { conversationId, type Order, type Quote, type Resolution } from '../../src/domain/types'
-import { baseConfig, catalogRows, intent, OFFSET_1000 } from '../support/catalog'
+import { intent, OFFSET_1000 } from '../support/fixtures'
 
 const quotedAt = '2026-09-12T10:00:00.000Z'
 const conversation = conversationId('telegram', '55512345', 'customer')
