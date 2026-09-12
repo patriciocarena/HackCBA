@@ -43,6 +43,18 @@ export function applyPriceEdit(
     return { ok: false, reason: 'not_a_time' }
   }
 
+  const stale = proposal.lines.some((line) => {
+    const row = rows.find((candidate) => candidate.slug === line.slug)
+
+    return row === undefined || row.price !== line.oldPrice
+  })
+
+  if (stale) {
+    // The proposal priced off rows that have since moved. Applying it now would quote off
+    // arithmetic nobody confirmed, and silently discard whatever moved them.
+    return { ok: false, reason: 'stale' }
+  }
+
   return {
     ok: true,
     applied: {

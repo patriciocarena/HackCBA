@@ -104,4 +104,23 @@ describe('applyPriceEdit', () => {
 
     expect(outcome.applied.rows[1]).toEqual(untouched)
   })
+
+  it('refuses when the row the edit names is no longer in the catalog', () => {
+    const outcome = applyPriceEdit(PROPOSED, [], {
+      by: { kind: 'person', id: '42' },
+      now: '2026-09-12T10:05:00.000Z',
+    })
+
+    expect(outcome).toEqual({ ok: false, reason: 'stale' })
+  })
+
+  it('refuses when somebody else moved the price after the proposal was made', () => {
+    const moved = [{ ...ROWS[0], price: ars(13000) }]
+    const outcome = applyPriceEdit(PROPOSED, moved, {
+      by: { kind: 'person', id: '42' },
+      now: '2026-09-12T10:05:00.000Z',
+    })
+
+    expect(outcome).toEqual({ ok: false, reason: 'stale' })
+  })
 })
