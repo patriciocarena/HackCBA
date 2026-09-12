@@ -71,6 +71,24 @@ const DEFAULT_MAX_MODULES = 50
 const DELEGATE_DETAIL = 'te delego con un humano'
 const OUT_OF_CATALOG_DETAIL = 'eso no lo tengo cargado, te delego con un humano'
 
+// ponytail: one family in the list, so a shared word is enough to say the owner meant it.
+// Row level targeting, "subi las de 100", when the list has a second family. It lives here
+// beside the slug match priceFor does, so the two rules cannot drift into two directories.
+export function namesFamily(text: string, family: FamilyContract): boolean {
+  const label = words(family.label)
+
+  return words(text).some((word) => label.includes(word))
+}
+
+const WORD = /[a-z0-9]+/g
+const SHORTEST_WORD = 4
+
+function words(text: string): string[] {
+  const plain = text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+
+  return (plain.match(WORD) ?? []).filter((word) => word.length >= SHORTEST_WORD)
+}
+
 export function priceFor(
   intent: QuoteIntent,
   rows: CatalogRow[],
@@ -287,7 +305,7 @@ function lineOf(row: CatalogRow): BreakdownLine {
   return { slug: row.slug, label: row.label, amount: row.price }
 }
 
-function saleRows(rows: CatalogRow[]): CatalogRow[] {
+export function saleRows(rows: CatalogRow[]): CatalogRow[] {
   return rows.filter((row) => row.kind === 'sale')
 }
 
