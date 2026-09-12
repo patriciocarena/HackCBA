@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'bun:test'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
-import type { TurnDeps } from '@/conversation/turn'
+import { NO_MEDIA, type TurnDeps } from '@/conversation/turn'
 import type { PriceForConfig } from '@/domain/price-for'
 import type { Send } from '@/telegram/send'
+import type { Notify } from '@/conversation/receipt-path'
 import { telegramWebhook } from '@/telegram/webhook'
 import { OFFSET_1000 } from '@test/support/fixtures'
 import { inMemorySale } from '@/conversation/sale'
@@ -42,7 +43,7 @@ const NET_LIST: PriceForConfig = { ...baseConfig, family: { ...baseConfig.family
  * The whole vertical behind one webhook, recording both ends: what the writer was asked and
  * what the customer was sent. A test overrides only the phase it is about.
  */
-function vertical(overrides: Partial<TurnDeps> = {}, send?: Send) {
+function vertical(overrides: Partial<TurnDeps> = {}, send?: Send, notify?: Notify) {
   const replies: { chatId: string; text: string }[] = []
   const requests: { system: string; user: string }[] = []
 
@@ -63,7 +64,19 @@ function vertical(overrides: Partial<TurnDeps> = {}, send?: Send) {
     replies.push({ chatId, text })
   }
 
-  return { webhook: telegramWebhook({ secret: SECRET, turn: customerTurn(deps, send ?? record), onCallback: async () => {} }), replies, requests }
+  return { webhook: telegramWebhook({ secret: SECRET, turn: customerTurn(deps, send ?? record, notify), onCallback: async () => {} }), replies, requests }
+}
+
+/** A voice note as Telegram sends it: no text at all, and a file id. */
+function voiceDelivery(updateId: number): Request {
+  return new Request('https://dante.example/telegram/webhook', {
+    method: 'POST',
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': SECRET, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      update_id: updateId,
+      message: { chat: { id: -100, type: 'supergroup' }, from: { id: 42 }, voice: { file_id: 'voice-1' } },
+    }),
+  })
 }
 
 function delivery(updateId: number, text: string): Request {
@@ -76,6 +89,29 @@ function delivery(updateId: number, text: string): Request {
     }),
   })
 }
+
+describe('a customer sends something Dante cannot read', () => {
+  it('answers the voice note and tells the owner, instead of staying silent', async () => {
+    const notified: string[] = []
+    const { webhook, replies, requests } = vertical({}, undefined, async (text) => void notified.push(text))
+
+    const response = await webhook(voiceDelivery(90))
+
+    expect(response.status).toBe(200)
+    expect(replies).toEqual([{ chatId: '-100', text: NO_MEDIA }])
+    expect(requests).toBeEmpty()
+    expect(notified).toHaveLength(1)
+  })
+
+  it('says nothing more, because a person owns the conversation now', async () => {
+    const { webhook, replies } = vertical()
+
+    await webhook(voiceDelivery(91))
+    await webhook(delivery(92, 'hola, cuánto 1000 tarjetas'))
+
+    expect(replies).toHaveLength(1)
+  })
+})
 
 describe('a customer message crosses the whole vertical', () => {
   it('comes back with the exact pesos the engine computed, VAT included', async () => {

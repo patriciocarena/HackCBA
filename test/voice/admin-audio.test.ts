@@ -115,13 +115,13 @@ describe('readAdminAudio, on a message that was never its business', () => {
     expect(edits.proposals).toBeEmpty()
   })
 
-  it('leaves text and photos alone, because only one kind of media can be transcribed', async () => {
+  it('names the owner text and photos it cannot transcribe, so he is answered instead of ignored', async () => {
     const { heard, read } = readerWith()
 
     const text = await read(message({ media: null, text: 'subí las tarjetas un 20%' as UntrustedText }))
     const photo = await read(message({ media: { kind: 'photo', id: 'photo-1' } }))
 
-    expect([text, photo]).toEqual([null, null])
+    expect([text, photo]).toEqual([{ kind: 'not_voice' }, { kind: 'not_voice' }])
     expect(heard.heard).toBeEmpty()
   })
 })

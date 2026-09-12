@@ -129,6 +129,8 @@ describe('the contract the four lanes switch on', () => {
         return resolution.kind
       case 'escalate':
         return resolution.kind
+      case 'instruct':
+        return resolution.kind
       default: {
         const unreachable: never = resolution
         return unreachable

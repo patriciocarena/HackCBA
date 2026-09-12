@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { amountsIn, turn, type TurnDeps } from '@/conversation/turn'
+import { amountsIn, NO_MEDIA, turn, type TurnDeps } from '@/conversation/turn'
+import { ONLY_AUDIO } from '@/conversation/admin-turn'
 import { conversationId, type Role, type TurnState } from '@/domain/types'
 import type { InboundMessage } from '@/telegram/inbound'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
@@ -26,12 +27,18 @@ function message(text: string, role: Role = 'customer'): InboundMessage {
   }
 }
 
+/** What Telegram hands over for a voice note: no text at all, and a file id. */
+function voiceNote(): InboundMessage {
+  return { ...message('ignored'), text: null, media: { kind: 'voice', id: 'voice-1' } }
+}
+
 function state(overrides: Partial<TurnState> = {}): TurnState {
   return {
     conversationId: conversationId('telegram', '42', 'customer'),
     asked: [],
     escalated: false,
     introduced: true,
+    attributes: {},
     ...overrides,
   }
 }
@@ -57,6 +64,37 @@ function priced(addOns: string[] = []): Extract<Resolution, { kind: 'price' }> {
 
   return resolution
 }
+
+describe('a conversation remembers what it was already told', () => {
+  const partial = { quantity: 1000, paper: 'illustration_350', sides: 'front_color_back_grayscale' }
+
+  function quoting(attributes: Record<string, string | number>, reply = 'Decime la terminación.'): Partial<TurnDeps> {
+    return {
+      extract: async () => ({ kind: 'quote', family: 'business_cards', attributes, size: null, addOns: [], factKey: null }),
+      write: async () => reply,
+    }
+  }
+
+  test('asks for the one attribute the customer left out', async () => {
+    const result = await turn(deps(quoting(partial)), message('1000 tarjetas ilustración 350, frente color dorso gris'), state())
+
+    expect(result.resolution).toEqual({ kind: 'ask', missing: ['finish'] })
+  })
+
+  test('quotes when the next message carries only the answer, instead of asking it all again', async () => {
+    const asked = await turn(deps(quoting(partial)), message('1000 tarjetas ilustración 350, frente color dorso gris'), state())
+
+    const quote = priced()
+    const answered = await turn(
+      deps(quoting({ finish: 'none' }, `Te cotizo ${pesos(totalOf(quote.breakdown))} final con IVA incluido.`)),
+      message('sin terminación'),
+      asked.state,
+    )
+
+    expect(answered.resolution?.kind).toBe('price')
+    expect(answered.state.escalated).toBeFalse()
+  })
+})
 
 describe('an escalated conversation is over', () => {
   test('a new customer message produces no reply and calls no model', async () => {
@@ -315,15 +353,51 @@ describe('nothing told as admin reaches a customer', () => {
     )
   })
 
-  test('an admin message produces no customer reply and calls no model', async () => {
-    let calls = 0
+  test('an admin asking for a price change by text is sent to the audio, not escalated', async () => {
+    let answer = ''
     const result = await turn(
-      deps({ extract: async () => { calls += 1; return { kind: 'admin_edit' } } }),
+      deps({
+        extract: async () => ({ kind: 'admin_edit' }),
+        write: async (request) => { answer = request.user; return ONLY_AUDIO },
+      }),
       message('subí las tarjetas un 20%', 'admin'),
       state({ conversationId: conversationId('telegram', '42', 'admin') }),
     )
 
-    expect(result.reply).toBeNull()
+    expect(result.resolution).toEqual({ kind: 'instruct', text: ONLY_AUDIO })
+    expect(result.state.escalated).toBeFalse()
+    expect(answer).toContain(ONLY_AUDIO)
+  })
+
+  test('an admin asking for a price is quoted like anybody else', async () => {
+    const quote = priced()
+    const result = await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
+        write: async () => `Te cotizo ${pesos(totalOf(quote.breakdown))} final con IVA incluido.`,
+      }),
+      message('cuánto salen 1000 tarjetas?', 'admin'),
+      state({ conversationId: conversationId('telegram', '42', 'admin') }),
+    )
+
+    expect(result.resolution?.kind).toBe('price')
+    expect(result.reply).toContain(pesos(totalOf(quote.breakdown)))
+  })
+
+  test('a customer voice note escalates instead of going silent, and calls no model', async () => {
+    let calls = 0
+    const result = await turn(
+      deps({
+        extract: async () => { calls += 1; return { kind: 'other' } },
+        write: async () => { calls += 1; return 'una respuesta' },
+      }),
+      voiceNote(),
+      state(),
+    )
+
+    expect(result.reply).toBe(NO_MEDIA)
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'unsupported_media' })
+    expect(result.state.escalated).toBeTrue()
     expect(calls).toBe(0)
   })
 

@@ -60,7 +60,7 @@ function message(): InboundMessage {
 }
 
 function opening(): TurnState {
-  return { conversationId: conversationId('telegram', '42', 'customer'), asked: [], escalated: false, introduced: true }
+  return { conversationId: conversationId('telegram', '42', 'customer'), asked: [], escalated: false, introduced: true, attributes: {} }
 }
 
 /** What the catalog says the answer is, computed the way the engine computes it. */

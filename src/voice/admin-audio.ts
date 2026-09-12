@@ -22,6 +22,10 @@ export type AudioRead =
   | { kind: 'proposed'; proposal: PriceEditProposal }
   | { kind: 'review'; review: Review }
   | { kind: 'failed'; reason: string }
+  // Null said both "not the owner" and "the owner, but not a voice note", so the owner's text
+  // was dropped with the same silence as a stranger's. They are different messages: one is
+  // nobody's business here, the other is a person waiting for an answer.
+  | { kind: 'not_voice' }
 
 export function readAdminAudio(
   deps: AdminAudioDeps,
@@ -29,7 +33,8 @@ export function readAdminAudio(
   const { rows, family, transcription, extraction, fetchAudio, save } = deps
 
   return async (message) => {
-    if (message.role !== 'admin' || message.media?.kind !== 'voice') return null
+    if (message.role !== 'admin') return null
+    if (message.media?.kind !== 'voice') return { kind: 'not_voice' }
 
     const audio = await fetchAudio(message.media.id)
     if (audio === null) return { kind: 'failed', reason: `no audio for ${message.media.id}` }

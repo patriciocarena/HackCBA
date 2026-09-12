@@ -10,23 +10,36 @@ export type AdminTurnDeps = {
   read: ReadAdminAudio
   ask: AskToConfirm
   send: Send
+  /** The customer turn. A role decides what the owner may change, not whether he is answered. */
+  fallback: Turn
 }
 
 const NOT_HEARD = 'No pude escuchar ese audio. Mandámelo de nuevo.'
+
+export const ONLY_AUDIO = 'Soy el canal de los precios. Mandame un audio con el cambio y te lo propongo.'
 
 /**
  * The owner's voice note, turned into a proposal he can agree to. The inbound half of step 5:
  * nothing here applies anything, and the button it sends is the only way the edit lands.
  *
- * A message that is not an owner's voice note produces nothing at all, which is what the
- * customer path did with it before this existed.
+ * A message that is not the owner's produces nothing at all, which is what the customer path
+ * did with it before this existed. The owner's own text is different: it goes to the customer
+ * turn, so he is quoted like anybody else and a price change he types is pointed back at the
+ * audio there. Media that is not a voice note is the one thing answered here, because the
+ * customer turn would read it as something it cannot handle and escalate the owner.
  */
 export function adminTurn(deps: AdminTurnDeps): Turn {
-  const { read, ask, send } = deps
+  const { read, ask, send, fallback } = deps
 
   return async (message) => {
     const heard = await read(message)
     if (heard === null) return
+
+    if (heard.kind === 'not_voice') {
+      await (message.text === null ? send(message.chatId, ONLY_AUDIO) : fallback(message))
+
+      return
+    }
 
     if (heard.kind === 'proposed') {
       await ask(message.chatId, proposalText(heard.proposal), heard.proposal.id)

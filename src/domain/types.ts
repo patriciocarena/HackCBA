@@ -34,6 +34,7 @@ export const ESCALATION_REASONS = [
   'needs_designer',
   'not_authorized',
   'human_requested',
+  'unsupported_media',
 ] as const
 export const escalationReasonSchema = z.enum(ESCALATION_REASONS)
 export type EscalationReason = z.infer<typeof escalationReasonSchema>
@@ -172,6 +173,10 @@ export type Resolution =
   | { kind: 'fact'; key: string; value: string }
   | { kind: 'accepted'; order: Order; alias: string }
   | { kind: 'escalate'; reason: EscalationReason; detail: string }
+  // Not an answer to what was asked, and not a handover either: the conversation stays open and
+  // the person is told where the thing they want actually happens. The owner typing a price
+  // change is the case that needs it, because escalating him would end his own conversation.
+  | { kind: 'instruct'; text: string }
 
 export type Quote = {
   id: string
@@ -219,4 +224,11 @@ export type TurnState = {
   asked: string[]
   escalated: boolean
   introduced: boolean
+  /**
+   * Every attribute the customer has stated so far, across messages. Extraction only ever sees
+   * the message in front of it, so without this the answer to "¿qué terminación?" arrives as a
+   * quote carrying nothing but the finish, and the engine asks for the quantity, the paper and
+   * the caras it was already given. That loop is what a conversation dies of.
+   */
+  attributes: Record<string, string | number>
 }

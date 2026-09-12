@@ -16,6 +16,7 @@ function customerText(overrides: Partial<QuoteIntent>): string {
   if (resolution.kind === 'ask') return askText(resolution.missing)
   if (resolution.kind === 'escalate') return resolution.detail
   if (resolution.kind === 'accepted') return depositText(resolution)
+  if (resolution.kind === 'instruct') return resolution.text
   return resolution.value
 }
 

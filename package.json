@@ -13,7 +13,8 @@
     "build": "bun --bun ./node_modules/.bin/mastra build",
     "start": "bun --bun ./node_modules/.bin/mastra start",
     "set-webhook": "bun src/telegram/set-webhook.ts",
-    "check:schemas": "bun scripts/check-structured-output.ts"
+    "check:schemas": "bun scripts/check-structured-output.ts",
+    "eval": "bun scripts/eval-flows.ts"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",

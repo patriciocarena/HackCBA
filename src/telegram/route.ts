@@ -5,7 +5,7 @@ import { requireEnv } from '../config/env'
 import { adminTurn } from '../conversation/admin-turn'
 import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
-import { receiptTurn } from '../conversation/receipt-path'
+import { receiptTurn, type Notify } from '../conversation/receipt-path'
 import { receiptReader } from '../conversation/receipt-reading'
 import { inMemorySale } from '../conversation/sale'
 import { printingSale, workOrders } from '../conversation/work-order'
@@ -96,6 +96,10 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
   const send = telegramSend(token, fetchImpl)
   const ownerChat = requireEnv('OWNER_CHAT_ID')
 
+  // One line to the owner's chat, shared by the two things he has to act on himself: a receipt
+  // verdict, and a customer who sent something Dante cannot read.
+  const notify: Notify = (text) => send(ownerChat, text)
+
   // Confirming a deposit is what prints the job, so the sale everything else holds is the one
   // that prints. Hanging it off the state rather than off the receipt is what makes the vision
   // path and a person typing the confirmation produce the same single work order.
@@ -127,7 +131,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
       // Built once beside the sale, for the reason above it. Written through and never read;
       // ADR 0013 says why there is no accessor to add one.
       store: inMemoryReceipts(),
-      notify: (text) => send(ownerChat, text),
+      notify,
       // getFile plus download, which telegramAudio already is: it takes a file id and returns
       // bytes, and a photo is fetched the same two ways an audio is. C11 uses the same seam.
       fetchImage: telegramAudio(token, fetchImpl),
@@ -141,6 +145,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
       // half of the rule; the loaded half arrives with the table that holds them.
       { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write, sale },
       send,
+      notify,
     ),
   )
 
@@ -155,6 +160,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
     }),
     ask: telegramAsk(token, fetchImpl),
     send,
+    fallback: customer,
   })
 
   return dispatch(customer, owner)

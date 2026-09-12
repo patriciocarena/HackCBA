@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { adminTurn, proposalText } from '@/conversation/admin-turn'
+import { adminTurn, ONLY_AUDIO, proposalText } from '@/conversation/admin-turn'
+import type { Turn } from '@/telegram/inbound'
 import { ars } from '@/domain/money'
 import type { PriceEditProposal } from '@/domain/types'
 import { conversationId } from '@/domain/types'
@@ -41,7 +42,7 @@ function voiceNote(): InboundMessage {
   }
 }
 
-function wired(heard: AudioRead | null) {
+function wired(heard: AudioRead | null, fallback: Turn = async () => {}) {
   const asked: { chatId: string; text: string; proposalId: string }[] = []
   const sent: { chatId: string; text: string }[] = []
 
@@ -49,6 +50,7 @@ function wired(heard: AudioRead | null) {
     read: async () => heard,
     ask: async (chatId, text, proposalId) => void asked.push({ chatId, text, proposalId }),
     send: async (chatId, text) => void sent.push({ chatId, text }),
+    fallback,
   })
 
   return { turn, asked, sent }
@@ -109,6 +111,28 @@ describe('the admin turn', () => {
 
     expect(wiring.sent[0]?.text).toContain('Mandámelo de nuevo')
     expect(wiring.asked).toBeEmpty()
+  })
+
+  test('hands the owner text to the customer turn, so asking a price answers him', async () => {
+    const fell: string[] = []
+    const wiring = wired({ kind: 'not_voice' }, async (message) => void fell.push(String(message.text)))
+    const asking = { ...voiceNote(), media: null, text: fence('cuánto salen 1000 tarjetas?', 'message') }
+
+    await wiring.turn(asking)
+
+    expect(fell).toEqual([String(asking.text)])
+    expect(wiring.sent).toBeEmpty()
+    expect(wiring.asked).toBeEmpty()
+  })
+
+  test('asks for a voice note when the owner sends media it cannot transcribe', async () => {
+    const fell: string[] = []
+    const wiring = wired({ kind: 'not_voice' }, async (message) => void fell.push(String(message.text)))
+
+    await wiring.turn({ ...voiceNote(), media: { kind: 'photo', id: 'photo-1' } })
+
+    expect(wiring.sent).toMatchObject([{ chatId: OWNER, text: ONLY_AUDIO }])
+    expect(fell).toBeEmpty()
   })
 
   test('says nothing at all about a message that is not an owner with a voice note', async () => {
