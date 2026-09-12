@@ -30,6 +30,8 @@ export type CatalogSeed = {
   module_discounts: readonly { from_modules: number; to_modules: number | null; rate: number }[]
 }
 
+const CATALOG_ITEM_KINDS: readonly CatalogItemKind[] = ['sale', 'add_on', 'discount']
+
 export type Catalog = {
   rows: CatalogRow[]
   config: PriceForConfig
@@ -37,6 +39,7 @@ export type Catalog = {
 
 export function loadCatalog(seed: CatalogSeed): Catalog {
   const rows = seed.items.map(catalogRow)
+  const sales = rows.filter((row) => row.kind === 'sale')
 
   const family: FamilyContract = {
     slug: seed.family.slug,
@@ -48,7 +51,7 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
       seed.family.module === null
         ? null
         : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
-    attributes: seed.family.attributes.map((name) => attributeContract(name, saleRows(rows))),
+    attributes: seed.family.attributes.map((name) => attributeContract(name, sales)),
     askOrder: [...seed.family.ask_order],
     addOns: [
       ...new Set(
@@ -72,7 +75,7 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
 function catalogRow(item: CatalogSeedItem): CatalogRow {
   return {
     slug: item.id,
-    kind: item.kind as CatalogItemKind,
+    kind: catalogItemKind(item),
     label: item.label,
     group: item.group,
     provisional: item.provisional,
@@ -81,6 +84,16 @@ function catalogRow(item: CatalogSeedItem): CatalogRow {
     appliesToFamily: item.applies_to_family,
     price: ars(item.price),
   }
+}
+
+function catalogItemKind(item: CatalogSeedItem): CatalogItemKind {
+  const kind = CATALOG_ITEM_KINDS.find((candidate) => candidate === item.kind)
+
+  if (kind === undefined) {
+    throw new Error(`${item.id} has kind ${item.kind}, which the engine does not price`)
+  }
+
+  return kind
 }
 
 function attributeContract(name: string, rows: CatalogRow[]): AttributeContract {
@@ -101,10 +114,6 @@ function attributeContract(name: string, rows: CatalogRow[]): AttributeContract 
   }
 
   return { name, kind: 'enum', values: values.map(String) }
-}
-
-function saleRows(rows: CatalogRow[]): CatalogRow[] {
-  return rows.filter((row) => row.kind === 'sale')
 }
 
 function declaredValues(

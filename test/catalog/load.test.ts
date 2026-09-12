@@ -118,4 +118,13 @@ describe('loadCatalog', () => {
       'circular_cut',
     ])
   })
+
+  it('refuses a row whose kind the engine does not price', () => {
+    const withTypo = {
+      ...seed,
+      items: [...seed.items, { id: 'bc_typo', kind: 'sales', label: 'typo', price: 100 }],
+    }
+
+    expect(() => loadCatalog(withTypo)).toThrow('bc_typo has kind sales')
+  })
 })
