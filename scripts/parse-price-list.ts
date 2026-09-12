@@ -6,19 +6,34 @@
  *
  * `seed/lista-precios.html` is the catalog's source of truth and it is already structured, so
  * reading it is deterministic. This never writes a seed. It reads labels, prices, kinds and
- * units, and it checks the amounts a person typed into `seed/business-cards.json` against the
- * amounts the list actually states. A human still writes the attribute bag, because turning
+ * units, and it checks the amounts a person typed into each loaded seed against the amounts
+ * the list actually states. A human still writes the attribute bag, because turning
  * "100 tarjetas color sólo frente" into `{ quantity: 100, sides: 'front' }` is a reading of
  * Spanish and not a parse, and a regex doing it would be the guessing this product forbids.
  *
  * It exits non-zero on a disagreement, so it is a check and not a report. Nothing at runtime
  * imports it.
  */
-import seed from '../seed/business-cards.json'
-import { auditAgainstList } from '../src/catalog/price-audit'
+import businessCardsSeed from '../seed/business-cards.json'
+import facturasSeed from '../seed/facturas.json'
+import folletosLaserSeed from '../seed/folletos-laser.json'
+import { auditAgainstList, type SeedItem } from '../src/catalog/price-audit'
 import { parsePriceList, type PriceListFamily, type PriceCell } from '../src/catalog/price-list'
 
 const LIST = 'seed/lista-precios.html'
+
+/**
+ * The seed each family in the list is loaded from, keyed by the list's own label.
+ *
+ * By label rather than by slug, because the label is what the list states and the slug is what
+ * a person chose. A family the shop has not loaded is absent here and is only printed, which
+ * is thirty five of the thirty eight.
+ */
+const SEEDS: Record<string, { items: unknown[] }> = {
+  'Tarjetas personales': businessCardsSeed,
+  'Folletos full color, láser': folletosLaserSeed,
+  Facturas: facturasSeed,
+}
 
 const list = parsePriceList(await Bun.file(LIST).text())
 const wanted = process.argv[2]?.toLowerCase()
@@ -52,10 +67,11 @@ for (const table of family.tables) {
   console.log('')
 }
 
-// Only the cards family is loaded, so it is the only one with a seed to disagree with.
-if (!family.label.toLowerCase().startsWith('tarjetas')) process.exit(0)
+// A family nobody loaded has no seed to disagree with, which is most of the list.
+const seed = SEEDS[family.label]
+if (seed === undefined) process.exit(0)
 
-const audit = auditAgainstList(seed.items.map((item) => ({ id: item.id, price: item.price })), family)
+const audit = auditAgainstList(seed.items as SeedItem[], family)
 
 console.log(`audit: ${seed.items.length} seed items against ${family.label}\n`)
 

@@ -1,8 +1,7 @@
 # Pricing cases
 
-What `priceFor` must do, case by case, agreed before the code exists. Amounts come from
-`seed/business-cards.json` and are the amounts the owner typed, which are **list prices**: the
-list is net. Every result below is the final price, the list amount with VAT applied once at
+What `priceFor` must do, case by case, agreed before the code exists. Amounts come from the
+seed files and are the amounts the owner typed, which are **list prices**: the list is net. Every result below is the final price, the list amount with VAT applied once at
 the end. See ADR 0020, which reversed ADR 0003's premise and kept its shape.
 
 Quoted strings are what Dante says to a customer, so they are in Spanish. Everything else
@@ -93,6 +92,57 @@ no contradicting unit left to read: extraction either resolved it or never built
 | 19 | anything priced by the metre | escalate. No such family is loaded, and the roll width is still missing |
 | 20 | a piece of 500 x 300 cm | escalate. It works out to 3530 modules, which is a billboard, not a card. The ceiling is 50 modules and lives in config |
 
+## Folletos láser
+
+`seed/folletos-laser.json`. Eight rows, two each of quantity, coverage and sides. No module,
+no add-ons, no discounts: the whole family is one exact match or nothing.
+
+The family declares `ask_order`: quantity, coverage, sides.
+
+| # | Intent | Result |
+|---|---|---|
+| 20 | 500 folletos, pleno, frente y dorso | `fl_500_full_both`, lists 132.000, quotes **159.720** |
+| 21 | 1000 folletos, semi pleno, sólo frente | `fl_1000_semi_front`, lists 128.500, quotes **155.485** |
+| 22 | "cuánto 500 folletos" | `ask` coverage and sides in one message |
+| 23 | 750 folletos | escalate `unsupported_quantity`. The list carries 500 and 1000 |
+
+Paper and size are not attributes. The list fixes both for this family in a note above the
+table, ilustración 150g at 10 x 15, so a customer naming another paper is naming a different
+family and not a variant of this one. A note that governs every row of a table is a fact about
+the family, and making it an attribute would offer a choice the list does not price.
+
+## Facturas
+
+`seed/facturas.json`. Twenty eight rows: seven quantities, two formats, two inks. One list row
+becomes two items, because B/N and Color are a column each.
+
+The family declares `ask_order`: quantity, format, ink. The unit is a set, because the list
+counts talonarios and not sheets.
+
+| # | Intent | Result |
+|---|---|---|
+| 24 | 1 talonario, 1/2 oficio, B/N | `fa_half_legal_1_bw`, lists 16.000, quotes **19.360** |
+| 25 | 2 talonarios, A4, color | `fa_a4_2_color`, lists 70.500, quotes **85.305** |
+| 26 | 3 talonarios | escalate `unsupported_quantity`. The list carries 1, 2, 4, 6, 8, 10 and 20 |
+| 27 | "cuánto 2 talonarios" | `ask` format and ink in one message |
+
+Every modifier this family has is a percentage rather than an amount, which is what it was
+picked for.
+
+| # | Intent | Result |
+|---|---|---|
+| 28 | 1 talonario, 1/2 oficio, color, por triplicado | 26.000 x 1.40, quotes **44.044**. The breakdown records the rate, not only the pesos |
+| 29 | the same, con papel químico | 26.000 x 1.60, quotes **50.336** |
+| 30 | the same in A4 | 39.000 x 1.70, quotes **80.223**. Papel químico charges 60% on 1/2 oficio and 70% on A4 |
+| 31 | 1 talonario, 1/2 oficio, color, por triplicado y con papel químico | 26.000 x 1.40 x 1.60, quotes **70.470** |
+
+Case 31 is the one to read twice. Summed, the two surcharges would come to 26.000 x 2.00 and
+the customer would be charged 62.920. The list settles it in its own reading instructions, for
+percentages in general: when more than one applies they apply one on the other. See ADR 0023.
+
+The customer is told the name of the add-on and never the percentage. The percentage is for
+the owner, in the breakdown and on the work order.
+
 ## Invariants
 
 Every quote is a whole number of final pesos and carries its 15 day validity. The list is
@@ -100,6 +150,10 @@ net, so a quote off a single row is the amount the owner typed plus 21%. The eng
 the whole net first, on modules, add-ons and list discounts, then applies VAT once and rounds
 once, at the very end. So the final price of a job with an add-on is not the sum of two grossed
 amounts, and case 11 is the example worth reading twice.
+
+A percentage is never an amount. Every rate in a breakdown multiplies the running subtotal in
+one pass, in one order, and multiplication commutes so the order cannot change a total. What
+the order does change is the sentence the owner reads, which is why each rate carries its kind.
 
 `vatIncluded` stays on the family, and it is what made ADR 0020 a data change rather than an
 engine change. `parsePriceList` reads it off the list's own header and throws rather than
