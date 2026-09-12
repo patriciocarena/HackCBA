@@ -26,3 +26,25 @@ object, never the claim.
 Only the mapper belonged in `src/`. Splitting it that way kept `intent()` and
 `withVat()` out of production code. Before moving a file wholesale, ask what
 each export is for.
+
+## A finding proved with the wrong gate is not proved
+
+`bun test` does not typecheck. A green suite says nothing about whether the
+code compiles, so any claim about a type — a field is unnecessary, a union can
+be narrowed, a cast is redundant — needs `bun run typecheck` in the same run as
+the evidence.
+
+This is worse than an unproved claim, because the pass count reads as proof and
+stops the reader asking. When a finding says "342 pass, 0 fail", check which gate
+produced the number and whether that gate can see the thing being claimed.
+
+## Expectations computed from the data are correct where the data is meant to move
+
+A suite that derives its expected amounts from the seed cannot catch a change to
+the seed, and that is the right trade where the seed is a price list a person
+edits on purpose. Pinning the literal amounts instead would fail every legitimate
+edit.
+
+So a low mutation score on a data value is not automatically a coverage gap. Ask
+what the value is for. The literals that must survive belong where the arithmetic
+is hand-built and independent of the data, not where the data is read.
