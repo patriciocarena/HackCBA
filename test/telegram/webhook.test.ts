@@ -74,7 +74,7 @@ describe('telegramWebhook', () => {
     await webhook(delivery(update(70, {}, 7)))
     await webhook(delivery(update(71, {}, 42)))
 
-    expect(turns.map((message) => message.conversationId)).toEqual([
+    expect(turns.map((message) => String(message.conversationId))).toEqual([
       'telegram:-100:admin',
       'telegram:-100:customer',
     ])
