@@ -294,12 +294,20 @@ describe('nothing told as admin reaches a customer', () => {
     expect(admin.conversationId).not.toBe(customer.conversationId)
   })
 
+  test('the turn refuses state that belongs to another conversation', async () => {
+    const customer = message('cuánto salen las tarjetas?')
+
+    expect(turn(deps(), customer, state({ conversationId: conversationId('telegram', '42', 'admin') }))).rejects.toThrow(
+      'telegram:42:admin',
+    )
+  })
+
   test('an admin message produces no customer reply and calls no model', async () => {
     let calls = 0
     const result = await turn(
       deps({ extract: async () => { calls += 1; return { kind: 'admin_edit' } } }),
       message('subí las tarjetas un 20%', 'admin'),
-      state(),
+      state({ conversationId: conversationId('telegram', '42', 'admin') }),
     )
 
     expect(result.reply).toBeNull()

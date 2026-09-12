@@ -39,6 +39,10 @@ export async function turn(
   message: InboundMessage,
   state: TurnState,
 ): Promise<TurnResult> {
+  if (state.conversationId !== message.conversationId) {
+    throw new Error(`state for ${state.conversationId} was handed a message from ${message.conversationId}`)
+  }
+
   if (state.escalated) return silence(state)
   if (message.role !== 'customer' || message.text === null) return silence(state)
 
