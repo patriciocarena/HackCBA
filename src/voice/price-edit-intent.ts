@@ -1,17 +1,6 @@
+import { ESCALATION_REASONS, type EscalationReason } from "../domain/types";
 import type { FetchLike } from "./transcription";
 
-// Mirrors ESCALATION_REASONS in PLAN.md section 4 until A2 lands and this can
-// import from ../domain/types. The mirror is not trusted: price-edit-intent.test.ts
-// parses the frozen block out of PLAN.md and fails if the two ever drift.
-export const ESCALATION_REASONS = [
-  "no_match",
-  "ambiguous",
-  "missing_attribute",
-  "out_of_catalog",
-  "vat_question",
-  "not_a_fact",
-] as const;
-export type EscalationReason = (typeof ESCALATION_REASONS)[number];
 
 // The direction lives inside the percent arm because that is the only place it
 // means anything: it gives an otherwise unsigned number a sign. An absolute

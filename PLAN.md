@@ -43,47 +43,68 @@ Three phases per turn, and the middle one never sees a model:
 The agent has no tools. Determinism is a pure function with a test, not a hope about a
 sequence of tool calls.
 
-## 4. Contracts, frozen at H+2
+## 4. Contracts
 
-Fede writes them in `src/domain/types.ts` in the first hour. The other three lanes compile
-against this. After H+2 you add optional fields, you do not rename.
+Fede writes them in `src/domain/`. The other three lanes compile against them. Adding an
+optional field is allowed at any hour. Renaming needs a message to the other three.
 
 ```ts
 export const UNITS = ['unit', 'linear_meter', 'square_meter', 'set'] as const
-export type Unit = (typeof UNITS)[number]
-
+export const ROLES = ['customer', 'admin'] as const
 export const ORDER_STATES = [
-  'quoted', 'deposit_pending', 'deposit_confirmed', 'files_ok', 'in_production',
+  'quoted', 'deposit_pending', 'deposit_confirmed', 'files_ok', 'in_production', 'cancelled',
 ] as const
-export type OrderState = (typeof ORDER_STATES)[number]
+export const ESCALATION_REASONS = [
+  'no_match', 'ambiguous', 'missing_attribute', 'unsupported_quantity', 'unsupported_option',
+  'out_of_catalog', 'multiple_products', 'vat_question', 'commercial_discount', 'unknown_fact',
+  'needs_designer', 'not_authorized', 'human_requested',
+] as const
+export const INTENT_KINDS = ['quote', 'fact', 'admin_edit', 'other'] as const
 
-export type Intent = {
+export type Intent = QuoteIntent | FactIntent | AdminEditIntent | OtherIntent
+
+export type QuoteIntent = {
+  kind: 'quote'
   family: string | null
   attributes: Record<string, string | number>
-  missing: string[]
+  size: Size | null
+  addOns: string[]
 }
 
 export type Resolution =
-  | { kind: 'price'; amount: number; itemId: number; explanation: string }
+  | { kind: 'price'; breakdown: PriceBreakdown; validityDays: number }
+  | { kind: 'ask'; missing: string[] }
+  | { kind: 'fact'; key: string; value: string }
   | { kind: 'escalate'; reason: EscalationReason; detail: string }
 
-export const ESCALATION_REASONS = [
-  'no_match', 'ambiguous', 'missing_attribute', 'out_of_catalog', 'vat_question', 'not_a_fact',
-] as const
-export type EscalationReason = (typeof ESCALATION_REASONS)[number]
-
-export type PriceEdit = {
-  itemId: number
-  oldPrice: number
-  newPrice: number
-  source: 'audio' | 'photo' | 'text'
-  mediaId: string
-  proposedBy: string
+export type PriceBreakdown = {
+  base: BreakdownLine
+  moduleFactor: number
+  moduleDiscountRates: number[]
+  addOns: BreakdownLine[]
+  listDiscounts: BreakdownLine[]
+  vatRate: number
+  vatIncluded: boolean
 }
 ```
 
-Every `as const` array generates two things: the TypeScript union type and the SQLite CHECK.
-One source. The helper that builds the CHECK ships with the chassis.
+Every `as const` array generates three things: the TypeScript union, the Zod enum the
+extraction schema uses, and the SQLite CHECK. One source. The helper that builds the CHECK is
+`src/storage/check.ts`.
+
+Five rules the types carry, so nobody has to remember them:
+
+1. `Ars` is a branded integer of final pesos. A raw number does not typecheck as money.
+2. `UntrustedText` is a branded string. Only D1's `fence()` builds one, so unfenced text
+   cannot reach extraction.
+3. `quoteIntentSchema(family)` is generated from the loaded catalog. An attribute the family
+   does not declare fails to parse, so extraction cannot invent one.
+4. `ConversationId` carries the role. A customer turn cannot name admin state.
+5. The order copies the breakdown. `totalOf` reads it, so editing the list never moves an
+   amount already quoted.
+
+The list the shop publishes is final, tax included. `vatIncluded` says so per family, and
+`totalOf` grosses up only a family whose list is net. See ADR 0003.
 
 ## 5. Rules that are not up for negotiation
 
