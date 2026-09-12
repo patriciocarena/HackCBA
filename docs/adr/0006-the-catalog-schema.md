@@ -1,15 +1,15 @@
-# 6. The catalog schema: one canonical bag, a partial identity index, and a replica we can restore
+# 6. The catalog schema: one canonical bag and a partial identity index
 
 Date: 2026-09-12
 
 ## Status
 
-Accepted. Supersedes the "No Litestream" clause of ADR 0001, and nothing else in it.
+Accepted. ADR 0001 stands unchanged.
 
 ## Context
 
 A3 asks for idempotent DDL over LibSQL for families, items, facts, orders, price edits and
-price versions, and for a restore that brings the database back.
+price versions.
 
 Three things had to be settled before a column could be written.
 
@@ -23,10 +23,6 @@ The seed cannot carry a total uniqueness constraint over those three columns. Co
 `seed/business-cards.json`: six add-on rows carry an empty bag, three carry `{quantity:1000}`,
 and both list discount rows carry an empty bag. A sale row is identified by its bag. An add-on
 is identified by the sale rows it applies to.
-
-ADR 0001 refused Litestream at hour zero because it meant a binary, a bucket, a supervisor and
-a config file on a ticket sitting on the critical chain. There is still no bucket credential
-and nobody is going to issue one today.
 
 ## Decision
 
@@ -56,10 +52,8 @@ A table holds a relationship between rows. JSON holds a value object read whole.
 NULL, because `NULL IN (...)` is NULL and a CHECK only fails on false, so one helper builds
 both the default and the override.
 
-Litestream ships as a sidecar and replicates to `LITESTREAM_REPLICA_URL`, which defaults to a
-file replica under `DATA_DIR`. A test writes rows, replicates, deletes the database and
-restores it. `ensureLitestream` downloads the pinned release into `.litestream/` when it is
-not on PATH, so the test always runs.
+The journal opens in WAL. ADR 0001 said it already did; it opens in delete mode, and WAL is
+what a second reader and any future replica need.
 
 ## Consequences
 
@@ -72,11 +66,8 @@ the one place it is met, and the seam is small enough to keep it that way.
 The partial index means a duplicated add-on is caught by its slug, not by its identity. That
 is a weaker guarantee than sale rows get, and it is the guarantee the loaded list allows.
 
-The restore test downloads a binary the first time it runs on a machine. The alternative was
-a test that skips when a tool is missing, which is the class of test that never fails and
-never runs.
-
-Fly volume snapshots stay. Litestream is the second copy, not the first.
+Replication stays where ADR 0001 left it. Durability is the Fly volume and its snapshots, and
+a replica is lane A1's deployment decision, not this schema's.
 
 ## Alternatives considered
 
@@ -89,5 +80,3 @@ identity into a four column one to hold rows whose identity is not their bag.
 `price` on `items` with `price_versions` as an audit trail beside it. Two sources for one
 number, and the first edit that writes one and not the other is silent.
 
-Replicating to a bucket behind a credential in `.env.example`. The test would be green on the
-one machine that has the secret.

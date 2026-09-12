@@ -29,13 +29,3 @@ _Avoid_: Price history, audit row
 An item together with its current price, which is what the engine reads. An item with no
 price version is not a catalog item, so it cannot be quoted.
 _Avoid_: Priced item, row with price
-
-**Replica**:
-The second copy of the database that Litestream writes, continuously, to a file or a bucket.
-It is not a backup taken on a schedule.
-_Avoid_: Backup, dump, snapshot
-
-**Restore**:
-Rebuilding the database from a replica. The criterion is the rows, not the file: a restore
-that produces a readable database with nothing in it has failed.
-_Avoid_: Recovery, rollback

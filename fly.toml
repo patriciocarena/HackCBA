@@ -9,7 +9,6 @@ primary_region = "gru"
   NODE_ENV = "production"
   MASTRA_HOST = "0.0.0.0"
   TELEGRAM_WEBHOOK_URL = "https://dante-multimpresos.fly.dev/telegram/webhook"
-  LITESTREAM_REPLICA_URL = "file:///data/replica"
 
 [http_service]
   internal_port = 4111

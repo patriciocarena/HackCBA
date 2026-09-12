@@ -9,4 +9,3 @@ medios/
 .DS_Store
 .mastra/
 .claude/settings.local.json
-.litestream/
