@@ -46,6 +46,12 @@ describe('the fence is deterministic', () => {
     expect(fence('cien tarjetas', 'message')).toBe(fence('cien tarjetas', 'message'))
   })
 
+  test('and identically across processes, which is what B7 and A5 cache against', () => {
+    expect(fence('cien tarjetas', 'message')).toBe(
+      '<message:4bc17516509621b0>\ncien tarjetas\n</message:4bc17516509621b0>',
+    )
+  })
+
   test('a different label fences under a different nonce', () => {
     const message = partsOf(fence('cien tarjetas', 'message')).open
     const transcript = partsOf(fence('cien tarjetas', 'transcript')).open
@@ -103,6 +109,10 @@ describe('a message carrying the fence delimiters does not break the fence', () 
 
   test('an empty message', () => {
     assertUnbroken('')
+  })
+
+  test('a message that is only newlines, so the body is blank lines the block still bounds', () => {
+    assertUnbroken('\n\r\n\n')
   })
 
   test('a payload that splices a delimiter out of its own halves when something deletes one', () => {
