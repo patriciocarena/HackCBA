@@ -14,7 +14,7 @@ const STRANGER = '12345678'
 const SLUG = 'bc_special_100_front'
 const NOW = '2026-09-12T10:05:00.000Z'
 
-const ROWS: CatalogRow[] = [{ slug: SLUG, kind: 'sale', label: '100 tarjetas', price: ars(12100) }]
+const ROWS: CatalogRow[] = [{ slug: SLUG, familySlug: 'business_cards', kind: 'sale', label: '100 tarjetas', price: ars(12100) }]
 
 function proposal(overrides: Partial<PriceEditProposal> = {}): PriceEditProposal {
   return {
@@ -101,7 +101,7 @@ describe('every press is answered, which is what clears the spinner', () => {
   })
 
   test('a stale proposal tells the owner why, and what to do about it', async () => {
-    const wiring = wired({ rows: [{ slug: SLUG, kind: 'sale', label: '100 tarjetas', price: ars(13000) }] })
+    const wiring = wired({ rows: [{ slug: SLUG, familySlug: 'business_cards', kind: 'sale', label: '100 tarjetas', price: ars(13000) }] })
 
     await wiring.onCallback(press())
 

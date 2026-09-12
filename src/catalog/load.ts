@@ -38,7 +38,7 @@ export type Catalog = {
 }
 
 export function loadCatalog(seed: CatalogSeed): Catalog {
-  const rows = seed.items.map(catalogRow)
+  const rows = seed.items.map((item) => catalogRow(item, seed.family.slug))
   const sales = rows.filter((row) => row.kind === 'sale')
 
   const family: FamilyContract = {
@@ -69,9 +69,10 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
   }
 }
 
-function catalogRow(item: CatalogSeedItem): CatalogRow {
+function catalogRow(item: CatalogSeedItem, familySlug: string): CatalogRow {
   return {
     slug: item.id,
+    familySlug,
     kind: catalogItemKind(item),
     label: item.label,
     group: item.group,

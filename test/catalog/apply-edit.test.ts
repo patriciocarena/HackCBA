@@ -19,7 +19,7 @@ const PROPOSED: PriceEditProposal = {
 }
 
 const ROWS = [
-  { slug: 'bc_special_100_front', kind: 'sale' as const, label: '100 tarjetas', price: ars(12100) },
+  { slug: 'bc_special_100_front', familySlug: 'business_cards', kind: 'sale' as const, label: '100 tarjetas', price: ars(12100) },
 ]
 
 describe('applyPriceEdit', () => {
@@ -100,7 +100,7 @@ describe('applyPriceEdit', () => {
   })
 
   it('leaves a row the edit does not name alone', () => {
-    const untouched = { slug: 'bc_other', kind: 'sale' as const, label: 'otra', price: ars(500) }
+    const untouched = { slug: 'bc_other', familySlug: 'business_cards', kind: 'sale' as const, label: 'otra', price: ars(500) }
     const outcome = applyPriceEdit(PROPOSED, [...ROWS, untouched], {
       id: 'ver_1',
       by: { kind: 'person', id: '42' },

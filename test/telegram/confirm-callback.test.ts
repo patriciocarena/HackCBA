@@ -12,7 +12,7 @@ const STRANGER = '12345678'
 const SLUG = 'bc_special_100_front'
 const NOW = '2026-09-12T10:05:00.000Z'
 
-const ROWS: CatalogRow[] = [{ slug: SLUG, kind: 'sale', label: '100 tarjetas', price: ars(12100) }]
+const ROWS: CatalogRow[] = [{ slug: SLUG, familySlug: 'business_cards', kind: 'sale', label: '100 tarjetas', price: ars(12100) }]
 
 function proposal(): PriceEditProposal {
   return {
@@ -134,7 +134,7 @@ describe('a press from outside the allowlist', () => {
 
 describe('the rows come from the live catalog and never from the caller', () => {
   test('an edit whose oldPrice no longer matches the catalog is refused as stale', async () => {
-    const wiring = wired([{ slug: SLUG, kind: 'sale', label: '100 tarjetas', price: ars(13000) }])
+    const wiring = wired([{ slug: SLUG, familySlug: 'business_cards', kind: 'sale', label: '100 tarjetas', price: ars(13000) }])
 
     await wiring.onCallback(press())
 

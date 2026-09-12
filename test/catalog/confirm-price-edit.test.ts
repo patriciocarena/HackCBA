@@ -22,7 +22,7 @@ const PROPOSED: PriceEditProposal = {
 }
 
 const ROWS = [
-  { slug: 'bc_special_100_front', kind: 'sale' as const, label: '100 tarjetas', price: ars(12100) },
+  { slug: 'bc_special_100_front', familySlug: 'business_cards', kind: 'sale' as const, label: '100 tarjetas', price: ars(12100) },
 ]
 
 const NOW = '2026-09-12T10:05:00.000Z'

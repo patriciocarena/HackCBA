@@ -29,6 +29,7 @@ describe('loadCatalog', () => {
 
     expect(rows.find((row) => row.slug === 'bc_special_100_front')).toStrictEqual({
       slug: 'bc_special_100_front',
+      familySlug: 'business_cards',
       kind: 'sale',
       label: '100 tarjetas color sólo frente',
       group: undefined,

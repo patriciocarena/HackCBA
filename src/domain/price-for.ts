@@ -13,6 +13,13 @@ export type CatalogItemKind = 'sale' | 'add_on' | 'discount'
 
 export type CatalogRow = {
   slug: string
+  /**
+   * The family this row was loaded from. `CONTEXT.md` calls an Item "one row of a family" and
+   * this type did not carry the family, which is how `appliesToFamily` attached the business
+   * cards design add-on to a talonario: a bare boolean matched any sale row in the array.
+   * Unique slugs keep the price edit path safe and do nothing for this.
+   */
+  familySlug: string
   kind: CatalogItemKind
   label: string
   group?: string
@@ -99,12 +106,15 @@ export function priceFor(
     return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG }
   }
 
-  if (saleRows(rows).length === 0) {
-    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG }
-  }
-
+  // Before the rows, because refusing a metre-priced family is a fact about the family and not
+  // about what happens to be loaded. Rows are scoped by family now, so checking emptiness first
+  // made the reason depend on load order.
   if (config.family.unit === 'linear_meter' || config.family.unit === 'square_meter') {
     return { kind: 'escalate', reason: 'no_match', detail: DELEGATE }
+  }
+
+  if (saleRowsOf(rows, config.family.slug).length === 0) {
+    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG }
   }
 
   const missing = missingAttributes(intent, config.family)
@@ -175,7 +185,7 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
 }
 
 function matchedSaleRow(context: PriceContext): MatchedRow {
-  const matches = saleRows(context.rows).filter((row) =>
+  const matches = saleRowsOf(context.rows, context.config.family.slug).filter((row) =>
     declaredAttributesMatch(row, context.intent, context.config.family.attributes),
   )
 
@@ -195,7 +205,9 @@ function matchedSaleRow(context: PriceContext): MatchedRow {
 
 function noSaleRowFor(context: PriceContext): Resolution {
   const quantity = context.intent.attributes.quantity
-  const carried = saleRows(context.rows).some((row) => row.attributes?.quantity === quantity)
+  const carried = saleRowsOf(context.rows, context.config.family.slug).some(
+    (row) => row.attributes?.quantity === quantity,
+  )
 
   if (quantity !== undefined && !carried) {
     // The list carries the quantities it carries, and nothing between them is quoted.
@@ -268,6 +280,8 @@ function addOnLines(rows: CatalogRow[], saleRow: CatalogRow, groups: string[]): 
 }
 
 function appliesToSaleRow(row: CatalogRow, saleRow: CatalogRow): boolean {
+  if (row.familySlug !== saleRow.familySlug) return false
+
   if (row.appliesTo !== undefined) {
     return row.appliesTo.includes(saleRow.slug)
   }
@@ -305,6 +319,15 @@ function lineOf(row: CatalogRow): BreakdownLine {
 
 export function saleRows(rows: CatalogRow[]): CatalogRow[] {
   return rows.filter((row) => row.kind === 'sale')
+}
+
+/**
+ * The sale rows of one family. Everything that picks a row to price, or counts the rows a
+ * family has, goes through this rather than `saleRows`: one flat array holds every loaded
+ * family, so an unfiltered sweep matches a row the customer never asked about.
+ */
+export function saleRowsOf(rows: CatalogRow[], familySlug: string): CatalogRow[] {
+  return saleRows(rows).filter((row) => row.familySlug === familySlug)
 }
 
 function declaredAttributesMatch(
