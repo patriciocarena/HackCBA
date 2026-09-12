@@ -5,7 +5,7 @@ import type { InboundMessage } from '@/telegram/inbound'
 import { baseConfig, catalogRows, OFFSET_1000, priceOf } from '@test/support/catalog'
 import { totalOf } from '@/domain/breakdown'
 import { askText, pesos } from '@/domain/quote-text'
-import { INTRODUCTION } from '@/conversation/prompt'
+import { EXTRACTION_REASONS, INTRODUCTION } from '@/conversation/prompt'
 import { priceFor } from '@/domain/price-for'
 import type { Resolution } from '@/domain/types'
 
@@ -206,6 +206,7 @@ describe('the ask, and what happens when it is not answered', () => {
       state({ asked: ['quantity'] }),
     )
 
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'missing_attribute' })
     expect(result.state.escalated).toBe(true)
     expect(result.reply).toBe('te delego con un humano')
   })
@@ -267,6 +268,7 @@ describe('escalation', () => {
       state(),
     )
 
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'unsupported_option' })
     expect(result.state.escalated).toBe(true)
   })
 
@@ -448,5 +450,24 @@ describe('the reasons only extraction can raise', () => {
     const result = await escalationFor({ kind: 'other', reason: 'unsupported_quantity' })
 
     expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'ambiguous' })
+  })
+
+  test('more than one product in a message is not quoted one of, it is escalated', async () => {
+    const result = await escalationFor({ kind: 'other', reason: 'multiple_products' })
+
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'multiple_products' })
+    expect(amountsIn(result.written)).toBeEmpty()
+  })
+
+  test('a customer asking for a person gets one', async () => {
+    const result = await escalationFor({ kind: 'other', reason: 'human_requested' })
+
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'human_requested' })
+  })
+
+  test('every reason extraction is offered is one the turn raises under that name', async () => {
+    for (const reason of EXTRACTION_REASONS) {
+      expect((await escalationFor({ kind: 'other', reason })).resolution).toMatchObject({ kind: 'escalate', reason })
+    }
   })
 })

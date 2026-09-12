@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { extractionSchema } from '@/conversation/prompt'
+import { EXTRACTION_REASONS, extractionSchema } from '@/conversation/prompt'
 import { businessCards } from '@test/support/catalog'
 
 type Property = { type: string[]; enum: (string | number | null)[] }
@@ -45,5 +45,20 @@ describe('the extraction schema is built from the loaded catalog', () => {
 
   test('every field is required, so a silent omission is not an answer', () => {
     expect(schema.properties.attributes.required).toEqual(businessCards.attributes.map((a) => a.name))
+  })
+})
+
+describe('the reasons the schema lets extraction raise', () => {
+  const offered = (extractionSchema(businessCards) as unknown as { properties: { reason: { enum: (string | null)[] } } })
+    .properties.reason.enum
+
+  test('are the four a reader of the message can see, and null', () => {
+    expect(offered).toEqual([...EXTRACTION_REASONS, null])
+  })
+
+  test('never include one the engine already produces for itself', () => {
+    for (const engines of ['out_of_catalog', 'no_match', 'ambiguous', 'unsupported_quantity', 'unknown_fact']) {
+      expect(offered).not.toContain(engines)
+    }
   })
 })
