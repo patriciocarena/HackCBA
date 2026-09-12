@@ -13,12 +13,18 @@ Three wrong facts, and each one would have produced a second mapper on the money
 path that drifts from the first. Read the paths the brief names, and the ticket
 row it cites, before writing the first line.
 
-## A claimed commit is not a commit until it is pushed
+## Check a claimed commit, and say what the check actually proves
 
 Same lane. Three changes were reported as landed on main: a TICKETS.md row, a
 Linear transition and a seed fix at b5d6117. `git cat-file -t b5d6117` said "Not
-a valid object name" and origin/main had not moved. Check `git fetch` and the
-object, never the claim.
+a valid object name" and origin/main had not moved, so I reported them missing.
+
+They were real. I had fetched before the push landed, and all three were on main
+minutes later. Checking rather than believing was still right, and it is what
+caught three genuinely wrong facts earlier in the same lane. What was wrong was
+the conclusion I drew from one fetch: absent from my clone means not visible yet,
+not never pushed. Re-fetch before calling something missing, and report the
+check, not the motive.
 
 ## A deleted file can hold two jobs
 

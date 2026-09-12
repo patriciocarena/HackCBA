@@ -170,7 +170,7 @@ describe('priceFor', () => {
     ])
   })
 
-  test('case 14: a family with no rows loaded is out_of_catalog', () => {
+  test('case 15: a family with no rows loaded is out_of_catalog', () => {
     const resolution = quote({ family: 'banners', attributes: SPECIAL_100 }, [])
 
     expectEscalation(
@@ -180,7 +180,7 @@ describe('priceFor', () => {
     )
   })
 
-  test('case 15: matching two sale rows escalates ambiguous', () => {
+  test('case 16: matching two sale rows escalates ambiguous', () => {
     const duplicate: CatalogRow = {
       ...rowFor('bc_special_100_front'),
       slug: 'bc_special_100_front_duplicate',
@@ -190,7 +190,7 @@ describe('priceFor', () => {
     expectEscalation(resolution, 'ambiguous', 'te delego con un humano')
   })
 
-  test('case 16: two products are quoted by calling the engine once per product', () => {
+  test('case 18: two products are quoted by calling the engine once per product', () => {
     expectPrice(
       quote({ attributes: SPECIAL_100 }),
       withVat(priceOf('bc_special_100_front')),
@@ -203,7 +203,7 @@ describe('priceFor', () => {
     )
   })
 
-  test('case 17: metre-priced families are refused instead of guessed', () => {
+  test('case 19: metre-priced families are refused instead of guessed', () => {
     const byTheMetre: PriceForConfig = {
       ...baseConfig,
       family: { ...businessCards, slug: 'banners', unit: 'linear_meter' },
@@ -213,7 +213,7 @@ describe('priceFor', () => {
     expectEscalation(resolution, 'no_match', 'te delego con un humano')
   })
 
-  test('case 18: a family the engine was not configured for never reaches a row', () => {
+  test('a family the engine was not configured for never reaches a row', () => {
     const resolution = quote({ family: 'banners', attributes: SPECIAL_100 })
 
     expectEscalation(
@@ -223,7 +223,7 @@ describe('priceFor', () => {
     )
   })
 
-  test('case 19: an add-on group with no row for this job escalates instead of picking one', () => {
+  test('an add-on group with no row for this job escalates instead of picking one', () => {
     // Puntas redondeadas is priced for 100, 200 and 1000. The 500 card row has no such row.
     const resolution = quote({
       attributes: { ...OFFSET_1000, quantity: 500 },
