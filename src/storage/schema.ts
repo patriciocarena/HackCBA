@@ -138,3 +138,17 @@ export const SCHEMA: readonly string[] = [
     PRIMARY KEY (price_edit_id, item_id)
   ) WITHOUT ROWID`,
 ]
+
+const CREATE_TABLE = /CREATE TABLE IF NOT EXISTS (\w+)/
+
+/**
+ * Every table the schema declares, read out of the DDL rather than listed beside it. A second
+ * list is one that goes stale the first time somebody adds a table, and the thing reading this
+ * is a health check, which is exactly where a stale list is worth nothing.
+ *
+ * Views are not tables. `catalog_items` is dropped and recreated on every migrate, so its
+ * presence says nothing about whether the migration ran.
+ */
+export function schemaTables(): string[] {
+  return SCHEMA.flatMap((statement) => statement.match(CREATE_TABLE)?.[1] ?? [])
+}
