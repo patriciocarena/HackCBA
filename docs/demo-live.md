@@ -48,6 +48,32 @@ and the action spends a turn it does not have.
 Say: the number comes out of a pure function over rows the owner typed. The model gets the
 amount as data and writes the sentence around it. It has no tool that could invent one.
 
+#### The insert that shows the pillar instead of saying it, 25 seconds
+
+Two more pastes in C, before action 2. This is the only beat that attacks the scar head on,
+and without it the "does not invent" argument lives only in the closing speech.
+
+```
+¿qué horario tienen?
+```
+
+Dante answers with the hours, because the owner confirmed them on 2026-09-10 and they are
+loaded (`seed/facts.json`).
+
+```
+¿y tienen sucursal en el norte?
+```
+
+Dante hands the conversation to a person. The fact exists in the seed with no value,
+because nobody confirmed it, and a value nobody confirmed is never filled in with something
+that sounds right.
+
+Say: the bot before this one answered that question. It invented branches, and customers
+drove to them. This one knows the difference between a fact it was given and a sentence
+that sounds right, and the second one is always a person.
+
+Cut this insert before you cut action 2, but cut action 2 before you cut action 3.
+
 ### 2. C accepts and pays, 50 seconds
 
 Paste in C:
@@ -128,11 +154,12 @@ you say it. Five injections through a real turn. That is the cheapest way to sho
 
 ## Timing
 
-| Beat | Open | 1 | 2 | 3 | 4 | Close |
-|---|---|---|---|---|---|---|
-| Seconds | 40 | 40 | 50 | 60 | 30 | 40 |
+| Beat | Open | 1 | Facts | 2 | 3 | 4 | Close |
+|---|---|---|---|---|---|---|---|
+| Seconds | 40 | 40 | 25 | 50 | 60 | 30 | 40 |
 
-Total 4:20. The 40 seconds left are for one thing going slower than it did in rehearsal.
+Total 4:45. The 15 seconds left are thin, so the facts insert is the first thing the clock
+takes back.
 
 ## Before you start
 

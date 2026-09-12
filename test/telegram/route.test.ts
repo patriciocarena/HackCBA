@@ -180,6 +180,53 @@ describe('the default turn', () => {
   })
 })
 
+/**
+ * The mechanism was covered from the day it was written and the route handed it an empty
+ * list, so every question about the shop escalated and every test stayed green. The writer's
+ * own input is where the difference shows: a loaded fact reaches it as data, and one nobody
+ * loaded reaches it as an escalation instead of a plausible sentence.
+ */
+describe('the default turn, on what the shop knows about itself', () => {
+  function asking(factKey: string) {
+    const handed: string[] = []
+
+    const fetchImpl: FetchLike = async (url) => {
+      if (host(url) === 'api.telegram.org') return Response.json({ ok: true })
+
+      const content = JSON.stringify({ ...EXTRACTED, kind: 'fact', attributes: {}, factKey })
+
+      return Response.json({ choices: [{ message: { content } }] })
+    }
+
+    const write: Write = async ({ user }) => {
+      handed.push(user)
+
+      return 'Ya te contesto.'
+    }
+
+    const wiring = { catalog: aCatalog(), edits: inMemoryPriceEdits(), record: async () => {}, write }
+
+    return { route: telegramWebhookRoute({ onCallback: noPress }, wiring, fetchImpl), handed }
+  }
+
+  it('hands the writer the hours the owner confirmed, not an empty block', async () => {
+    const { route, handed } = asking('hours')
+
+    await handle(route, delivery(SECRET))
+
+    expect(handed[0]).toContain('9 a 18:30')
+  })
+
+  it('hands the writer an escalation for a branch nobody loaded', async () => {
+    const { route, handed } = asking('branches')
+
+    await handle(route, delivery(SECRET))
+
+    expect(handed[0]).toContain('te delego con un humano')
+    expect(handed[0]).not.toContain('Sucursales')
+  })
+})
+
 describe('every key is read at boot', () => {
   for (const key of ['OPENROUTER_MODEL', 'OPENROUTER_API_KEY', 'TELEGRAM_BOT_TOKEN', 'DEPOSIT_ALIAS', 'OWNER_CHAT_ID']) {
     it(`throws when ${key} is missing, at construction and not at the first customer`, () => {
