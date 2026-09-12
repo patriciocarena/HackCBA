@@ -30,12 +30,14 @@ describe('migrate', () => {
     expect(await tableNames()).toEqual([
       'facts',
       'families',
+      'inbound_messages',
       'item_applications',
       'items',
       'orders',
       'price_edit_lines',
       'price_edits',
       'price_versions',
+      'telegram_updates',
     ])
   })
 
@@ -54,7 +56,7 @@ describe('migrate', () => {
     await migrate(client)
     await migrate(client)
 
-    expect(await tableNames()).toHaveLength(8)
+    expect(await tableNames()).toHaveLength(10)
   })
 })
 

@@ -1,5 +1,5 @@
 import { ITEM_TIERS } from '@/catalog/tiers'
-import { ORDER_STATES, PRICE_EDIT_SOURCES, PRICE_EDIT_STATES, UNITS } from '@/domain/types'
+import { ORDER_STATES, PRICE_EDIT_SOURCES, PRICE_EDIT_STATES, ROLES, UNITS } from '@/domain/types'
 import { sqliteCheck } from './check'
 
 const jsonObject = (column: string) => `CHECK (json_type(${column}) = 'object')`
@@ -98,6 +98,22 @@ export const SCHEMA: readonly string[] = [
     ${together('resolved_by', 'resolved_at')},
     CHECK (state = 'proposed' OR resolved_at IS NOT NULL)
   )`,
+
+  `CREATE TABLE IF NOT EXISTS telegram_updates (
+    update_id INTEGER PRIMARY KEY,
+    claimed_at TEXT NOT NULL
+  ) WITHOUT ROWID`,
+
+  `CREATE TABLE IF NOT EXISTS inbound_messages (
+    update_id INTEGER PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    role TEXT NOT NULL ${sqliteCheck('role', ROLES)},
+    chat_id TEXT NOT NULL,
+    sender_id TEXT NOT NULL,
+    text TEXT,
+    media_id TEXT,
+    received_at TEXT NOT NULL
+  ) WITHOUT ROWID`,
 
   `CREATE TABLE IF NOT EXISTS price_edit_lines (
     price_edit_id TEXT NOT NULL REFERENCES price_edits (id) ON DELETE CASCADE,
