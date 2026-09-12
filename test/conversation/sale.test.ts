@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test'
 import { inMemorySale } from '@/conversation/sale'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { totalOf } from '@/domain/breakdown'
+import { ars } from '@/domain/money'
+import { AGENT } from '@/domain/deposit'
 import { priceFor } from '@/domain/price-for'
 import { conversationId, type Resolution } from '@/domain/types'
 import { intent, OFFSET_1000 } from '@test/support/fixtures'
@@ -119,5 +121,50 @@ describe('a person confirms the deposit, and the record says who', () => {
       ok: false,
       reason: 'not_a_transition',
     })
+  })
+})
+
+describe('the agent confirms a deposit it could check', () => {
+  const reading = { looksLikeReceipt: true, amount: 45000, destination: ALIAS, confidence: 0.95 }
+
+  function held() {
+    const sale = aSale()
+    sale.hold(conversation, priced)
+    const accepted = sale.accept(conversation, customer)
+    if (accepted.kind !== 'accepted') throw new Error(`expected an order, got ${accepted.kind}`)
+
+    return sale
+  }
+
+  test('a reading that matches the order moves it, in the sale port, not in a copy', () => {
+    const sale = held()
+
+    const got = sale.confirmFromReceipt(conversation, reading)
+
+    expect(got.ok).toBe(true)
+    expect(sale.orderFor(conversation)?.state).toBe('deposit_confirmed')
+    expect(sale.orderFor(conversation)?.depositConfirmedBy).toBe(AGENT)
+  })
+
+  test('a reading that does not match leaves the order where it was', () => {
+    const sale = held()
+
+    const got = sale.confirmFromReceipt(conversation, { ...reading, amount: 1 })
+
+    expect(got).toEqual({ ok: false, reason: 'wrong_amount' })
+    expect(sale.orderFor(conversation)?.state).toBe('deposit_pending')
+  })
+
+  test('no order is not a transition, the same answer confirmDeposit gives', () => {
+    expect(aSale().confirmFromReceipt(conversation, reading)).toEqual({ ok: false, reason: 'not_a_transition' })
+  })
+
+  test('the amount compared is the order\'s, and the alias is the one this customer was told', () => {
+    const sale = held()
+    const order = sale.orderFor(conversation)!
+
+    // Both sides of the comparison come from the order, never from the reading.
+    expect(totalOf(order.breakdown)).toBe(ars(45_000))
+    expect(order.depositAlias).toBe(ALIAS)
   })
 })

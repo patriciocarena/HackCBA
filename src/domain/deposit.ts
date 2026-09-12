@@ -194,15 +194,17 @@ export const AGENT = 'agent'
 export function confirmDepositFromReceipt(order: Order, input: FromReceiptInput): AutoOutcome {
   const { reading, owed, alias, now } = input
 
+  // The order's own facts first. Nothing the image says is worth reading until the order is
+  // one that could take a deposit at all.
+  if (order.depositAlias === null) return { ok: false, reason: 'no_alias' }
+  if (!Number.isFinite(new Date(now).getTime())) return { ok: false, reason: 'not_a_time' }
+  if (!mayAdvance(order.state, 'deposit_confirmed')) return { ok: false, reason: 'not_a_transition' }
+
   if (!reading.looksLikeReceipt) return { ok: false, reason: 'not_a_receipt' }
   if (!(reading.confidence >= CONFIDENCE_FLOOR)) return { ok: false, reason: 'unsure' }
   if (reading.amount === null) return { ok: false, reason: 'no_amount' }
   if (reading.amount !== owed) return { ok: false, reason: 'wrong_amount' }
   if (!sameDestination(reading.destination, alias)) return { ok: false, reason: 'wrong_destination' }
-
-  if (order.depositAlias === null) return { ok: false, reason: 'no_alias' }
-  if (!Number.isFinite(new Date(now).getTime())) return { ok: false, reason: 'not_a_time' }
-  if (!mayAdvance(order.state, 'deposit_confirmed')) return { ok: false, reason: 'not_a_transition' }
 
   return {
     ok: true,
