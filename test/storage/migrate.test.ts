@@ -1,5 +1,8 @@
 import { createClient, type Client } from '@libsql/client'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { migrate } from '@/storage/migrate'
 
 let client: Client
@@ -41,5 +44,19 @@ describe('migrate', () => {
     await migrate(client)
 
     expect(await tableNames()).toHaveLength(8)
+  })
+})
+
+describe('the journal', () => {
+  it('is WAL on a file database, which is what a replica reads', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'dante-migrate-'))
+    const file = createClient({ url: `file:${directory}/dante.db` })
+
+    await migrate(file)
+    const mode = await file.execute('PRAGMA journal_mode')
+    file.close()
+    await rm(directory, { recursive: true, force: true })
+
+    expect(mode.rows[0]?.journal_mode).toBe('wal')
   })
 })
