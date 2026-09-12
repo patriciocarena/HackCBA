@@ -5,3 +5,7 @@
 the main checkout, which that pattern does not match. Stage paths, or check
 `git diff --stat` before pushing. It reached the branch once and was removed in a follow
 up commit.
+
+**No session id or URL in a commit message.** The harness offers a `Claude-Session:`
+trailer; the brief and `CLAUDE.md` both forbid it, and the brief wins. Eleven commits
+carried one before a push caught it. Write the trailer nowhere, not strip it later.
