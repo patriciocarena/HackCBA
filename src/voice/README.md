@@ -1,7 +1,6 @@
 # Voice lane, C2 handoff
 
-Pato built this Friday 21:00 to 23:00 and left at midnight. Fede picks up C4 on Saturday
-at 13:30. Read this first; it is shorter than the code.
+Read this before building on it; it is shorter than the code.
 
 ## What this is
 
@@ -26,7 +25,7 @@ result.text; // "Subí las tarjetas personales 20%"
 ## Run it cold
 
 ```
-bun test src/voice/transcription.test.ts      # 11 tests, no network, no key
+bun test test/voice/transcription.test.ts     # 14 tests, no network, no key
 bun scripts/transcribe.ts fixtures/<file>     # real call, needs the key
 ```
 
@@ -38,7 +37,13 @@ ELEVENLABS_MODEL_ID=scribe_v2
 TRANSCRIPTION_LANGUAGE=es
 ```
 
-Missing any of them fails closed and names which one. It never guesses the language.
+`transcriptionFromEnv` throws when any of them is missing, naming all of them at once. A
+missing key is a deploy that should not have started, not a transcription outcome, so it
+never reaches the Result type. The language is never assumed.
+
+Every request carries `AbortSignal.timeout(30_000)`. Without it a hung provider hangs the
+webhook turn with no upper bound while Telegram retries the update underneath it. The
+timeout surfaces as an ordinary `{ ok: false }`, so callers need no extra branch.
 
 ## Decisions you may want to revisit
 
@@ -51,9 +56,8 @@ no schema on Friday night. Storage is your call in C4.
 on purpose: confidence scores are not comparable across providers, so exposing them would
 make the port lie about being swappable.
 
-That matters for your acceptance criterion "an ambiguous dictated amount is not filled in".
-The ambiguity signal does not come from here. Decide it downstream in `structuredOutput`,
-from the text, and flag the `PriceEdit` for review.
+That matters for C4's criterion "an ambiguous dictated amount is not filled in". The
+ambiguity signal does not come from here: decide it downstream, from the text.
 
 **`Transcription` is not in `src/domain/types.ts`.** It is a detail of the voice seam, not
 business vocabulary like `Intent` or `PriceEdit`. Import it from here.
@@ -83,7 +87,8 @@ stable across inputs, and neither is the wording around it. Let `structuredOutpu
 amount out of the sentence; anything that pattern-matches a literal will pass Friday's
 fixture and fail on the owner's next audio.
 
-## Not done
+## Merge order
 
-`bun run typecheck` was never run: it needs the `tsconfig.json` and `@types/bun` that come
-with A1, and A1 did not exist yet on Friday night.
+This branch has no `package.json` and no `tsconfig.json` of its own: A1 owns both, so A1
+lands first or this merges as code nobody can run. Typecheck passes against A1's config
+with `@types/bun`, verified out of tree; rerun it in place once A1 is in.
