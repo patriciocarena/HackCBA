@@ -132,3 +132,55 @@ commit, and say what the check actually proves" above.
 
 Cite the sha and the path. It is the cheaper check whoever turns out to be stale,
 and it costs nothing when everyone is current.
+## Two branches each doing the right thing can still be wrong together
+
+2026-09-12, E1. A5's turn fenced the customer message. While it sat in review,
+#15 landed on main and moved fencing to the webhook call site. Each branch was
+green and each was correct alone. Merged, a customer message reached the writer
+wrapped in two nonces, and no test on either branch could see it, because
+neither ran both.
+
+The integration ticket is the first place a pair like that is observable, so it
+owns the decision about which side keeps the behaviour. Look for duplicated
+responsibility at every seam the merge joins, not only for conflicts git
+reports. Git had nothing to say about this one.
+
+## Order the write after the effect it is supposed to record
+
+Same lane. `customerTurn` stored the next conversation state and then sent the
+reply. A Telegram refusal threw, so the reply was lost and the state had already
+advanced: an escalation left `escalated: true` with the customer never told, and
+the update id was claimed before the turn ran, so the retry was deduped and
+dropped. Sending first costs nothing and leaves a refused reply recoverable on
+the customer's next message.
+
+## A wrong default is invisible in exactly the place it matters
+
+Same lane, from the brief. `route.ts` defaulted `turn` to `silentTurn`, so
+production acknowledged every customer and answered none. The repo had already
+shipped this shape once, an identity-cast fence defaulting to a no-op. Tests
+pass because tests always inject the real thing. Assert the default itself:
+build the production seam with no arguments and prove it calls out.
+
+## A test that names a behaviour is not a test that checks it
+
+2026-09-12, E1 review. "The default turn is the real one, because a silent
+default is a bot nobody notices is dead" asserted only that some call reached
+openrouter.ai. A bot whose every model call returns 500 satisfies that: extraction
+throws, the turn escalates, the writer throws, the reply is null, nothing is
+sent. The last hop of the ticket had no test at all, and dropping the send's
+transport argument survived the suite.
+
+Assert the end of the path, not evidence that the path was entered. Where a name
+promises reaching something, name the thing and assert that URL.
+
+## Deriving an expectation from the code under test proves only that it agrees with itself
+
+Same review. `vertical.test.ts` computed its expected price by calling `priceFor`
+and `totalOf`, the two functions the test exists to pin. Doubling every price in
+the seed left all five tests green. One written-out constant, 45000, kills it.
+
+The paired trap: the fixture the whole suite leaned on was a `vatIncluded: true`
+row, so the one end to end test for "comes back with a VAT inclusive price" never
+once multiplied by the rate. Check that the fixture exercises the arithmetic the
+test is named after.
