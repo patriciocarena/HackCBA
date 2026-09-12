@@ -77,9 +77,9 @@ Say: nobody pressed anything. The agent read the photo, checked the amount again
 the order owes and the destination against the alias it gave, and confirmed. The amount it
 prints is the order's own breakdown, never the number in the image.
 
-Warning for the narration: the client gets no reply after the photo. Only the owner's
-screen moves (`src/conversation/receipt-path.ts`, `receiptTurn` returns before the turn).
-Either say so out loud, or land a one line acknowledgement to the client before the demo.
+Both screens move. The client's line is a fixed sentence, sent after the owner's and never
+instead of it (`src/conversation/receipt-path.ts`, `reply`). A chat that refuses the message
+still leaves a recorded receipt and an owner who was told.
 
 ### 3. O raises prices by voice, 60 seconds
 

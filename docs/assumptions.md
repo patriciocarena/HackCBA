@@ -81,7 +81,7 @@ sits here so nobody reopens it at three in the morning.
 
 ## 8. Tone and name
 
-The agent is called Dante. Neutral rioplatense voseo, not a fake Tucumán accent. The owner
+The agent is called Dante. Neutral rioplatense voseo, not a fake cordobés accent. The owner
 picked the name on 2026-09-09 and it is his brand.
 
 Everything Dante says to a customer is in Spanish. Everything else in this repo is in
