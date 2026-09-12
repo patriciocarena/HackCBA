@@ -14,7 +14,9 @@ import { baseConfig, catalogRows, intent, OFFSET_1000 } from '../support/catalog
 
 const now = '2026-09-12T13:00:00.000Z'
 const conversation = conversationId('telegram', '55512345', 'customer')
-const customer: Actor = { kind: 'person', id: 'telegram:55512345' }
+// Bare, like production: src/telegram/update.ts passes String(message.from.id), and
+// adminAllowlist's regex matches digits only. A prefixed id here would read as the contract.
+const customer: Actor = { kind: 'person', id: '55512345' }
 const ALIAS = 'dante.imprenta.mp'
 
 const priced: Resolution = priceFor(intent({ attributes: OFFSET_1000 }), catalogRows, baseConfig)
@@ -144,6 +146,12 @@ describe('only an admin confirms, and confirming never shows the receipt', () =>
     expect(confirmed.order.depositConfirmedAt).toBe(now)
   })
 
+  test('the agent confirms nothing, and is refused as not an admin rather than not a person', () => {
+    const confirmed = confirmDeposit(awaitingDeposit(), { by: { kind: 'agent' }, now }, onlyAdmin)
+
+    expect(confirmed).toEqual({ ok: false, reason: 'not_an_admin' })
+  })
+
   test('a sender who is not on the allowlist confirms nothing', () => {
     const confirmed = confirmDeposit(awaitingDeposit(), { by: customer, now }, onlyAdmin)
 
@@ -192,6 +200,8 @@ describe('only an admin confirms, and confirming never shows the receipt', () =>
 })
 
 describe('the id the caller hands in is the id the allowlist sees', () => {
+  // The one deliberately non-production id in this file. A bare one would pass whether or not
+  // confirmDeposit normalises, so the prefix is what gives the assertion something to catch.
   test('nothing is stripped or rewritten on the way to the predicate', () => {
     const seen: string[] = []
     const spy: IsAdmin = (id) => {
