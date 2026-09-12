@@ -77,7 +77,7 @@ describe('no amount leaves the engine that is not the final number', () => {
   test('a list discount comes off the final amount', () => {
     expect(
       totalFor({ attributes: attributesOf('bc_illustration300_100_front') }, {
-        listDiscountPolicy: { applyProvisionalIllustrationPlainDiscounts: true },
+        listDiscountPolicy: { applyProvisionalDiscounts: true },
       }),
     ).toBe(priceOf('bc_illustration300_100_front') - priceOf('bc_discount_illustration_plain_100'))
   })

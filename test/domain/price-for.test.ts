@@ -164,7 +164,7 @@ describe('priceFor', () => {
       catalogRows,
       {
         ...baseConfig,
-        listDiscountPolicy: { applyProvisionalIllustrationPlainDiscounts: true },
+        listDiscountPolicy: { applyProvisionalDiscounts: true },
       },
     )
 

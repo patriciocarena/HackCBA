@@ -15,6 +15,7 @@ export type CatalogRow = {
   kind: CatalogItemKind
   label: string
   group?: string
+  provisional?: boolean
   attributes?: Record<string, string | number>
   appliesTo?: string[]
   appliesToFamily?: boolean
@@ -29,15 +30,16 @@ export type ModuleDiscount = {
 
 export type ListDiscountPolicy = {
   /**
-   * The seed carries the plain illustration rows as discounts, but the current business
-   * decision treats the illustration column prices as final. Flip this one flag when the
-   * owner confirms those rows are authoritative discounts.
+   * A discount row the seed marks provisional is one the owner has not confirmed is a
+   * discount at all. The plain illustration rows read as the arithmetic he used to build a
+   * column rather than as something to subtract again, and applying them would quote under
+   * his own list. Flip this when he confirms, and the rows say which they are.
    */
-  applyProvisionalIllustrationPlainDiscounts: boolean
+  applyProvisionalDiscounts: boolean
 }
 
 export const DEFAULT_LIST_DISCOUNT_POLICY: ListDiscountPolicy = {
-  applyProvisionalIllustrationPlainDiscounts: false,
+  applyProvisionalDiscounts: false,
 }
 
 export type PriceForConfig = {
@@ -277,10 +279,7 @@ function listDiscounts(
       return false
     }
 
-    return (
-      !row.slug.startsWith('bc_discount_illustration_plain_') ||
-      policy.applyProvisionalIllustrationPlainDiscounts
-    )
+    return row.provisional !== true || policy.applyProvisionalDiscounts
   })
 }
 

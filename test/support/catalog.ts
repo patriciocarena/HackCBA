@@ -75,6 +75,7 @@ function toCatalogRow(item: SeedItem): CatalogRow {
     kind: item.kind as CatalogRow['kind'],
     label: item.label,
     group: 'group' in item ? (item.group as string) : undefined,
+    provisional: 'provisional' in item ? (item.provisional as boolean) : undefined,
     attributes: 'attributes' in item ? (item.attributes as Record<string, string | number>) : undefined,
     appliesTo: 'applies_to' in item ? item.applies_to : undefined,
     appliesToFamily: 'applies_to_family' in item ? item.applies_to_family : undefined,

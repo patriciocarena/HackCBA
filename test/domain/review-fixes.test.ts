@@ -158,7 +158,7 @@ describe('the module path prices like the exact path, discounts and all', () => 
         attributes: { quantity: 100, paper: 'illustration_300', sides: 'front', finish: 'none' },
         size: { widthCm: 12, heightCm: 5 },
       },
-      { listDiscountPolicy: { applyProvisionalIllustrationPlainDiscounts: true } },
+      { listDiscountPolicy: { applyProvisionalDiscounts: true } },
     )
 
     expect(total).toBe(
