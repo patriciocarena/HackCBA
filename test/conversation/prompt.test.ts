@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { EXTRACTION_REASONS, extractionSchema } from '@/conversation/prompt'
-import { businessCards } from '@test/support/catalog'
+import { businessCards } from '@/catalog/business-cards'
 
 type Property = { type: string[]; enum: (string | number | null)[] }
 type Schema = {

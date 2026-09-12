@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { conversationId } from '@/domain/types'
-import { inMemoryInboundLog, localFence, type InboundMessage } from '@/telegram/inbound'
+import { fence } from '@/security/fence'
+import { inMemoryInboundLog, type InboundMessage } from '@/telegram/inbound'
 
 const message: InboundMessage = {
   updateId: 70,
@@ -8,16 +9,10 @@ const message: InboundMessage = {
   role: 'customer',
   chatId: '-100',
   senderId: '42',
-  text: localFence('hola'),
+  text: fence('hola', 'message'),
   mediaId: null,
   receivedAt: '2026-09-12T09:30:00.000Z',
 }
-
-describe('localFence', () => {
-  it('hands back what it was given, because a describer does not rewrite what it describes', () => {
-    expect(String(localFence('tarjetas <5cm y >2cm'))).toBe('tarjetas <5cm y >2cm')
-  })
-})
 
 describe('inMemoryInboundLog', () => {
   it('records what it was handed, in order', async () => {

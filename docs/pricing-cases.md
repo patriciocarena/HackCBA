@@ -33,7 +33,7 @@ The family declares `ask_order`: quantity, paper, sides, finish.
 |---|---|---|
 | 5 | "cuánto 1000 tarjetas" | `ask` paper, sides and finish in one message, in `ask_order` |
 | 6 | customer answers paper only | `ask` **only** sides and finish. Never re-ask the paper |
-| 7 | the answer still does not resolve | escalate `missing_attribute` |
+| 7 | the answer still does not resolve | `ask` again. The turn escalates `missing_attribute` once it has run out of turns, and the engine never does |
 
 `priceFor` returns `{ kind: 'ask', missing }` and nothing else. Remembering what was already
 asked, and deciding that an answer which still does not resolve has run out of turns, belongs
@@ -68,13 +68,18 @@ declares: `lamination`, `design`, `extra_cut`, `label_perforation`, `rounded_cor
 |---|---|---|
 | 11 | 100 cards, special, front, with lamination | 12.100 + 5.100 = **17.200** |
 | 12 | a finish the column shows as a dash | escalate `no_match`. A dash means the finish is not offered, there is no row |
-| 13 | 100 cards, illustration 300g, 4/0 | **10.300**. The two plain-illustration discount rows are NOT applied: the column price reads as already discounted. One named flag flips it, and both sides have a test |
-| 14 | "¿me hacés precio si llevo varias?" | escalate `commercial_discount`. Read by extraction, which returns a `fact` or `other` intent, never a quote. A commercial discount is never the engine's call |
+| 13a | 100 cards, illustration 300g, 4/0 | **10.300**. The two plain-illustration discount rows are NOT applied: the column price reads as already discounted |
+| 13b | the same, with the named flag on | the discount rows come off. One flag, and both sides have a test |
+| 14 | "¿me hacés precio si llevo varias?" | escalate `commercial_discount`. Extraction's call, never the engine's: it returns a `fact` or `other` intent, never a quote. Tested in A5, not here. See ADR 0012 |
 
 ## Sizes without a unit
 
 The family declares its module in centimetres, so a bare size reads as centimetres. An
 explicit unit that contradicts the family is asked about, never guessed.
+
+That question is extraction's, like cases 14 and 17, and never the engine's. `Size` is
+`{ widthCm, heightCm }` and carries no unit, so by the time `priceFor` sees a size there is
+no contradicting unit left to read: extraction either resolved it or never built the `Size`.
 
 ## Everything else
 
@@ -82,7 +87,7 @@ explicit unit that contradicts the family is asked about, never guessed.
 |---|---|---|
 | 15 | a family with no rows loaded | escalate `out_of_catalog`: *"eso no lo tengo cargado, te delego con un humano"* |
 | 16 | an intent matching two rows | escalate `ambiguous`. The engine never picks one |
-| 17 | "el IVA es obligatorio?" | escalate `vat_question`. Also extraction's call: `priceFor` takes a `QuoteIntent` and never reads a customer's words |
+| 17 | "el IVA es obligatorio?" | escalate `vat_question`. Also extraction's call: `priceFor` takes a `QuoteIntent` and never reads a customer's words. Tested in A5, not here. See ADR 0012 |
 | 18 | two products in one message | quote each separately. The turn calls the engine once per product |
 | 19 | anything priced by the metre | escalate. No such family is loaded, and the roll width is still missing |
 | 20 | a piece of 500 x 300 cm | escalate. It works out to 3530 modules, which is a billboard, not a card. The ceiling is 50 modules and lives in config |
