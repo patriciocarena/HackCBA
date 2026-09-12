@@ -1,8 +1,11 @@
 .env
 .env.*
+!.env.example
 node_modules/
 dist/
 *.db
 *.db-*
 medios/
 .DS_Store
+.mastra/
+.claude/settings.local.json
