@@ -24,6 +24,10 @@ const ROWS = [
   { slug: 'bc_special_100_front', kind: 'sale' as const, label: '100 tarjetas', price: ars(12100) },
 ]
 
+const NOW = '2026-09-12T10:05:00.000Z'
+
+const onlyTheOwner = (id: string) => id === ADMIN
+
 function aStore(proposal: PriceEditProposal | null = PROPOSED) {
   const saved: PriceEditProposal[] = []
 
@@ -39,14 +43,8 @@ describe('confirmPriceEdit', () => {
     const store = aStore()
 
     const outcome = await confirmPriceEdit(
-      {
-        proposalId: 'edit_1',
-        versionId: 'ver_1',
-        senderId: '55512345',
-        accepted: true,
-        now: '2026-09-12T10:05:00.000Z',
-      },
-      { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+      { proposalId: 'edit_1', versionId: 'ver_1', senderId: '55512345', accepted: true, now: NOW },
+      { load: store.load, save: store.save, rows: ROWS, isAdmin: onlyTheOwner },
     )
 
     expect(outcome).toEqual({ ok: false, reason: 'not_an_admin' })
@@ -57,14 +55,8 @@ describe('confirmPriceEdit', () => {
     const store = aStore()
 
     const outcome = await confirmPriceEdit(
-      {
-        proposalId: 'edit_missing',
-        versionId: 'ver_1',
-        senderId: ADMIN,
-        accepted: true,
-        now: '2026-09-12T10:05:00.000Z',
-      },
-      { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+      { proposalId: 'edit_missing', versionId: 'ver_1', senderId: ADMIN, accepted: true, now: NOW },
+      { load: store.load, save: store.save, rows: ROWS, isAdmin: onlyTheOwner },
     )
 
     expect(outcome).toEqual({ ok: false, reason: 'unknown_proposal' })
@@ -75,14 +67,8 @@ describe('confirmPriceEdit', () => {
     const store = aStore()
 
     const outcome = await confirmPriceEdit(
-      {
-        proposalId: 'edit_1',
-        versionId: 'ver_1',
-        senderId: ADMIN,
-        accepted: true,
-        now: '2026-09-12T10:05:00.000Z',
-      },
-      { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+      { proposalId: 'edit_1', versionId: 'ver_1', senderId: ADMIN, accepted: true, now: NOW },
+      { load: store.load, save: store.save, rows: ROWS, isAdmin: onlyTheOwner },
     )
 
     if (!outcome.ok) throw new Error(`expected an applied edit, got ${outcome.reason}`)
@@ -91,7 +77,7 @@ describe('confirmPriceEdit', () => {
       id: 'ver_1',
       proposalId: 'edit_1',
       appliedBy: ADMIN,
-      appliedAt: '2026-09-12T10:05:00.000Z',
+      appliedAt: NOW,
       mediaId: 'voice_abc',
     })
     expect(outcome.applied.rows[0]?.price).toEqual(ars(14520))
@@ -102,21 +88,15 @@ describe('confirmPriceEdit', () => {
     const store = aStore()
 
     const outcome = await confirmPriceEdit(
-      {
-        proposalId: 'edit_1',
-        versionId: 'ver_1',
-        senderId: ADMIN,
-        accepted: false,
-        now: '2026-09-12T10:05:00.000Z',
-      },
-      { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+      { proposalId: 'edit_1', versionId: 'ver_1', senderId: ADMIN, accepted: false, now: NOW },
+      { load: store.load, save: store.save, rows: ROWS, isAdmin: onlyTheOwner },
     )
 
     if (!outcome.ok) throw new Error(`expected a rejection, got ${outcome.reason}`)
     if (outcome.decision !== 'rejected') throw new Error('expected a rejection, got an applied edit')
     expect(outcome.rejected.state).toBe('rejected')
     expect(outcome.rejected.resolvedBy).toBe(ADMIN)
-    expect(outcome.rejected.resolvedAt).toBe('2026-09-12T10:05:00.000Z')
+    expect(outcome.rejected.resolvedAt).toBe(NOW)
     expect(store.saved).toEqual([outcome.rejected])
     expect(ROWS[0]?.price).toEqual(ars(12100))
   })
@@ -127,19 +107,26 @@ describe('confirmPriceEdit', () => {
         const store = aStore({ ...PROPOSED, state })
 
         const outcome = await confirmPriceEdit(
-          {
-            proposalId: 'edit_1',
-            versionId: 'ver_1',
-            senderId: ADMIN,
-            accepted,
-            now: '2026-09-12T10:05:00.000Z',
-          },
-          { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+          { proposalId: 'edit_1', versionId: 'ver_1', senderId: ADMIN, accepted, now: NOW },
+          { load: store.load, save: store.save, rows: ROWS, isAdmin: onlyTheOwner },
         )
 
         expect(outcome).toEqual({ ok: false, reason: 'not_proposed' })
         expect(store.saved).toEqual([])
       }
     }
+  })
+
+  it('refuses an edit whose row moved since it was proposed, so a stale diff is never applied', async () => {
+    const store = aStore()
+    const moved = [{ ...ROWS[0]!, price: ars(13000) }]
+
+    const outcome = await confirmPriceEdit(
+      { proposalId: 'edit_1', versionId: 'ver_1', senderId: ADMIN, accepted: true, now: NOW },
+      { load: store.load, save: store.save, rows: moved, isAdmin: onlyTheOwner },
+    )
+
+    expect(outcome).toEqual({ ok: false, reason: 'stale' })
+    expect(store.saved).toEqual([])
   })
 })
