@@ -79,7 +79,7 @@ function catalogRow(item: CatalogSeedItem): CatalogRow {
     label: item.label,
     group: item.group,
     provisional: item.provisional,
-    attributes: item.attributes === undefined ? undefined : declaredValues(item.attributes),
+    attributes: item.attributes as Record<string, string | number> | undefined,
     appliesTo: item.applies_to === undefined ? undefined : [...item.applies_to],
     appliesToFamily: item.applies_to_family,
     price: ars(item.price),
@@ -116,12 +116,3 @@ function attributeContract(name: string, rows: CatalogRow[]): AttributeContract 
   return { name, kind: 'enum', values: values.map(String) }
 }
 
-function declaredValues(
-  attributes: Record<string, string | number | undefined>,
-): Record<string, string | number> {
-  return Object.fromEntries(
-    Object.entries(attributes).filter(
-      (entry): entry is [string, string | number] => entry[1] !== undefined,
-    ),
-  )
-}
