@@ -45,25 +45,33 @@ const seedSchema = z.object({
 
 type Seed = z.infer<typeof seedSchema>
 type SeedItem = z.infer<typeof seedItemSchema>
+type Writer = Pick<Client, 'execute'>
 
 export async function loadCatalog(client: Client, file: unknown, recordedAt: string): Promise<void> {
   const seed = seedSchema.parse(file)
+  const write = await client.transaction('write')
 
-  await writeFamily(client, seed)
+  try {
+    await writeFamily(write, seed)
 
-  for (const item of seed.items) {
-    await writeItem(client, seed.family.slug, item)
-  }
+    for (const item of seed.items) {
+      await writeItem(write, seed.family.slug, item)
+    }
 
-  const ids = await itemIds(client, seed.family.slug)
+    const ids = await itemIds(write, seed.family.slug)
 
-  for (const item of seed.items) {
-    await writeApplications(client, ids, item)
-    await writePrice(client, ids[item.id] as number, item.price, recordedAt)
+    for (const item of seed.items) {
+      await writeApplications(write, ids, item)
+      await writePrice(write, ids[item.id] as number, item.price, recordedAt)
+    }
+
+    await write.commit()
+  } finally {
+    write.close()
   }
 }
 
-async function writeFamily(client: Client, seed: Seed): Promise<void> {
+async function writeFamily(client: Writer, seed: Seed): Promise<void> {
   await client.execute({
     sql: `INSERT INTO families
       (slug, label, unit, vat_rate, vat_included, quote_validity_days,
@@ -94,7 +102,7 @@ async function writeFamily(client: Client, seed: Seed): Promise<void> {
   })
 }
 
-async function writeItem(client: Client, familySlug: string, item: SeedItem): Promise<void> {
+async function writeItem(client: Writer, familySlug: string, item: SeedItem): Promise<void> {
   await client.execute({
     sql: `INSERT INTO items
       (slug, family_slug, tier, label, unit, attributes, applies_to_family,
@@ -126,7 +134,7 @@ async function writeItem(client: Client, familySlug: string, item: SeedItem): Pr
 }
 
 async function writeApplications(
-  client: Client,
+  client: Writer,
   ids: Record<string, number>,
   item: SeedItem,
 ): Promise<void> {
@@ -144,7 +152,7 @@ async function writeApplications(
 }
 
 async function writePrice(
-  client: Client,
+  client: Writer,
   itemId: number,
   price: number,
   recordedAt: string,
@@ -157,7 +165,7 @@ async function writePrice(
   })
 }
 
-async function itemIds(client: Client, familySlug: string): Promise<Record<string, number>> {
+async function itemIds(client: Writer, familySlug: string): Promise<Record<string, number>> {
   const rows = await client.execute({
     sql: 'SELECT id, slug FROM items WHERE family_slug = ?',
     args: [familySlug],
@@ -175,9 +183,15 @@ function attributeContracts(seed: Seed): AttributeContract[] {
 function contractFor(name: string, bags: AttributeBag[]): AttributeContract {
   const values = [...new Set(bags.map((bag) => bag[name]).filter((value) => value !== undefined))]
 
-  if (values.every((value) => typeof value === 'number')) {
-    return { name, kind: 'number', values: values.sort((one, other) => one - other) }
+  if (values.length === 0) throw new Error(`${name} is declared and no sale row carries it`)
+
+  const numbers = values.filter((value) => typeof value === 'number')
+
+  if (numbers.length === values.length) {
+    return { name, kind: 'number', values: numbers.sort((one, other) => one - other) }
   }
+
+  if (numbers.length > 0) throw new Error(`${name} carries both numbers and words`)
 
   return { name, kind: 'enum', values: values.map(String).sort() }
 }

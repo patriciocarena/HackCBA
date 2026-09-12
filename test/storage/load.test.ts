@@ -27,7 +27,7 @@ describe('loadCatalog', () => {
   it('writes the family with its unit and its module', async () => {
     const family = await one('SELECT * FROM families')
 
-    expect(family.slug).toBe('business_cards')
+    await expect(family.slug).toBe('business_cards')
     expect(family.unit).toBe('unit')
     expect(family.module_width_cm).toBe(8.5)
     expect(family.module_height_cm).toBe(5)
@@ -105,5 +105,39 @@ describe('loadCatalog', () => {
       (SELECT count(*) FROM item_applications) AS links`)
 
     expect(counts).toMatchObject({ items: 27, versions: 27, links: 8 })
+  })
+})
+
+describe('a catalog that cannot be trusted', () => {
+  it('leaves nothing behind when a row fails halfway', async () => {
+    const seed = await Bun.file('seed/business-cards.json').json()
+    seed.items[0].applies_to = ['a_row_that_is_not_in_the_list']
+
+    await client.execute('DELETE FROM items')
+    await client.execute('DELETE FROM families')
+
+    await expect(loadCatalog(client, seed, RECORDED_AT)).rejects.toThrow()
+
+    const counts = await one('SELECT count(*) AS n FROM items')
+
+    await expect(counts.n).toBe(0)
+  })
+
+  it('refuses an attribute the family declares and no sale row carries', async () => {
+    const seed = await Bun.file('seed/business-cards.json').json()
+    seed.family.attributes.push('varnish')
+
+    await expect(loadCatalog(client, seed, RECORDED_AT)).rejects.toThrow(
+      'varnish is declared and no sale row carries it',
+    )
+  })
+
+  it('refuses an attribute whose values are half numbers and half words', async () => {
+    const seed = await Bun.file('seed/business-cards.json').json()
+    seed.items.find((item: { id: string }) => item.id === 'bc_special_100_front').attributes.quantity = 'cien'
+
+    await expect(loadCatalog(client, seed, RECORDED_AT)).rejects.toThrow(
+      'quantity carries both numbers and words',
+    )
   })
 })
