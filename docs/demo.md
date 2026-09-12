@@ -22,16 +22,16 @@ Whoever owns the demo decides what to do about that. This runbook does not work 
 
 ## What does not work yet
 
-Checked against `main` at `8514f94` and against every open branch. PRs #14 and #17 are
-still open; A8 and C7 have merged.
+Checked against `main` at `f2cfb67` and against every open branch. PRs #14 and #17 are
+still open; A3, A8 and C7 have merged.
 
 | # | What | Where |
 |---|---|---|
 | 1 | Nothing replies on Telegram. The webhook logs the message and calls a turn that does nothing. No `sendMessage` exists on any branch. | `src/telegram/webhook.ts:34` |
 | 2 | No conversation creates an order. The turn returns a `Resolution` and never calls `quoteFrom`. `acceptQuote`, `requestDeposit`, `confirmDeposit` and `applyPriceEdit` have no caller in `src/`. | `src/conversation/turn.ts:64` (PR #14), `src/domain/order.ts:85`, `src/domain/deposit.ts:20`, `src/catalog/apply-edit.ts:29` |
-| 3 | A price edit has no diff message and no confirm command. The proposal carries `oldPrice` and `newPrice` per row and nothing renders them. Nothing parses a reply as a confirmation. | `src/voice/price-edit-proposal.ts:80` (PR #17) |
+| 3 | A price edit has no diff message and no confirm command. The proposal carries `oldPrice` and `newPrice` per row and nothing renders them. Nothing parses a reply as a confirmation, and A3's `recordPrice` has no caller either. | `src/voice/price-edit-proposal.ts:80` (PR #17), `src/storage/price-versions.ts:12` |
 | 4 | The allowlist is wired only on PR #17. The route passes no `isAdmin`, so `denyEveryone` stands and every private chat is `customer`, account A included. Setting `TELEGRAM_ADMIN_IDS` changes nothing until that lands. | `src/telegram/route.ts:6`, `src/telegram/webhook.ts:31`, wired at `src/telegram/route.ts:9` on PR #17 |
-| 5 | Nothing supplies any fact. `answerFromFacts` has a caller, and `deps.facts` is filled by nobody, so every fact question escalates, including the hours `docs/assumptions.md` section 4 says are confirmed. | `src/conversation/turn.ts:95` (PR #14), `src/domain/facts.ts:25` |
+| 5 | Nothing supplies any fact. `answerFromFacts` has a caller, A3 has a `facts` table, and nothing fills `deps.facts` from it, so every fact question escalates, including the hours `docs/assumptions.md` section 4 says are confirmed. | `src/conversation/turn.ts:95` (PR #14), `src/domain/facts.ts:25`, `src/storage/schema.ts:82` |
 | 6 | `DEPOSIT_ALIAS` is read by no code. `docs/assumptions.md` section 3 names it; nothing calls `requireEnv` for it. | `docs/assumptions.md:44` |
 | 7 | An escalation is terminal and nothing clears it. Steps 3, 4 and 6 each end their conversation, so the six steps cannot share one chat. | `src/conversation/turn.ts:47,170` (PR #14), ADR 0011 |
 | 8 | Nothing remembers what the customer already said. `TurnState` carries `asked`, not the answers, so a reply that does not restate the whole job gets asked for the missing half again. Every paste text below carries all four attributes. | `src/domain/types.ts:209`, `src/conversation/turn.ts:73` (PR #14) |
