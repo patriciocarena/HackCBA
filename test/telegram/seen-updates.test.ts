@@ -24,13 +24,24 @@ describe('inMemorySeenUpdates', () => {
     expect(answers.filter((already) => !already)).toHaveLength(1)
   })
 
-  it('forgets the oldest claim past its capacity, so a long lived process is bounded', async () => {
-    const seenUpdates = inMemorySeenUpdates(2)
+  it('holds a claim for as long as Telegram retries it, whatever arrives in between', async () => {
+    let at = Date.parse('2026-09-12T09:30:00.000Z')
+    const seenUpdates = inMemorySeenUpdates(1000, () => at)
     await seenUpdates.seen(70)
-    await seenUpdates.seen(71)
-    await seenUpdates.seen(72)
 
-    expect(await seenUpdates.seen(71)).toBeTrue()
+    for (let other = 71; other < 81; other += 1) await seenUpdates.seen(other)
+    at += 999
+
+    expect(await seenUpdates.seen(70)).toBeTrue()
+  })
+
+  it('forgets a claim once Telegram has stopped retrying it, so a long lived process is bounded', async () => {
+    let at = Date.parse('2026-09-12T09:30:00.000Z')
+    const seenUpdates = inMemorySeenUpdates(1000, () => at)
+    await seenUpdates.seen(70)
+
+    at += 1001
+
     expect(await seenUpdates.seen(70)).toBeFalse()
   })
 })
