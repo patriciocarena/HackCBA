@@ -33,7 +33,7 @@ describe('loadCatalog', () => {
       kind: 'sale',
       label: '100 tarjetas color sólo frente',
       group: undefined,
-      provisional: undefined,
+      unconfirmed: undefined,
       attributes: { quantity: 100, paper: 'special', sides: 'front', finish: 'none' },
       appliesTo: undefined,
       appliesToFamily: undefined,
@@ -41,7 +41,7 @@ describe('loadCatalog', () => {
     })
   })
 
-  it('carries group, appliesTo and provisional where the seed sets them', () => {
+  it('carries group, appliesTo and unconfirmed where the seed sets them', () => {
     const { rows } = loadCatalog(seed)
     const lamination = rows.find((row) => row.slug === 'bc_addon_lamination_special_100_front')
     const discount = rows.find((row) => row.slug === 'bc_discount_illustration_plain_100')
@@ -49,7 +49,7 @@ describe('loadCatalog', () => {
     expect(lamination?.group).toBe('lamination')
     expect(lamination?.appliesTo).toEqual(['bc_special_100_front'])
     expect(rows.find((row) => row.slug === 'bc_addon_design')?.appliesToFamily).toBe(true)
-    expect(discount?.provisional).toBe(true)
+    expect(discount?.unconfirmed).toBe(true)
   })
 
   it('reads the module discount tiers and the quote validity off the seed', () => {

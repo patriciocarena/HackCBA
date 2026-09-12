@@ -43,7 +43,7 @@ export const SCHEMA: readonly string[] = [
     label TEXT NOT NULL,
     unit TEXT ${sqliteCheck('unit', UNITS)},
     item_group TEXT,
-    provisional INTEGER NOT NULL DEFAULT 0 ${flag('provisional')},
+    unconfirmed INTEGER NOT NULL DEFAULT 0 ${flag('unconfirmed')},
     attributes TEXT NOT NULL DEFAULT '{}' ${jsonObject('attributes')},
     attributes_key TEXT GENERATED ALWAYS AS (json(attributes)) VIRTUAL,
     applies_to_family INTEGER NOT NULL DEFAULT 0 ${flag('applies_to_family')},

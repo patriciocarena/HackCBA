@@ -166,13 +166,13 @@ describe('a catalog that cannot be trusted', () => {
     ])
   })
 
-  it('keeps provisional, because a provisional discount is not applied by default', async () => {
-    const provisional = await client.execute(
-      "SELECT slug FROM items WHERE provisional = 1 ORDER BY slug",
+  it('keeps unconfirmed, because a unconfirmed discount is not applied by default', async () => {
+    const unconfirmed = await client.execute(
+      "SELECT slug FROM items WHERE unconfirmed = 1 ORDER BY slug",
     )
-    const sales = await client.execute("SELECT count(*) AS n FROM items WHERE tier = 'sale' AND provisional = 1")
+    const sales = await client.execute("SELECT count(*) AS n FROM items WHERE tier = 'sale' AND unconfirmed = 1")
 
-    expect(provisional.rows.map((row) => String(row.slug))).toEqual([
+    expect(unconfirmed.rows.map((row) => String(row.slug))).toEqual([
       'bc_discount_illustration_plain_100',
       'bc_discount_illustration_plain_200',
     ])

@@ -93,7 +93,7 @@ describe('no amount leaves the engine that is not the final number', () => {
 
     expect(
       totalFor({ attributes: attributesOf('bc_illustration300_100_front') }, {
-        listDiscountPolicy: { applyProvisionalDiscounts: true },
+        listDiscountPolicy: { applyUnconfirmedDiscounts: true },
       }),
     ).toBe(withVat(net))
   })

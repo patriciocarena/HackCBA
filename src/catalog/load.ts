@@ -7,7 +7,7 @@ type CatalogSeedItem = {
   kind: string
   label: string
   group?: string
-  provisional?: boolean
+  unconfirmed?: boolean
   attributes?: Record<string, string | number | undefined>
   applies_to?: readonly string[]
   applies_to_family?: boolean
@@ -89,7 +89,7 @@ function catalogRow(item: CatalogSeedItem, familySlug: string): CatalogRow {
     kind,
     label: item.label,
     group: item.group,
-    provisional: item.provisional,
+    unconfirmed: item.unconfirmed,
     attributes: item.attributes as Record<string, string | number> | undefined,
     appliesTo: item.applies_to === undefined ? undefined : [...item.applies_to],
     appliesToFamily: item.applies_to_family,

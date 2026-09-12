@@ -61,6 +61,27 @@ summed. The list states that law once, for percentages in general, and it govern
 have no module at all.
 _Avoid_: Multiplier, factor, markup
 
+**Not offered**:
+A cell where the list writes a dash. The shop does not do that job at all, so there is no
+price to find and no person to ask about it.
+_Avoid_: Empty, missing, unavailable
+
+**Quoted by a person**:
+A cell where the list says to ask. The job is real and the shop does it; what it costs depends
+on the job, and only a person may say. Absence and this are the same outcome for a customer
+and different facts about the shop.
+_Avoid_: On request, TBD, variable
+
+**Stale**:
+A price the owner typed that is real but too old to quote. Not the same as absent, and not the
+same as unconfirmed: the amount is his, and the reason it cannot be said is its age.
+_Avoid_: Old, expired, outdated
+
+**Unconfirmed**:
+Said of a list discount: the owner has not confirmed it is a real discount rather than a note
+he left himself. The engine does not apply one, and nothing but his word turns it into a price.
+_Avoid_: Provisional, draft, tentative
+
 **Escalate**:
 Hand the conversation to a person because the engine is not certain. It is the correct
 outcome, not a failure, and its rate measures catalog coverage. The customer is told the shop

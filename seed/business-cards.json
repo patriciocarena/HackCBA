@@ -234,7 +234,7 @@
     {
       "id": "bc_discount_illustration_plain_100",
       "kind": "discount",
-      "provisional": true,
+      "unconfirmed": true,
       "label": "Papel ilustración común 300g, 100 tarjetas 4/0 o 4/4",
       "applies_to": ["bc_illustration300_100_front", "bc_illustration300_100_front_and_back"],
       "price": 1800
@@ -242,7 +242,7 @@
     {
       "id": "bc_discount_illustration_plain_200",
       "kind": "discount",
-      "provisional": true,
+      "unconfirmed": true,
       "label": "Papel ilustración común 300g, 200 tarjetas 4/0 o 4/4",
       "applies_to": ["bc_illustration300_200_front", "bc_illustration300_200_front_and_back"],
       "price": 3400

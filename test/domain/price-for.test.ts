@@ -137,7 +137,7 @@ describe('priceFor', () => {
     expectEscalation(resolution, 'no_match', DELEGATE)
   })
 
-  test('case 13a: provisional illustration plain discounts are not applied by default', () => {
+  test('case 13a: unconfirmed illustration plain discounts are not applied by default', () => {
     const resolution = quote({
       attributes: { quantity: 100, paper: 'illustration_300', sides: 'front', finish: 'none' },
     })
@@ -157,7 +157,7 @@ describe('priceFor', () => {
       catalogRows,
       {
         ...baseConfig,
-        listDiscountPolicy: { applyProvisionalDiscounts: true },
+        listDiscountPolicy: { applyUnconfirmedDiscounts: true },
       },
     )
 

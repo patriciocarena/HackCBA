@@ -23,6 +23,12 @@ async function tableNames(): Promise<string[]> {
   return result.rows.map((row) => String(row.name))
 }
 
+async function columnNames(table: string): Promise<string[]> {
+  const result = await client.execute(`SELECT name FROM pragma_table_info('${table}')`)
+
+  return result.rows.map((row) => String(row.name))
+}
+
 describe('migrate', () => {
   it('creates the tables the vertical writes to', async () => {
     await migrate(client)
@@ -50,6 +56,24 @@ describe('migrate', () => {
     )
 
     expect(String(view.rows[0]?.sql)).toContain('price_version_id')
+  })
+
+  /**
+   * The word moved: a discount row the owner has not confirmed is `unconfirmed`, and
+   * `provisional` is now free for a price that is real but stale. `CREATE TABLE IF NOT EXISTS`
+   * keeps whatever column a deployed volume already has, so without this the schema and the
+   * writer disagree and the first seeded catalog fails on a column name.
+   */
+  it('renames the flag a volume from the old schema still carries', async () => {
+    await migrate(client)
+    // The volume as the old schema left it, rather than a hand written table: the real one
+    // carries indexes and a view that a minimal stand-in would not.
+    await client.execute('ALTER TABLE items RENAME COLUMN unconfirmed TO provisional')
+
+    await migrate(client)
+
+    expect(await columnNames('items')).toContain('unconfirmed')
+    expect(await columnNames('items')).not.toContain('provisional')
   })
 
   it('runs twice in a row without error', async () => {

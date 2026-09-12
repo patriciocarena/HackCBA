@@ -24,7 +24,7 @@ export type CatalogRow = {
   kind: CatalogItemKind
   label: string
   group?: string
-  provisional?: boolean
+  unconfirmed?: boolean
   attributes?: Record<string, string | number>
   appliesTo?: string[]
   appliesToFamily?: boolean
@@ -48,16 +48,16 @@ export type ModuleDiscount = {
 
 export type ListDiscountPolicy = {
   /**
-   * A discount row the seed marks provisional is one the owner has not confirmed is a
+   * A discount row the seed marks unconfirmed is one the owner has not confirmed is a
    * discount at all. The plain illustration rows read as the arithmetic he used to build a
    * column rather than as something to subtract again, and applying them would quote under
    * his own list. Flip this when he confirms, and the rows say which they are.
    */
-  applyProvisionalDiscounts: boolean
+  applyUnconfirmedDiscounts: boolean
 }
 
 export const DEFAULT_LIST_DISCOUNT_POLICY: ListDiscountPolicy = {
-  applyProvisionalDiscounts: false,
+  applyUnconfirmedDiscounts: false,
 }
 
 export type PriceForConfig = {
@@ -338,7 +338,7 @@ function listDiscounts(
       return false
     }
 
-    return row.provisional !== true || policy.applyProvisionalDiscounts
+    return row.unconfirmed !== true || policy.applyUnconfirmedDiscounts
   })
 }
 

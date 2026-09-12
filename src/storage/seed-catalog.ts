@@ -14,7 +14,7 @@ const seedItemSchema = z.object({
   label: z.string(),
   unit: unitSchema.optional(),
   group: z.string().optional(),
-  provisional: z.boolean().default(false),
+  unconfirmed: z.boolean().default(false),
   attributes: z.record(z.string(), attributeValueSchema).default({}),
   applies_to: z.array(z.string()).default([]),
   applies_to_family: z.boolean().default(false),
@@ -113,7 +113,7 @@ async function writeFamily(client: Writer, seed: Seed): Promise<void> {
 async function writeItem(client: Writer, familySlug: string, item: SeedItem): Promise<void> {
   await client.execute({
     sql: `INSERT INTO items
-      (slug, family_slug, tier, label, unit, item_group, provisional, attributes,
+      (slug, family_slug, tier, label, unit, item_group, unconfirmed, attributes,
        applies_to_family, extra_business_days, note, source_note)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (slug) DO UPDATE SET
@@ -122,7 +122,7 @@ async function writeItem(client: Writer, familySlug: string, item: SeedItem): Pr
         label = excluded.label,
         unit = excluded.unit,
         item_group = excluded.item_group,
-        provisional = excluded.provisional,
+        unconfirmed = excluded.unconfirmed,
         attributes = excluded.attributes,
         applies_to_family = excluded.applies_to_family,
         extra_business_days = excluded.extra_business_days,
@@ -135,7 +135,7 @@ async function writeItem(client: Writer, familySlug: string, item: SeedItem): Pr
       item.label,
       item.unit ?? null,
       item.group ?? null,
-      item.provisional ? 1 : 0,
+      item.unconfirmed ? 1 : 0,
       canonicalAttributes(item.attributes),
       item.applies_to_family ? 1 : 0,
       item.extra_business_days,
