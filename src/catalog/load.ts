@@ -2,7 +2,7 @@ import { ars } from '../domain/money'
 import type { CatalogItemKind, CatalogRow, ModuleDiscount, PriceForConfig } from '../domain/price-for'
 import { unitSchema, type AttributeContract, type FamilyContract } from '../domain/types'
 
-export type CatalogSeedItem = {
+type CatalogSeedItem = {
   id: string
   kind: string
   label: string
@@ -14,7 +14,7 @@ export type CatalogSeedItem = {
   price: number
 }
 
-export type CatalogSeed = {
+type CatalogSeed = {
   vat_rate: number
   vat_included: boolean
   quote_validity_days: number
@@ -22,7 +22,7 @@ export type CatalogSeed = {
     slug: string
     label: string
     unit: string
-    module: { width_cm: number; height_cm: number } | null
+    module: { width_cm: number; height_cm: number }
     attributes: readonly string[]
     ask_order: readonly string[]
   }
@@ -47,10 +47,7 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
     unit: unitSchema.parse(seed.family.unit),
     vatRate: seed.vat_rate,
     vatIncluded: seed.vat_included,
-    module:
-      seed.family.module === null
-        ? null
-        : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
+    module: { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
     attributes: seed.family.attributes.map((name) => attributeContract(name, sales)),
     askOrder: [...seed.family.ask_order],
     addOns: [
@@ -79,7 +76,7 @@ function catalogRow(item: CatalogSeedItem): CatalogRow {
     label: item.label,
     group: item.group,
     provisional: item.provisional,
-    attributes: item.attributes === undefined ? undefined : declaredValues(item.attributes),
+    attributes: item.attributes as Record<string, string | number> | undefined,
     appliesTo: item.applies_to === undefined ? undefined : [...item.applies_to],
     appliesToFamily: item.applies_to_family,
     price: ars(item.price),
@@ -116,12 +113,3 @@ function attributeContract(name: string, rows: CatalogRow[]): AttributeContract 
   return { name, kind: 'enum', values: values.map(String) }
 }
 
-function declaredValues(
-  attributes: Record<string, string | number | undefined>,
-): Record<string, string | number> {
-  return Object.fromEntries(
-    Object.entries(attributes).filter(
-      (entry): entry is [string, string | number] => entry[1] !== undefined,
-    ),
-  )
-}
