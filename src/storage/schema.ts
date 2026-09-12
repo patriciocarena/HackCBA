@@ -56,7 +56,9 @@ export const SCHEMA: readonly string[] = [
 
   `CREATE INDEX IF NOT EXISTS price_versions_by_item ON price_versions (item_id, id)`,
 
-  `CREATE VIEW IF NOT EXISTS catalog_items AS
+  'DROP VIEW IF EXISTS catalog_items',
+
+  `CREATE VIEW catalog_items AS
     SELECT item.*, version.price, version.id AS price_version_id
     FROM items AS item
     JOIN price_versions AS version

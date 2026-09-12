@@ -39,6 +39,17 @@ describe('migrate', () => {
     ])
   })
 
+  it('replaces a view left by an older schema, which IF NOT EXISTS would keep', async () => {
+    await client.execute('CREATE VIEW catalog_items AS SELECT 1 AS stale')
+    await migrate(client)
+
+    const view = await client.execute(
+      "SELECT sql FROM sqlite_master WHERE name = 'catalog_items'",
+    )
+
+    expect(String(view.rows[0]?.sql)).toContain('price_version_id')
+  })
+
   it('runs twice in a row without error', async () => {
     await migrate(client)
     await migrate(client)
