@@ -26,3 +26,16 @@ Known residual, consistent with ADR 0008: a hijacked writer that states no amoun
 ship a fabricated non-money claim. A forged facts block naming a branch the shop does not
 have buys no price and escalates, so a person takes the conversation, but the sentence has
 already gone out. `amountsHold` is a money guard and nothing guards prose.
+
+A clean merge is not a passing merge. `a5-conversation-turn` merged into main with no
+conflict and then failed: B10 deleted `test/support/catalog.ts` on main, this branch still
+imported it, and git has no opinion about a file neither side edited. Merge main locally and
+run the gates before pushing, every time.
+
+The merge also put a second fence around every customer message. `src/telegram/webhook.ts`
+now calls `fence(update.text, 'message')` and `turn()` fences `message.text` again under the
+same label, so the extraction prompt carries a `<message:...>` block nested inside another
+one. Neither nonce is forgeable and nothing escapes, but the prompt tells the model that a
+block appearing inside `<message:...>` was written by the customer, and the inner block was
+written by the shop. The rule that makes a forgery visible now points at the real fence. This
+suite found it because it enters through the webhook; no test that calls `turn()` directly can.
