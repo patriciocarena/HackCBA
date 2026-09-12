@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { amountsIn, turn, type TurnDeps } from '@/conversation/turn'
-import { conversationId, type Role, type TurnState, type UntrustedText } from '@/domain/types'
+import { conversationId, type Role, type TurnState } from '@/domain/types'
 import type { InboundMessage } from '@/telegram/inbound'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { OFFSET_1000, priceOf } from '@test/support/fixtures'
@@ -8,6 +8,7 @@ import { totalOf } from '@/domain/breakdown'
 import { askText, pesos } from '@/domain/quote-text'
 import { EXTRACTION_REASONS, INTRODUCTION } from '@/conversation/prompt'
 import { priceFor } from '@/domain/price-for'
+import { fence, fencer } from '@/security/fence'
 import type { Resolution } from '@/domain/types'
 
 function message(text: string, role: Role = 'customer'): InboundMessage {
@@ -17,7 +18,8 @@ function message(text: string, role: Role = 'customer'): InboundMessage {
     role,
     chatId: '42',
     senderId: '42',
-    text: text as UntrustedText,
+    // What the webhook hands over: already fenced, which is what UntrustedText brands.
+    text: fence(text, 'message'),
     mediaId: null,
     receivedAt: '2026-09-12T14:00:00.000Z',
   }
@@ -175,8 +177,15 @@ describe('it introduces itself once', () => {
     expect(result.state.introduced).toBe(true)
   })
 
-  test('a reply that was never sent leaves the conversation unintroduced', async () => {
-    const result = await turn(deps({ write: async () => { throw new Error('openrouter 503') } }), message('hola'), state({ introduced: false }))
+  test('a reply the guard refused leaves the conversation unintroduced', async () => {
+    const result = await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
+        write: async () => 'Te cotizo $1.000 final con IVA incluido.',
+      }),
+      message('cuánto 1000 tarjetas'),
+      state({ introduced: false }),
+    )
 
     expect(result.reply).toBeNull()
     expect(result.state.introduced).toBe(false)
@@ -470,5 +479,84 @@ describe('the reasons only extraction can raise', () => {
     for (const reason of EXTRACTION_REASONS) {
       expect((await escalationFor({ kind: 'other', reason })).resolution).toMatchObject({ kind: 'escalate', reason })
     }
+  })
+})
+
+describe('the amount guard reads numbers, not only pesos signs', () => {
+  const quote = { kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }
+  const discount = { kind: 'other', reason: 'commercial_discount' }
+  const total = pesos(totalOf(priced().breakdown))
+
+  async function sent(written: string, answered: Record<string, unknown>, said: string): Promise<string | null> {
+    const result = await turn(
+      deps({ extract: async () => answered, write: async () => written }),
+      message(said),
+      state(),
+    )
+
+    return result.reply
+  }
+
+  test('two spaces after the pesos sign is an amount, not a gap in the pattern', async () => {
+    expect(await sent(`Te cotizo ${total} con IVA, o $  35.000 sin IVA.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
+  })
+
+  test('the same gap on the escalate branch, where no amount may be stated at all', async () => {
+    expect(await sent('Te dejo las 2000 en $  30.000. Te delego con un humano.', discount, 'me hacen precio por 2000?')).toBeNull()
+  })
+
+  test('an amount the model wrote without a pesos sign is still an amount', async () => {
+    expect(await sent(`Te cotizo ${total} final con IVA. Sin IVA serían 37190 pesos.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
+    expect(await sent(`Te cotizo ${total} final. Neto: 37.190 + IVA.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
+    expect(await sent(`Te cotizo ${total}. Con descuento por volumen: ARS 30.000.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
+  })
+
+  test('and on the escalate branch a bare one is the whole of what was offered', async () => {
+    expect(await sent('Te hago 35.000 pesos si llevás 2000. Te delego con un humano.', discount, 'me hacen precio por 2000?')).toBeNull()
+  })
+
+  test('the reader of a reply sees an amount however the model spaced it', () => {
+    expect(amountsIn('Te cotizo $  35.000 sin IVA.')).toEqual(['$  35.000'])
+  })
+
+  test('the digits inside the nonce are not numbers the customer stated', async () => {
+    const fenced = fencer('fence-secret-0')('cuánto 1000 tarjetas', 'message')
+    const inNonce = '3903'
+
+    expect(fenced).toContain(inNonce)
+
+    const result = await turn(
+      deps({ extract: async () => quote, write: async () => `Te cotizo ${total} final con IVA. Sin IVA, ${inNonce}.` }),
+      { ...message('cuánto 1000 tarjetas'), text: fenced },
+      state(),
+    )
+
+    expect(result.reply).toBeNull()
+  })
+
+  test('a number the customer said is not a number the turn invented', async () => {
+    const written = `Te cotizo las 1000 tarjetas en ${total} final con IVA incluido.`
+
+    expect(await sent(written, quote, 'cuánto 1000 tarjetas ilustración 350 4/1')).toBe(written)
+  })
+
+  test('a number under the floor is a quantity or a gramaje, and the catalog has no row that cheap', async () => {
+    const written = `Te cotizo ${total} final con IVA incluido. Son 350 gramos, 4/1, en 90 días.`
+
+    expect(await sent(written, quote, 'cuánto tarjetas')).toBe(written)
+  })
+})
+
+describe('a writer that never answered', () => {
+  test('still tells the customer a person is coming, instead of saying nothing', async () => {
+    const result = await turn(
+      deps({ write: async () => { throw new Error('openrouter 503') } }),
+      message('cuánto 1000 tarjetas'),
+      state(),
+    )
+
+    expect(result.reply).toBe('te delego con un humano')
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'ambiguous' })
+    expect(result.state.escalated).toBe(true)
   })
 })
