@@ -16,6 +16,7 @@ import {
 import { fence } from '../security/fence'
 import type { InboundMessage } from '../telegram/inbound'
 import { extractionSchema, EXTRACTION_REASONS, EXTRACTION_SYSTEM, WRITING_SYSTEM, INTRODUCTION } from './prompt'
+import { ONLY_AUDIO } from './admin-turn'
 import { depositText, type Sale } from './sale'
 
 export type Extract = (request: { system: string; user: string; schema: object }) => Promise<unknown>
@@ -52,14 +53,29 @@ export async function turn(
   }
 
   if (state.escalated) return silence(state)
-  if (message.role !== 'customer' || message.text === null) return silence(state)
+
+  // A voice note or a photo arrives with no text, so there is nothing for extraction to read
+  // and the turn used to answer it with silence. Escalating is rule 3: what Dante cannot read
+  // it does not know, and not knowing it means handing the conversation over. Neither model is
+  // called, which is rule 5 for a customer's audio, and the sentence is a constant so nothing
+  // can restate it. It introduces itself because an escalation on the first message never
+  // reaches INTRODUCTION.
+  if (message.text === null) {
+    return {
+      reply: NO_MEDIA,
+      resolution: escalate('unsupported_media'),
+      state: { ...state, escalated: true },
+    }
+  }
 
   // The webhook fenced it on the way in, which is what UntrustedText brands. Fencing a
   // second time nests one nonce inside another and tells the model nothing it did not know.
   const fenced = message.text
 
-  const resolution = await resolve(deps, message, fenced).catch((): Resolution => escalate('ambiguous'))
-  const settled = settle(resolution, state)
+  const resolved = await resolve(deps, message, fenced, state).catch(
+    (): Resolved => ({ resolution: escalate('ambiguous'), attributes: state.attributes }),
+  )
+  const settled = settle(resolved.resolution, state)
   const answer = answerOf(settled)
 
   const reply = await deps
@@ -75,7 +91,7 @@ export async function turn(
 
   if (!amountsHold(reply, answer, fenced, settled)) return silence({ ...state, escalated: true })
 
-  return { reply, resolution: settled, state: nextState(state, settled) }
+  return { reply, resolution: settled, state: nextState(state, settled, resolved.attributes) }
 }
 
 function silence(state: TurnState): TurnResult {
@@ -84,7 +100,18 @@ function silence(state: TurnState): TurnResult {
 
 const DELEGATE = 'te delego con un humano'
 
-async function resolve(deps: TurnDeps, message: InboundMessage, fenced: string): Promise<Resolution> {
+export const NO_MEDIA =
+  'Soy un asistente automático y todavía no puedo escuchar audios ni mirar imágenes. Te delego con un humano.'
+
+/** The resolution, and what the conversation knows once this message has been read. */
+type Resolved = { resolution: Resolution; attributes: Record<string, string | number> }
+
+async function resolve(
+  deps: TurnDeps,
+  message: InboundMessage,
+  fenced: string,
+  state: TurnState,
+): Promise<Resolved> {
   const family = deps.config.family
   const raw = await deps.extract({
     system: EXTRACTION_SYSTEM,
@@ -94,31 +121,44 @@ async function resolve(deps: TurnDeps, message: InboundMessage, fenced: string):
 
   // A reason outranks the kind. Extraction naming one means it recognised something the
   // engine must not answer, and a quote filled in beside it is a quote nobody may be given.
-  const stated = statedReason(raw)
-  if (stated !== null) return escalate(stated)
+  const kept = state.attributes
+  const only = (resolution: Resolution): Resolved => ({ resolution, attributes: kept })
 
-  if (answerKind(raw) === 'admin_edit') return escalate('not_authorized')
+  const stated = statedReason(raw)
+  if (stated !== null) return only(escalate(stated))
+
+  // The role decides what a person may change, never whether they are answered. A customer
+  // asking for a price change is refused; the owner asking for one by text is pointed at the
+  // audio, because escalating him would end the conversation he tests the shop from.
+  if (answerKind(raw) === 'admin_edit') {
+    return only(message.role === 'admin' ? { kind: 'instruct', text: ONLY_AUDIO } : escalate('not_authorized'))
+  }
 
   const intent = readIntent(raw, family)
-  if (intent === null) return escalate('unsupported_option')
+  if (intent === null) return only(escalate('unsupported_option'))
 
   switch (intent.kind) {
     case 'quote': {
+      // What this message said, on top of what the conversation already knew. The customer
+      // answering one question must not unsay the three answers they gave before it.
+      const attributes = { ...kept, ...intent.attributes }
       // C10's getter, so a quote reads the catalog as it is now and not as it was at boot.
-      const priced = priceFor(intent, deps.rows(), deps.config)
+      const priced = priceFor({ ...intent, attributes }, deps.rows(), deps.config)
       // Held before it is said, so the quote the customer may accept is the one they read.
       deps.sale?.hold(message.conversationId, priced)
 
-      return priced
+      return { resolution: priced, attributes }
     }
     case 'fact':
-      return answerFromFacts(intent.key, deps.facts)
+      return only(answerFromFacts(intent.key, deps.facts))
     case 'accept':
-      return deps.sale === undefined
-        ? escalate('ambiguous')
-        : deps.sale.accept(message.conversationId, { kind: 'person', id: message.senderId })
+      return only(
+        deps.sale === undefined
+          ? escalate('ambiguous')
+          : deps.sale.accept(message.conversationId, { kind: 'person', id: message.senderId }),
+      )
     case 'other':
-      return escalate('ambiguous')
+      return only(escalate('ambiguous'))
   }
 }
 
@@ -187,12 +227,19 @@ function answerOf(resolution: Resolution): string {
       return depositText(resolution)
     case 'escalate':
       return resolution.detail
+    case 'instruct':
+      return resolution.text
   }
 }
 
-function nextState(state: TurnState, resolution: Resolution): TurnState {
+function nextState(
+  state: TurnState,
+  resolution: Resolution,
+  attributes: Record<string, string | number>,
+): TurnState {
   return {
     ...state,
+    attributes,
     introduced: true,
     escalated: resolution.kind === 'escalate',
     asked: resolution.kind === 'ask' ? [...new Set([...state.asked, ...resolution.missing])] : state.asked,

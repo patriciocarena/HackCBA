@@ -184,3 +184,32 @@ The paired trap: the fixture the whole suite leaned on was a `vatIncluded: true`
 row, so the one end to end test for "comes back with a VAT inclusive price" never
 once multiplied by the rate. Check that the fixture exercises the arithmetic the
 test is named after.
+
+## A stubbed model proves the wiring and nothing about the product
+
+2026-09-12, the production silence. 699 tests were green while a customer who
+answered Dante's own follow-up question was asked the same three attributes
+again, forever. Every test fed extraction one message and read back one answer,
+so no test ever ran a second turn with the state the first one produced.
+`TurnState` carried `asked`, `escalated` and `introduced`, and not one of the
+attributes the customer had already stated.
+
+The bug was invisible to a stub because a stub answers the way the test asked.
+Only a live model, handed the customer's second sentence, returns a quote intent
+carrying the finish alone, which is the shape that loses the other three.
+
+Write an eval that drives the real route with real models, and assert a whole
+conversation rather than a turn: the customer reaches a price, within a bounded
+number of replies, without being handed to a human. `bun run eval`.
+
+## A role decides what a person may change, never whether they are answered
+
+Same day. The owner's text reached `adminTurn`, `readAdminAudio` returned null
+for anything that was not a voice note, and the turn returned without sending.
+The only admin in production got silence for every message he ever typed, and
+the dispatch had no fallback.
+
+Gating the channel on the role gates the answer too. Gate the write instead: the
+owner is quoted like anybody else, and a price change he types is pointed back
+at the audio, which is the only route that can write. Escalating him there would
+have ended the conversation he tests the shop from.

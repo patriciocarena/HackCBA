@@ -145,5 +145,16 @@ export function printingSale(sale: Sale, deliver: DeliverWorkOrder): Sale {
 
       return confirmed
     },
+
+    // Both edges into deposit_confirmed, not one. The spread would pass this one through
+    // untouched: the agent would read the receipt, confirm the money, and the owner would
+    // never be handed the job. Every test on either side stays green while it does, which is
+    // the whole reason the wrapper exists rather than a call at each site.
+    confirmFromReceipt(conversationId, reading) {
+      const confirmed = sale.confirmFromReceipt(conversationId, reading)
+      if (confirmed.ok) void deliver(confirmed.order).catch(() => {})
+
+      return confirmed
+    },
   }
 }

@@ -11,6 +11,7 @@ import {
   type Turn,
 } from './inbound'
 import { readCallback, type OnCallback } from './callback'
+import { inMemoryRateLimit, type RateLimit } from './rate-limit'
 import { inMemorySeenUpdates, type SeenUpdates } from './seen-updates'
 import { readUpdate } from './update'
 
@@ -28,6 +29,7 @@ export type WebhookDeps = {
   // message reached the turn unfenced for as long as the seam existed. A forgotten wire has
   // to be a compile error rather than a button that does nothing in a live demo.
   onCallback: OnCallback
+  rateLimit?: RateLimit
   now?: () => string
 }
 
@@ -39,6 +41,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
     log = inMemoryInboundLog(),
     turn = silentTurn,
     onCallback,
+    rateLimit = inMemoryRateLimit(),
     now = () => new Date().toISOString(),
   } = deps
 
@@ -55,6 +58,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
     // claims the body owns it.
     const callback = readCallback(body)
     if (callback !== null) {
+      if (!(await rateLimit.allow(callback.senderId))) return acknowledged()
       if (await seenUpdates.seen(callback.updateId)) return acknowledged()
       await onCallback(callback)
 
@@ -63,6 +67,11 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
 
     const update = readUpdate(body)
     if (update === null) return acknowledged()
+
+    // Before the dedupe claim and before the log, so a flood grows neither. Everything past
+    // this line costs money: a row, a model call, a reply. A shed request is acknowledged and
+    // forgotten, because any other status is a Telegram retry, and a retry is the flood again.
+    if (!(await rateLimit.allow(update.senderId))) return acknowledged()
     if (await seenUpdates.seen(update.updateId)) return acknowledged()
 
     const role: Role = update.privateChat && isAdmin(update.senderId) ? 'admin' : 'customer'

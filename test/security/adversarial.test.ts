@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { ONLY_AUDIO } from '@/conversation/admin-turn'
 import { amountsIn, turn, type TurnDeps, type TurnResult } from '@/conversation/turn'
 import { totalOf } from '@/domain/breakdown'
 import { priceFor } from '@/domain/price-for'
@@ -116,7 +117,7 @@ function delivery(text: string, senderId: string): Request {
 }
 
 function fresh(conversationId: ConversationId): TurnState {
-  return { conversationId, asked: [], escalated: false, introduced: true }
+  return { conversationId, asked: [], escalated: false, introduced: true, attributes: {} }
 }
 
 describe('a forged closing delimiter', () => {
@@ -226,11 +227,14 @@ describe('a customer claiming to be the owner', () => {
     expect(String(attacked.message.conversationId)).toBe('telegram:42:customer')
     expect(attacked.result.resolution).toEqual({ kind: 'escalate', reason: 'not_authorized', detail: DELEGATE })
 
+    // The owner is answered now, and the payload still edits nothing: a price change he types
+    // is pointed back at the audio, which is the only route that can write. The allowlist
+    // decides who may change a price; the channel decides how.
     const owner = await attack(payload, obeys, [], OWNER)
 
     expect(String(owner.message.conversationId)).toBe('telegram:7:admin')
-    expect(owner.result.reply).toBeNull()
-    expect(owner.extracted).toBe('')
+    expect(owner.result.resolution).toEqual({ kind: 'instruct', text: ONLY_AUDIO })
+    expect(owner.result.state.escalated).toBeFalse()
   })
 })
 

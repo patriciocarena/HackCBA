@@ -5,6 +5,8 @@ import { liveCatalog } from '@/catalog/live-catalog'
 import { catalogRows } from '@/catalog/business-cards'
 import type { OnCallback } from '@/telegram/callback'
 import { inMemoryPriceEdits } from '@/voice/price-edit-proposal'
+import { ONLY_AUDIO } from '@/conversation/admin-turn'
+import { NO_MEDIA } from '@/conversation/turn'
 
 const noPress: OnCallback = async () => {}
 const aCatalog = () => liveCatalog(catalogRows)
@@ -44,6 +46,30 @@ function delivery(secret: string, chat: Record<string, unknown> = { id: -100, ty
 
 function privateDelivery(senderId: number): Request {
   return delivery(SECRET, { id: senderId, type: 'private' })
+}
+
+/** A photo as Telegram sends it: no caption, and the sizes it was uploaded in. */
+function photoDelivery(senderId: number): Request {
+  return new Request('https://dante.example/telegram/webhook', {
+    method: 'POST',
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': SECRET },
+    body: JSON.stringify({
+      update_id: (updateId += 1),
+      message: { chat: { id: senderId, type: 'private' }, from: { id: senderId }, photo: [{ file_id: 'photo-1' }] },
+    }),
+  })
+}
+
+/** A voice note as Telegram sends it: no text at all, and a file id. */
+function voiceDelivery(senderId: number): Request {
+  return new Request('https://dante.example/telegram/webhook', {
+    method: 'POST',
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': SECRET },
+    body: JSON.stringify({
+      update_id: (updateId += 1),
+      message: { chat: { id: senderId, type: 'private' }, from: { id: senderId }, voice: { file_id: 'voice-1' } },
+    }),
+  })
 }
 
 /** The seed prices 1000 offset cards at this, and the customer may read no other number. */
@@ -161,6 +187,44 @@ describe('every key is read at boot', () => {
       }
     })
   }
+})
+
+describe('a customer sends a voice note', () => {
+  it('answers him and tells the owner, without asking a model anything', async () => {
+    const { route, calls } = wired()
+
+    const accepted = await handle(route, voiceDelivery(9))
+
+    expect(accepted.status).toBe(200)
+    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org', 'api.telegram.org'])
+    expect(calls[0]!.body).toEqual({ chat_id: '9', text: NO_MEDIA })
+    expect(calls[1]!.body).toMatchObject({ chat_id: '77' })
+  })
+})
+
+describe('the owner writes instead of recording', () => {
+  afterEach(() => { delete process.env.TELEGRAM_ADMIN_IDS })
+
+  it('quotes him like anybody else, because a role decides what he may change and not whether he is answered', async () => {
+    process.env.TELEGRAM_ADMIN_IDS = '7'
+    const { route, calls } = wired()
+
+    const accepted = await handle(route, privateDelivery(7))
+
+    expect(accepted.status).toBe(200)
+    expect(calls.map((call) => host(call.url))).toEqual(['openrouter.ai', 'openrouter.ai', 'api.telegram.org'])
+    expect(calls[2]!.body).toEqual({ chat_id: '7', text: QUOTED })
+  })
+
+  it('points him at the audio when he sends a photo, instead of escalating the owner', async () => {
+    process.env.TELEGRAM_ADMIN_IDS = '7'
+    const { route, calls } = wired()
+
+    await handle(route, photoDelivery(7))
+
+    expect(calls.map((call) => host(call.url))).toEqual(['api.telegram.org'])
+    expect(calls[0]!.body).toEqual({ chat_id: '7', text: ONLY_AUDIO })
+  })
 })
 
 describe('telegramWebhookRoute, on who gets which turn', () => {
