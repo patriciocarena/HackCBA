@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { ALL_ROWS, LOADED_FAMILIES } from '../../src/catalog/families'
 import { shopFacts } from '../../src/catalog/shop-facts'
+import { OUT_OF_CATALOG } from '../../src/domain/handoff'
 import { turn, type TurnDeps } from '../../src/conversation/turn'
 import { fence } from '../../src/security/fence'
 import type { InboundMessage } from '../../src/telegram/inbound'
@@ -136,5 +137,27 @@ describe('a turn over more than one family', () => {
     expect(result.resolution?.kind).toBe('escalate')
     if (result.resolution?.kind !== 'escalate') return
     expect(result.resolution.reason).toBe('out_of_catalog')
+  })
+})
+/**
+ * Thirty five of the thirty eight families in the list are not loaded, and the extraction enum
+ * offers only the three that are. So a message naming one of the other thirty five comes back
+ * with `family: null`, which is the same answer as a message naming no product at all: the
+ * turn asked "qué querés imprimir" to a customer who had just said "gigantografía", and only
+ * reached a person on the turn after that.
+ */
+describe('a product the shop did not load', () => {
+  test('is handed over at once, not asked about again', async () => {
+    const result = await turn(
+      deps({ ...QUOTE, family: null, reason: 'out_of_catalog', attributes: {} }),
+      message('cuánto una gigantografía de 2x3'),
+      state(),
+    )
+
+    expect(result.resolution?.kind).toBe('escalate')
+    if (result.resolution?.kind !== 'escalate') return
+    expect(result.resolution.reason).toBe('out_of_catalog')
+    // The sentence for a thing the shop does not have, not the one for a thing it has to check.
+    expect(result.resolution.detail).toBe(OUT_OF_CATALOG)
   })
 })

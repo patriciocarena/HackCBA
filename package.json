@@ -16,6 +16,7 @@
     "check:schemas": "bun scripts/check-structured-output.ts",
     "eval": "bun scripts/eval-flows.ts",
     "eval:demo": "bun scripts/eval-demo.ts",
+    "eval:families": "bun scripts/eval-families.ts",
     "parse:list": "bun scripts/parse-price-list.ts"
   },
   "dependencies": {

@@ -222,7 +222,8 @@ curl https://dante-multimpresos.fly.dev/health/db
 pastes, the acceptance, the receipt, the voice note and the press, with real OpenRouter,
 real ElevenLabs and real pricing, and only Telegram stubbed. It prints every reply it got,
 so a rehearsal is reading its output rather than holding two phones. `bun run eval` is the
-older pair of flows, on the same bench.
+older pair of flows, on the same bench, and `bun run eval:families` is the other two loaded
+families on it.
 
 `health/db` returns a beat counter. If it does not climb, the deploy is not live.
 

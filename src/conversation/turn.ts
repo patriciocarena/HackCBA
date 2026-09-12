@@ -154,7 +154,11 @@ async function resolve(
   const only = (resolution: Resolution): Resolved => ({ resolution, attributes: kept, family: state.family })
 
   const stated = statedReason(raw)
-  if (stated !== null) return only(escalate(stated))
+  // The sentence follows the reason: a product the shop does not print is not something it
+  // will go and check. ADR 0012 keeps one sentence per reason, and this is that mapping.
+  if (stated !== null) {
+    return only(stated === 'out_of_catalog' ? escalate(stated, OUT_OF_CATALOG) : escalate(stated))
+  }
 
   // The role decides what a person may change, never whether they are answered. A customer
   // asking for a price change is refused; the owner asking for one by text is pointed at the

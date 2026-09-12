@@ -4,14 +4,21 @@ import { arrayTypedPaths, nullable } from './structured-output'
 /**
  * The escalations only a reader of the message can raise. `priceFor` takes a QuoteIntent and
  * never sees a customer's words, so nothing downstream of extraction can reach any of them.
- * The schema offers these four and no others, so a reason the engine owns cannot be claimed
+ * The schema offers these five and no others, so a reason the engine owns cannot be claimed
  * here.
+ *
+ * `out_of_catalog` is also raised by the engine, and it is the one reason both ends own. Thirty
+ * five of the thirty eight families in the list are not loaded, so the `family` enum cannot
+ * name them and a message about one comes back null: the same answer as a message that named no
+ * product at all. Without this the turn asked "qué querés imprimir" to a customer who had just
+ * said "gigantografía".
  */
 export const EXTRACTION_REASONS = [
   'commercial_discount',
   'vat_question',
   'multiple_products',
   'human_requested',
+  'out_of_catalog',
 ] as const satisfies readonly EscalationReason[]
 
 export const EXTRACTION_SYSTEM = `You read one message sent to an Argentine print shop and report what it asked for. You do not answer it.
@@ -28,8 +35,9 @@ Set reason, and kind "other", when the message is one of these, whatever else it
 - "vat_question": it asks whether VAT is mandatory, whether it can be left off, or whether there is a price without it.
 - "multiple_products": it asks for more than one different product in the one message.
 - "human_requested": it asks to speak to a person.
+- "out_of_catalog": it names a product to print and that product is not one of the values family offers. The shop prints far more than the schema lists, and a product it cannot name here is one this conversation cannot price.
 
-Leave reason null for everything else. These four are the only values it takes.
+Leave reason null for everything else. These five are the only values it takes. In particular, leave it null when the message names no product at all: a message that asks a price without saying what to print is not out of catalog, it is a question the shop can still ask about.
 
 family names the product line the message asks about, and it takes only the values the schema offers. Leave it null unless the message itself names the product. A paper, a size, a colour or a quantity does not name it: several product lines are printed on the same paper, and a message answering a question the shop asked ("1000, ilustración 350, sin terminación") usually names no product at all. Null is how you say the message did not name one, and the shop already knows which product it was asking about.
 

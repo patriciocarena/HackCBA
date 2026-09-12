@@ -75,13 +75,19 @@ describe('the extraction schema is built from the loaded catalog', () => {
 describe('the reasons the schema lets extraction raise', () => {
   const offered = stated(schema.properties.reason).enum
 
-  test('are the four a reader of the message can see, and no reason at all is allowed', () => {
+  test('are the ones a reader of the message can see, and no reason at all is allowed', () => {
     expect(offered).toEqual([...EXTRACTION_REASONS])
     expect(unanswerable(schema.properties.reason)).toBe(true)
   })
 
-  test('never include one the engine already produces for itself', () => {
-    for (const engines of ['out_of_catalog', 'no_match', 'ambiguous', 'unsupported_quantity', 'unknown_fact']) {
+  /**
+   * `out_of_catalog` is the one both ends own, and it is the exception that has a reason. The
+   * `family` enum offers three of the list's thirty eight, so a message naming any of the other
+   * thirty five comes back null, which is what a message naming no product at all comes back
+   * as too. Only a reader of the words can tell those apart.
+   */
+  test('never include one only the engine can see', () => {
+    for (const engines of ['no_match', 'ambiguous', 'unsupported_quantity', 'unknown_fact']) {
       expect(offered).not.toContain(engines)
     }
   })

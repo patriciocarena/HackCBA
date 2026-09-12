@@ -159,8 +159,10 @@ bun run dev
 `bun test` stubs every model, so it proves the wiring and nothing about what a model does with a
 real sentence. `bun run eval` drives the real route with real models over three flows: a price
 inquiry from a client and from the owner, a price update only the owner can make, and a
-conversation that refers back to what it already said. It needs the keys and it spends money.
-Run it before a deploy that touches a prompt, an intent or the turn.
+conversation that refers back to what it already said. `bun run eval:families` drives the other
+two loaded families, the compounding percentages, and the three ways a message can fail to name
+one family. `bun run eval:demo` is the live demo, action by action. They need the keys and they
+spend money. Run them before a deploy that touches a prompt, an intent, a seed or the turn.
 
 There is no migration step. Every store creates its own table with `CREATE TABLE IF NOT
 EXISTS` the first time it is used, so the schema arrives with the code that needs it.

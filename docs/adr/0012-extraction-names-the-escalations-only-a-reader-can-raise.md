@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 ## Status
 
-Accepted.
+Accepted. Amended once, below, when the catalog grew past one family.
 
 ## Context
 
@@ -59,3 +59,24 @@ it, because a quote the catalog cannot express is not the same as no quote at al
 owner typed, so a customer who wants the card designed is quotable, and an escalation that
 fights a row in the list would be a worse answer than the list's own. It gets a producer when
 a case exists that the add-on does not cover.
+
+## Amendment, 2026-09-12: one reason both ends own
+
+`out_of_catalog` is now offered to extraction as well, which this ADR's own decision said not
+to do. What changed is that the catalog stopped being one family.
+
+The `family` enum offers the families the shop loaded, three of the list's thirty eight, per
+ADR 0005. So a message naming any of the other thirty five comes back `family: null`, which is
+the identical answer a message that named no product at all comes back as. The turn cannot tell
+them apart, and it asked "qué querés imprimir" to a customer who had just said "gigantografía",
+reaching a person only on the turn after that.
+
+Only a reader of the words can separate those two, which is this ADR's test, and it is the test
+that decides rather than which end already had a producer. The engine keeps raising it for a
+family it has no config for, and the turn maps the reason to the sentence for a thing the shop
+does not have rather than the one for a thing it has to check.
+
+The cost is a reason a model can raise about a product the shop does print but phrased in a way
+it did not recognise: one quote escalated that the catalog could have answered. Per this ADR's
+own consequence, the worst a wrong reason does is mislabel a conversation a person takes, and
+the escalation rate is what measures it.
