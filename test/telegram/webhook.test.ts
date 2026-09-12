@@ -53,9 +53,10 @@ describe('telegramWebhook', () => {
       conversationId: 'telegram:42:customer',
       role: 'customer',
       senderId: '42',
-      text: 'subí las tarjetas un 20%',
       mediaId: null,
     })
+    expect(turns[0]!.text).toContain('subí las tarjetas un 20%')
+    expect(turns[0]!.text).not.toBe('subí las tarjetas un 20%')
   })
 
   it('reads the role off the sender, so an allowlisted one holds its own conversation', async () => {

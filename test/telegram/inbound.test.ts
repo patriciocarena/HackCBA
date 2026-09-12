@@ -14,8 +14,12 @@ const message: InboundMessage = {
 }
 
 describe('localFence', () => {
-  it('hands back what it was given, because a describer does not rewrite what it describes', () => {
-    expect(String(localFence('tarjetas <5cm y >2cm'))).toBe('tarjetas <5cm y >2cm')
+  it('wraps what it was given without rewriting a character of it', () => {
+    const [open, body, close] = String(localFence('tarjetas <5cm y >2cm')).split('\n')
+
+    expect(open).toMatch(/^<message:[0-9a-f]{32}>$/)
+    expect(close).toBe(`</${open!.slice(1, -1)}>`)
+    expect(body).toBe('tarjetas <5cm y >2cm')
   })
 })
 

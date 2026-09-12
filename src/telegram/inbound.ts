@@ -1,3 +1,4 @@
+import { fence } from '../security/fence'
 import type { ConversationId, Role, UntrustedText } from '../domain/types'
 
 export type InboundMessage = {
@@ -23,7 +24,7 @@ export type InboundLog = {
 
 export const denyEveryone: IsAdmin = () => false
 
-export const localFence: Fence = (text) => text as UntrustedText
+export const localFence: Fence = (text) => fence(text, 'message')
 
 export const silentTurn: Turn = async () => {}
 
