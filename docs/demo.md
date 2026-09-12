@@ -7,6 +7,11 @@ Three minutes, six steps, the order in PLAN.md section 10.
 breaks a test first. The one amount in this file that nothing pins is step 5's
 `45.000 → 54.000`.
 
+Nothing here is recordable until Telegram can reach the app. On 2026-09-12 the deployed
+image predated the webhook route, so `POST /telegram/webhook` answered 404 and Telegram
+queued the updates. `docs/deploy.md` is the sequence that fixes that and how to tell the
+two failure shapes apart.
+
 ## What can be recorded tonight
 
 E1 merged, so Telegram replies. Steps 1 to 4 are recordable, using the paste texts below
