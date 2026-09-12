@@ -50,7 +50,11 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
         : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
     attributes: seed.family.attributes.map((name) => attributeContract(name, saleRows(rows))),
     askOrder: seed.family.ask_order,
-    addOns: [],
+    addOns: [
+      ...new Set(
+        rows.filter((row) => row.kind === 'add_on').map((row) => row.group ?? row.slug),
+      ),
+    ],
   }
 
   const moduleDiscounts: ModuleDiscount[] = seed.module_discounts.map((discount) => ({

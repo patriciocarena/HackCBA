@@ -104,4 +104,17 @@ describe('loadCatalog', () => {
 
     expect(() => loadCatalog(withGhost)).toThrow('varnish is declared but no sale row carries it')
   })
+
+  it('offers each add-on group once, whatever number of rows prices it', () => {
+    const { config } = loadCatalog(seed)
+
+    expect(config.family.addOns).toEqual([
+      'lamination',
+      'design',
+      'extra_cut',
+      'label_perforation',
+      'rounded_corners',
+      'circular_cut',
+    ])
+  })
 })
