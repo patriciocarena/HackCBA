@@ -60,7 +60,7 @@ const fenced = (text: string) => `<message:abc>\n${text}\n</message:abc>` as Unt
 describe('the customer sends a transfer', () => {
   test('a photo while the deposit is pending reaches the store', async () => {
     const store = aStore()
-    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: async () => {} })
+    const read = readReceipt({ findOrder: () => anOrder(), store, notify: async () => {} })
 
     const got = await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
 
@@ -72,7 +72,7 @@ describe('the customer sends a transfer', () => {
   test('a voice note is not a transfer, so nothing is written', async () => {
     const store = aStore()
     const notifier = aNotifier()
-    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: notifier.notify })
+    const read = readReceipt({ findOrder: () => anOrder(), store, notify: notifier.notify })
 
     const got = await read(aMessage({ media: { kind: 'voice', id: 'AwACvoice' } }))
 
@@ -84,7 +84,7 @@ describe('the customer sends a transfer', () => {
     const store = aStore()
     const notifier = aNotifier()
     // findOrder answers whatever it is asked, which is what a wiring mistake looks like.
-    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: notifier.notify })
+    const read = readReceipt({ findOrder: () => anOrder(), store, notify: notifier.notify })
 
     const got = await read(aMessage({ role: 'admin', media: { kind: 'photo', id: 'AgACphoto' } }))
 
@@ -95,7 +95,7 @@ describe('the customer sends a transfer', () => {
   test('typed words of a transfer reach the store still fenced', async () => {
     const store = aStore()
     const said = fenced('ya te transferí los 45 mil, te paso el comprobante')
-    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: async () => {} })
+    const read = readReceipt({ findOrder: () => anOrder(), store, notify: async () => {} })
 
     const got = await read(aMessage({ text: said }))
 
@@ -106,7 +106,7 @@ describe('the customer sends a transfer', () => {
 
   test('recording is evidence, so the order does not move', async () => {
     const order = anOrder()
-    const read = readReceipt({ findOrder: async () => order, store: aStore(), notify: async () => {} })
+    const read = readReceipt({ findOrder: () => order, store: aStore(), notify: async () => {} })
 
     await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
 
@@ -119,7 +119,7 @@ describe('the customer sends a transfer', () => {
     const store = aStore()
     const notifier = aNotifier()
     const read = readReceipt({
-      findOrder: async () => anOrder({ state: 'quoted' }),
+      findOrder: () => anOrder({ state: 'quoted' }),
       store,
       notify: notifier.notify,
     })
@@ -133,7 +133,7 @@ describe('the customer sends a transfer', () => {
 
   test('no order for the conversation means this path is not interested', async () => {
     const store = aStore()
-    const read = readReceipt({ findOrder: async () => null, store, notify: async () => {} })
+    const read = readReceipt({ findOrder: () => null, store, notify: async () => {} })
 
     expect(await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))).toBeNull()
     expect(store.written).toEqual([])
@@ -143,7 +143,7 @@ describe('the customer sends a transfer', () => {
 describe('what the owner is told', () => {
   test('the notice names the order and sends them to the bank', async () => {
     const notifier = aNotifier()
-    const read = readReceipt({ findOrder: async () => anOrder(), store: aStore(), notify: notifier.notify })
+    const read = readReceipt({ findOrder: () => anOrder(), store: aStore(), notify: notifier.notify })
 
     await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
 
@@ -156,7 +156,7 @@ describe('what the owner is told', () => {
     const FORGED = 'AgACforged-receipt-that-looks-right'
     const store = aStore()
     const notifier = aNotifier()
-    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: notifier.notify })
+    const read = readReceipt({ findOrder: () => anOrder(), store, notify: notifier.notify })
 
     await read(aMessage({ media: { kind: 'photo', id: FORGED }, text: fenced(FORGED) }))
 
