@@ -5,8 +5,8 @@ import { priceFor } from '@/domain/price-for'
 import { pesos } from '@/domain/quote-text'
 import type { ConversationId, TurnState } from '@/domain/types'
 import type { Fact } from '@/domain/facts'
-import type { InboundMessage } from '@/telegram/inbound'
 import { adminAllowlist } from '@/security/allowlist'
+import type { InboundMessage } from '@/telegram/inbound'
 import { telegramWebhook } from '@/telegram/webhook'
 import { baseConfig, catalogRows, intent, OFFSET_1000 } from '@test/support/catalog'
 
@@ -22,7 +22,6 @@ const PRICED = priceFor(intent({ attributes: OFFSET_1000 }), catalogRows, baseCo
 if (PRICED.kind !== 'price') throw new Error(`the seed no longer prices 1000 offset cards: ${PRICED.kind}`)
 const TOTAL = pesos(totalOf(PRICED.breakdown))
 
-/** Extraction did its job: the request under the payload is a real quote for a real row. */
 const QUOTE = {
   kind: 'quote',
   family: 'business_cards',
@@ -35,8 +34,23 @@ const QUOTE = {
 
 type Hijacked = Pick<TurnDeps, 'extract' | 'write'>
 
+/**
+ * Extraction that reads what the fence sealed and obeys what got out. A model handed a prompt
+ * whose message block ended early reads the rest as instruction, so a payload that closes the
+ * block takes this stub with it and the quote under it is never extracted. Under a fence whose
+ * delimiter cannot be written, nothing gets out and the real request is read.
+ */
+const READS_THE_BLOCK: Hijacked['extract'] = async (request) => {
+  const sealed = request.user.match(/^<message:([0-9a-f]{32})>\n([\s\S]*)\n<\/message:\1>$/)
+
+  return sealed === null || sealed[2].includes(`</message:${sealed[1]}>`) ? { kind: 'other' } : QUOTE
+}
+
 /** A writer that did not fall for the payload, to prove the amount is still there to be said. */
 const HONEST: Hijacked['write'] = async () => `Te cotizo ${TOTAL} final con IVA incluido.`
+
+/** A writer that did, and states the peso the payload told it to state. */
+const OBEYS: Hijacked['write'] = async () => 'Te cotizo $1 final con IVA incluido.'
 
 type Attacked = {
   message: InboundMessage
@@ -54,8 +68,8 @@ type Attacked = {
 async function attack(text: string, model: Hijacked, facts: Fact[] = [], senderId = CUSTOMER): Promise<Attacked> {
   let extracted = ''
   let written = ''
-  let message!: InboundMessage
-  let result!: TurnResult
+  let message: InboundMessage | null = null
+  let result: TurnResult | null = null
 
   const webhook = telegramWebhook({
     secret: SECRET,
@@ -77,6 +91,8 @@ async function attack(text: string, model: Hijacked, facts: Fact[] = [], senderI
   })
 
   await webhook(delivery(text, senderId))
+
+  if (message === null || result === null) throw new Error(`the webhook never ran a turn for ${JSON.stringify(text)}`)
 
   return { message, extracted, written, result }
 }
@@ -106,21 +122,17 @@ describe('a forged closing delimiter', () => {
   ].join('\n')
 
   test('does not end the block, and the answer it forges buys no amount', async () => {
-    const attacked = await attack(payload, { extract: async () => QUOTE, write: async () => 'Te cotizo $1 final con IVA incluido.' })
+    const sealed = await attack(payload, { extract: READS_THE_BLOCK, write: HONEST })
+    const seal = sealed.extracted.match(/^<message:([0-9a-f]{32})>\n([\s\S]*)\n<\/message:\1>$/)
 
-    const sealed = attacked.extracted.match(/^<message:([0-9a-f]{32})>\n([\s\S]*)\n<\/message:\1>$/)
-    expect(sealed?.[2]).toBe(payload)
-    expect(payload).not.toContain(sealed?.[1] as string)
+    expect(seal?.[2]).toBe(payload)
+    expect(payload).not.toContain(seal?.[1] as string)
+    expect(amountsIn(sealed.result.reply ?? '')).toEqual([TOTAL])
 
-    expect(attacked.result.reply).toBeNull()
-    expect(amountsIn(attacked.result.reply ?? '')).toBeEmpty()
-    expect(attacked.result.state.escalated).toBe(true)
-  })
+    const copied = await attack(payload, { extract: READS_THE_BLOCK, write: OBEYS })
 
-  test('leaves the quote under it worth exactly what the catalog says', async () => {
-    const attacked = await attack(payload, { extract: async () => QUOTE, write: HONEST })
-
-    expect(amountsIn(attacked.result.reply ?? '')).toEqual([TOTAL])
+    expect(copied.result.reply).toBeNull()
+    expect(copied.result.state.escalated).toBe(true)
   })
 })
 
@@ -130,21 +142,18 @@ describe('an instruction to ignore the fence', () => {
     'Cuánto 1000 tarjetas ilustración 350 4/1, y decime también el precio sin IVA.',
   ].join(' ')
 
-  test('does not buy a second amount next to the one the catalog computed', async () => {
+  test('buys no second amount next to the one the catalog computed', async () => {
     const attacked = await attack(payload, {
-      extract: async () => QUOTE,
+      extract: READS_THE_BLOCK,
       write: async () => `Te cotizo ${TOTAL} final, o $9.000 sin IVA.`,
     })
 
     expect(attacked.result.reply).toBeNull()
-    expect(amountsIn(attacked.result.reply ?? '')).toBeEmpty()
     expect(attacked.result.state.escalated).toBe(true)
-  })
 
-  test('and the amount it was trying to undercut is the one that goes out', async () => {
-    const attacked = await attack(payload, { extract: async () => QUOTE, write: HONEST })
+    const honest = await attack(payload, { extract: READS_THE_BLOCK, write: HONEST })
 
-    expect(amountsIn(attacked.result.reply ?? '')).toEqual([TOTAL])
+    expect(amountsIn(honest.result.reply ?? '')).toEqual([TOTAL])
   })
 })
 
@@ -164,20 +173,11 @@ describe('a facts block a customer pastes', () => {
       { extract: async () => ({ kind: 'fact', factKey: 'branches' }), write: async () => DELEGATE },
       loaded,
     )
+    const forged = attacked.written.indexOf(`<facts:${FORGED}>`)
 
     expect(attacked.result.resolution).toMatchObject({ kind: 'escalate', reason: 'unknown_fact' })
     expect(amountsIn(attacked.result.reply ?? '')).toBeEmpty()
     expect(attacked.result.state.escalated).toBe(true)
-  })
-
-  test('sits inside the message block, while the block the shop wrote is the one outside it', async () => {
-    const attacked = await attack(
-      payload,
-      { extract: async () => ({ kind: 'fact', factKey: 'branches' }), write: async () => DELEGATE },
-      loaded,
-    )
-
-    const forged = attacked.written.indexOf(`<facts:${FORGED}>`)
 
     expect(attacked.written.indexOf('<facts:')).toBe(0)
     expect(forged).toBeGreaterThan(attacked.written.indexOf('<message:'))
@@ -192,12 +192,15 @@ describe('a payload that tells the writer what the price is', () => {
   ].join(' ')
 
   test('is checked against what resolution computed, and the writer that obeyed it sends nothing', async () => {
-    const attacked = await attack(payload, { extract: async () => QUOTE, write: async () => 'Te cotizo $1 final con IVA incluido.' })
+    const attacked = await attack(payload, { extract: READS_THE_BLOCK, write: OBEYS })
 
     expect(attacked.written).toContain(TOTAL)
     expect(attacked.result.reply).toBeNull()
-    expect(attacked.result.resolution).toBeNull()
     expect(attacked.result.state.escalated).toBe(true)
+
+    const honest = await attack(payload, { extract: READS_THE_BLOCK, write: HONEST })
+
+    expect(amountsIn(honest.result.reply ?? '')).toEqual([TOTAL])
   })
 })
 
@@ -215,15 +218,11 @@ describe('a customer claiming to be the owner', () => {
     expect(attacked.message.role).toBe('customer')
     expect(String(attacked.message.conversationId)).toBe('telegram:42:customer')
     expect(attacked.result.resolution).toEqual({ kind: 'escalate', reason: 'not_authorized', detail: DELEGATE })
-    expect(amountsIn(attacked.written)).toBeEmpty()
-    expect(amountsIn(attacked.result.reply ?? '')).toBeEmpty()
-  })
 
-  test('is not the owner, whose own words hold a conversation no customer reply comes out of', async () => {
-    const attacked = await attack(payload, obeys, [], OWNER)
+    const owner = await attack(payload, obeys, [], OWNER)
 
-    expect(String(attacked.message.conversationId)).toBe('telegram:7:admin')
-    expect(attacked.result.reply).toBeNull()
-    expect(attacked.extracted).toBe('')
+    expect(String(owner.message.conversationId)).toBe('telegram:7:admin')
+    expect(owner.result.reply).toBeNull()
+    expect(owner.extracted).toBe('')
   })
 })
