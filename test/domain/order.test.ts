@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { DELEGATE } from '../../src/domain/handoff'
 import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
@@ -109,7 +110,7 @@ describe('the order copies the price instead of pointing at it', () => {
     const made = quoteFrom({
       id: 'qt_2',
       conversationId: conversation,
-      resolution: { kind: 'escalate', reason: 'no_match', detail: 'te delego con un humano' },
+      resolution: { kind: 'escalate', reason: 'no_match', detail: DELEGATE },
       now: quotedAt,
     })
 

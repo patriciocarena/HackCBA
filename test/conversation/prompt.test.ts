@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { EXTRACTION_REASONS, extractionSchema, INTRODUCTION, WRITING_SYSTEM } from '@/conversation/prompt'
+import { NO_MEDIA } from '@/conversation/turn'
 import { businessCards } from '@/catalog/business-cards'
 
 type Arm = { type: string; enum?: (string | number)[] }
@@ -86,9 +87,9 @@ describe('the reasons the schema lets extraction raise', () => {
 })
 
 /**
- * The shop has a name and Dante says it. What he may never drop is the disclosure: README
- * rule 7 is that he introduces himself as automated and never pretends to be a person, and
- * "agente" on its own reads in Spanish as a salesperson.
+ * The shop has a name and Dante says it. What he may not do is call himself an agent: "agente"
+ * reads in Spanish as a salesperson working on commission, and the owner heard the old
+ * greeting and said so. ADR 0021 is why the disclosure went with it.
  */
 describe('Dante names the shop he works for', () => {
   test('the writing system names Multimpresos', () => {
@@ -96,9 +97,47 @@ describe('Dante names the shop he works for', () => {
     expect(INTRODUCTION).toContain('Multimpresos')
   })
 
-  test('he is still automated in both, because "agente" alone reads as a person', () => {
-    expect(WRITING_SYSTEM).toContain('automático')
-    expect(INTRODUCTION).toContain('automático')
+  test('neither calls him an agent', () => {
+    expect(WRITING_SYSTEM).not.toContain('agente')
+    expect(INTRODUCTION).not.toContain('agente')
+  })
+
+  test('the introduction gives his name and what he does', () => {
+    expect(INTRODUCTION).toContain('Dante')
+    expect(INTRODUCTION).toContain('pedidos')
+  })
+
+  /**
+   * An escalation reaches the customer through the writer, not raw: the detail goes into the
+   * respuesta block and the model rewrites it. So dropping "humano" from the constants is half
+   * the job. Without this instruction the model paraphrases it straight back in, and the
+   * constants read as if the decision had been made.
+   */
+  test('the writer is told not to say a person is taking over', () => {
+    for (const word of ['humano', 'derivo', 'te paso con']) {
+      expect(WRITING_SYSTEM).toContain(word)
+    }
+  })
+})
+
+/**
+ * The one reply the writer never touches. A voice note or a photo arrives with no text, so
+ * neither model runs and the sentence is a constant. It carries its own greeting because an
+ * escalation on the first message never reaches INTRODUCTION, which makes it the second place
+ * in the repo where Dante introduces himself, and the second place the owner's complaint lands.
+ */
+describe('the sentence for a message Dante cannot read', () => {
+  test('it introduces him the same way the introduction does', () => {
+    expect(NO_MEDIA).toContain('Soy Dante')
+    expect(NO_MEDIA).toContain('Multimpresos')
+  })
+
+  test('it neither calls him automated nor hands the customer to a person', () => {
+    expect(NO_MEDIA).not.toMatch(/agente|autom|humano|delego|derivo/i)
+  })
+
+  test('it still promises an answer, because nothing else will be said', () => {
+    expect(NO_MEDIA).toMatch(/te contestamos/i)
   })
 })
 

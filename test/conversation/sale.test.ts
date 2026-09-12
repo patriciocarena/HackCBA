@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { DELEGATE } from '../../src/domain/handoff'
 import { inMemorySale } from '@/conversation/sale'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { totalOf } from '@/domain/breakdown'
@@ -54,7 +55,7 @@ describe('accepting the quote the conversation was shown', () => {
 
     expect(accepted).toMatchObject({ kind: 'escalate' })
     if (accepted.kind !== 'escalate') return
-    expect(accepted.detail).not.toBe('te delego con un humano')
+    expect(accepted.detail).not.toBe(DELEGATE)
     expect(accepted.detail).toContain('venció')
   })
 

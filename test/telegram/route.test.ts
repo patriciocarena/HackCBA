@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'bun:test'
+import { DELEGATE, OUT_OF_CATALOG } from '../../src/domain/handoff'
 import type { InboundMessage } from '@/telegram/inbound'
 import { dispatch, telegramWebhookRoute } from '@/telegram/route'
 import { liveCatalog } from '@/catalog/live-catalog'
@@ -233,7 +234,7 @@ describe('the default turn, on what the shop knows about itself', () => {
 
     await handle(route, delivery(SECRET))
 
-    expect(handed[0]).toContain('te delego con un humano')
+    expect(handed[0]).toContain(OUT_OF_CATALOG)
     expect(handed[0]).not.toContain('Sucursales')
   })
 })

@@ -392,7 +392,9 @@ describe('the customer is answered for the receipt they sent', () => {
     const said = replier.sent[0]?.text ?? ''
 
     expect(said).toMatch(/gracias/i)
-    expect(said).toMatch(/persona/i)
+    // ADR 0021: the shop is checking it, and Dante does not narrate that a person took over.
+    expect(said).toMatch(/lo estamos revisando/i)
+    expect(said).not.toMatch(/persona|humano/i)
     // The owner was told the amount did not match. The customer is not, because the reason
     // names what the image claimed and the image is a stranger's.
     expect(said).not.toMatch(/importe|monto|alias/i)

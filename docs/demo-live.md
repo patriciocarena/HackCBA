@@ -39,8 +39,9 @@ Then, after the reply:
 1000, ilustración 350, frente full color y dorso en escala de grises, sin terminación
 ```
 
-Dante introduces itself as automated, asks for the three missing attributes in one
-message, and quotes `$45.000` final with VAT included, valid 15 days.
+Dante introduces itself by name, asks for the three missing attributes in one message, and
+quotes `$45.000` final with VAT included, valid 15 days. Per ADR 0021 the greeting names
+Dante and the shop and does not say it is automated.
 
 The second paste repeats `1000` on purpose. Without it Dante asks for the quantity again
 and the action spends a turn it does not have.
@@ -126,8 +127,9 @@ loaded (`seed/facts.json`).
 ¿y tienen sucursal en el norte?
 ```
 
-Dante hands the conversation to a person. The fact exists in the seed with no value, because
-nobody confirmed it, and a value nobody confirmed is never filled in with something that
+Dante hands the conversation to a person, and says so as the shop rather than as a bot: it
+confirms with the local and answers in a while. The fact exists in the seed with no value,
+because nobody confirmed it, and a value nobody confirmed is never filled in with something that
 sounds right.
 
 Say: the bot before this one answered that question. It invented branches, and customers

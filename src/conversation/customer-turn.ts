@@ -29,7 +29,7 @@ export function customerTurn(deps: TurnDeps, send: Send, notify?: Notify): Turn 
     if (result.reply !== null) await send(message.chatId, result.reply)
 
     if (result.resolution?.kind === 'escalate' && result.resolution.reason === 'unsupported_media') {
-      await notify?.(`Un cliente mandó algo que no puedo leer y le dije que lo atiende una persona. Chat ${message.chatId}.`)
+      await notify?.(`Un cliente mandó algo que no puedo leer y le dije que lo miramos en el local. Chat ${message.chatId}.`)
     }
 
     states.set(conversationId, result.state)

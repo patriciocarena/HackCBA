@@ -46,7 +46,8 @@ _Avoid_: Volume discount, bulk rate
 
 **Escalate**:
 Hand the conversation to a person because the engine is not certain. It is the correct
-outcome, not a failure, and its rate measures catalog coverage.
+outcome, not a failure, and its rate measures catalog coverage. The customer is told the shop
+will answer, not that a bot stopped and a person started.
 _Avoid_: Fail, fallback, error, handoff
 
 **Fact**:
@@ -60,9 +61,9 @@ A quote is not an order until the customer accepts.
 _Avoid_: Estimate, budget, price
 
 **Intent**:
-What a message asked for, read by the extraction phase and nothing else. It is one of four
-kinds: a quote, a fact question, a price edit dictated by the owner, or other. Extraction
-reports what it heard. It never reports what a family requires.
+What a message asked for, read by the extraction phase and nothing else. It is one of five
+kinds: a quote, a fact question, a price edit dictated by the owner, an acceptance, or other.
+Extraction reports what it heard. It never reports what a family requires.
 _Avoid_: Request, query, command
 
 **Attribute**:

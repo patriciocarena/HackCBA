@@ -190,7 +190,7 @@ function sentenceFor(verdict: Verdict): string {
 function thanksFor(verdict: Verdict): string {
   return verdict === 'confirmed'
     ? '¡Gracias! Recibí tu comprobante y confirmé la seña. Ya pasamos el pedido a producción y te aviso apenas esté listo.'
-    : '¡Gracias por mandar el comprobante! Lo recibí y lo está revisando una persona del equipo. Te confirmamos en breve.'
+    : '¡Gracias por mandar el comprobante! Lo recibí y lo estamos revisando en el local. Te confirmamos en breve.'
 }
 
 /**

@@ -48,10 +48,12 @@ const ALIAS = requireEnv('DEPOSIT_ALIAS')
 
 /**
  * How an escalation reads. The engine's sentence is fixed and the writer paraphrases it, so
- * this has to cover the paraphrases: "te delego con un humano" and "te derivo con una persona
- * del equipo" are the same outcome. Not bare `persona`, which is inside `tarjetas personales`.
+ * this has to cover the paraphrases. It stays a superset of the wording ADR 0021 retired:
+ * this regex is used both to require a handoff and to forbid one, and narrowing it would make
+ * the "it was handed off" check pass on a reply that handed nothing. Not bare `persona`, which
+ * is inside `tarjetas personales`.
  */
-const DELEGATED = /delego|deriv|humano|te paso con|una persona|no lo tengo cargado/i
+const DELEGATED = /confirmo con el local|lo miramos en el local|te contestamos|no lo tengo a mano|delego|deriv|humano|te paso con|una persona|no lo tengo cargado/i
 
 /** The owner's verdict line for a receipt the agent confirmed by itself. */
 const CONFIRMED_ALONE = /lo confirmé solo/i
@@ -97,7 +99,10 @@ console.log('action 1: the client asks for a price')
 
   const first = to(demo.sent, CLIENT)[0]
   check('the client gets one answer', to(demo.sent, CLIENT).length === 1, `${to(demo.sent, CLIENT).length} sent`)
-  check('it says it is automated', /automátic|automatic/i.test(first?.text ?? ''), said(first))
+  // ADR 0021: he gives his name and the shop's, and never calls himself an agent.
+  check('it introduces him by name', /soy dante/i.test(first?.text ?? ''), said(first))
+  check('it names the shop', /multimpresos/i.test(first?.text ?? ''), said(first))
+  check('it does not call him an agent', !/agente/i.test(first?.text ?? ''), said(first))
   check('it is not handed to a person', !DELEGATED.test(first?.text ?? ''), said(first))
 
   // Everything missing in one message, which is the beat the runbook narrates. Two of the

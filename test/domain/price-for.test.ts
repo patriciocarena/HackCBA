@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { DELEGATE, OUT_OF_CATALOG } from '../../src/domain/handoff'
 import { baseConfig, businessCards, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
@@ -51,13 +52,13 @@ describe('priceFor', () => {
   test('case 3: 700 cards are not interpolated or bracket matched', () => {
     const resolution = quote({ attributes: { ...OFFSET_1000, quantity: 700 } })
 
-    expectEscalation(resolution, 'unsupported_quantity', 'te delego con un humano')
+    expectEscalation(resolution, 'unsupported_quantity', DELEGATE)
   })
 
   test('case 4: 1500 cards escalate because the quantity is absent from the list', () => {
     const resolution = quote({ attributes: { ...OFFSET_1000, quantity: 1500 } })
 
-    expectEscalation(resolution, 'unsupported_quantity', 'te delego con un humano')
+    expectEscalation(resolution, 'unsupported_quantity', DELEGATE)
   })
 
   test('case 5: missing paper, sides and finish are asked in ask_order', () => {
@@ -133,7 +134,7 @@ describe('priceFor', () => {
   test('case 12: a finish shown as a dash has no row and escalates no_match', () => {
     const resolution = quote({ attributes: { ...SPECIAL_100, finish: 'uv_front' } })
 
-    expectEscalation(resolution, 'no_match', 'te delego con un humano')
+    expectEscalation(resolution, 'no_match', DELEGATE)
   })
 
   test('case 13a: provisional illustration plain discounts are not applied by default', () => {
@@ -177,7 +178,7 @@ describe('priceFor', () => {
     expectEscalation(
       resolution,
       'out_of_catalog',
-      'eso no lo tengo cargado, te delego con un humano',
+      OUT_OF_CATALOG,
     )
   })
 
@@ -188,7 +189,7 @@ describe('priceFor', () => {
     }
     const resolution = quote({ attributes: SPECIAL_100 }, [...catalogRows, duplicate])
 
-    expectEscalation(resolution, 'ambiguous', 'te delego con un humano')
+    expectEscalation(resolution, 'ambiguous', DELEGATE)
   })
 
   test('case 18: two products are quoted by calling the engine once per product', () => {
@@ -211,7 +212,7 @@ describe('priceFor', () => {
     }
     const resolution = quote({ family: 'banners', attributes: SPECIAL_100 }, catalogRows, byTheMetre)
 
-    expectEscalation(resolution, 'no_match', 'te delego con un humano')
+    expectEscalation(resolution, 'no_match', DELEGATE)
   })
 
   test('a family the engine was not configured for never reaches a row', () => {
@@ -220,7 +221,7 @@ describe('priceFor', () => {
     expectEscalation(
       resolution,
       'out_of_catalog',
-      'eso no lo tengo cargado, te delego con un humano',
+      OUT_OF_CATALOG,
     )
   })
 
@@ -231,7 +232,7 @@ describe('priceFor', () => {
       addOns: ['rounded_corners'],
     })
 
-    expectEscalation(resolution, 'no_match', 'te delego con un humano')
+    expectEscalation(resolution, 'no_match', DELEGATE)
   })
 })
 

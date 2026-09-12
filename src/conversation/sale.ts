@@ -1,3 +1,4 @@
+import { DELEGATE } from '../domain/handoff'
 import { acceptQuote, quoteFrom, type Actor } from '../domain/order'
 import {
   confirmDeposit,
@@ -34,8 +35,6 @@ export type Sale = {
    */
   confirmFromReceipt(conversationId: ConversationId, reading: ReceiptReading): AutoOutcome
 }
-
-const DELEGATE = 'te delego con un humano'
 
 // ponytail: a Map, A3's tables when a quote has to outlive the process. One store, because
 // the quote a conversation may accept and the state that conversation is in expire together.

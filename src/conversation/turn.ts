@@ -1,5 +1,6 @@
 import { totalOf } from '../domain/breakdown'
 import { answerFromFacts, factsBlock, type Fact } from '../domain/facts'
+import { DELEGATE } from '../domain/handoff'
 import { priceFor, type CatalogRow, type PriceForConfig } from '../domain/price-for'
 import { askText, pesos, quoteText } from '../domain/quote-text'
 import {
@@ -115,10 +116,8 @@ function silence(state: TurnState): TurnResult {
   return { reply: null, resolution: null, state }
 }
 
-const DELEGATE = 'te delego con un humano'
-
 export const NO_MEDIA =
-  'Soy un asistente automático y todavía no puedo escuchar audios ni mirar imágenes. Te delego con un humano.'
+  'Soy Dante, asesoro y tomo los pedidos de Multimpresos. Todavía no puedo escuchar audios ni mirar imágenes: esto lo miramos en el local y te contestamos en un rato.'
 
 /** The resolution, and what the conversation knows once this message has been read. */
 type Resolved = { resolution: Resolution; attributes: Record<string, string | number> }

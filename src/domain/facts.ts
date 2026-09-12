@@ -1,4 +1,5 @@
 import { fence } from '../security/fence'
+import { OUT_OF_CATALOG } from './handoff'
 import type { Resolution, UntrustedText } from './types'
 
 /**
@@ -20,13 +21,11 @@ export type Fact = {
   confirmedOn?: string
 }
 
-const DELEGATE_DETAIL = 'eso no lo tengo cargado, te delego con un humano'
-
 export function answerFromFacts(key: string, facts: Fact[]): Resolution {
   const fact = facts.find((candidate) => candidate.key === key)
 
   if (fact === undefined || fact.value === null) {
-    return { kind: 'escalate', reason: 'unknown_fact', detail: DELEGATE_DETAIL }
+    return { kind: 'escalate', reason: 'unknown_fact', detail: OUT_OF_CATALOG }
   }
 
   return { kind: 'fact', key: fact.key, value: fact.value }

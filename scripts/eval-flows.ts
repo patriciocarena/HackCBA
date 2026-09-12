@@ -77,8 +77,11 @@ function bench() {
   }
 }
 
-/** How an escalation reads. Not `persona`, which is inside `tarjetas personales`. */
-const DELEGATED = /delego|humano|te paso con/i
+/**
+ * How an escalation reads. A superset of the wording ADR 0021 retired, for the same reason
+ * eval-demo's is. Not bare `persona`, which is inside `tarjetas personales`.
+ */
+const DELEGATED = /confirmo con el local|te contestamos|no lo tengo a mano|delego|humano|te paso con/i
 
 console.log(`model: ${requireEnv('OPENROUTER_MODEL')}\n`)
 

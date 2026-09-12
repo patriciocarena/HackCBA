@@ -1,3 +1,4 @@
+import { DELEGATE, OUT_OF_CATALOG } from './handoff'
 import type { Ars } from './money'
 import type {
   AttributeContract,
@@ -68,9 +69,6 @@ type MatchedLines = { kind: 'lines'; lines: BreakdownLine[] } | { kind: 'escalat
 // Override it through config when a family legitimately runs larger.
 const DEFAULT_MAX_MODULES = 50
 
-const DELEGATE_DETAIL = 'te delego con un humano'
-const OUT_OF_CATALOG_DETAIL = 'eso no lo tengo cargado, te delego con un humano'
-
 // ponytail: one family in the list, so a shared word is enough to say the owner meant it.
 // Row level targeting, "subi las de 100", when the list has a second family. It lives here
 // beside the slug match priceFor does, so the two rules cannot drift into two directories.
@@ -98,15 +96,15 @@ export function priceFor(
   const context = { intent, rows, config, policy }
 
   if (intent.family !== null && intent.family !== config.family.slug) {
-    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG_DETAIL }
+    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG }
   }
 
   if (saleRows(rows).length === 0) {
-    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG_DETAIL }
+    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG }
   }
 
   if (config.family.unit === 'linear_meter' || config.family.unit === 'square_meter') {
-    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE }
   }
 
   const missing = missingAttributes(intent, config.family)
@@ -123,7 +121,7 @@ export function priceFor(
     }
   }
 
-  return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  return { kind: 'escalate', reason: 'no_match', detail: DELEGATE }
 }
 
 const PRICE_STRATEGIES: PriceStrategy[] = [exactSaleRowStrategy, moduleMathStrategy]
@@ -149,11 +147,11 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
   }
 
   if (module === null || module.widthCm <= 0 || module.heightCm <= 0) {
-    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE }
   }
 
   if (size.widthCm <= 0 || size.heightCm <= 0) {
-    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE }
   }
 
   const matched = matchedSaleRow(context)
@@ -166,7 +164,7 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
   const moduleCount = Math.ceil((size.widthCm * size.heightCm) / (module.widthCm * module.heightCm))
   const maxModules = context.config.maxModules ?? DEFAULT_MAX_MODULES
   if (moduleCount > maxModules) {
-    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG_DETAIL }
+    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG }
   }
 
   const rates = (context.config.moduleDiscounts ?? [])
@@ -188,7 +186,7 @@ function matchedSaleRow(context: PriceContext): MatchedRow {
   if (matches.length > 1) {
     return {
       kind: 'escalate',
-      resolution: { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE_DETAIL },
+      resolution: { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE },
     }
   }
 
@@ -201,10 +199,10 @@ function noSaleRowFor(context: PriceContext): Resolution {
 
   if (quantity !== undefined && !carried) {
     // The list carries the quantities it carries, and nothing between them is quoted.
-    return { kind: 'escalate', reason: 'unsupported_quantity', detail: DELEGATE_DETAIL }
+    return { kind: 'escalate', reason: 'unsupported_quantity', detail: DELEGATE }
   }
 
-  return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  return { kind: 'escalate', reason: 'no_match', detail: DELEGATE }
 }
 
 function quoteOf(
@@ -252,14 +250,14 @@ function addOnLines(rows: CatalogRow[], saleRow: CatalogRow, groups: string[]): 
     if (candidates.length > 1) {
       return {
         kind: 'escalate',
-        resolution: { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE_DETAIL },
+        resolution: { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE },
       }
     }
 
     if (candidates.length === 0) {
       return {
         kind: 'escalate',
-        resolution: { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL },
+        resolution: { kind: 'escalate', reason: 'no_match', detail: DELEGATE },
       }
     }
 

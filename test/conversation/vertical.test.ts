@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { DELEGATE } from '../../src/domain/handoff'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
 import { NO_MEDIA, type TurnDeps } from '@/conversation/turn'
@@ -256,7 +257,7 @@ describe('the customer accepts, and the order is born', () => {
     await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
     await webhook(delivery(71, 'dale, la quiero'))
 
-    expect(replies[1]?.text).toBe('te delego con un humano')
+    expect(replies[1]?.text).toBe(DELEGATE)
   })
 })
 

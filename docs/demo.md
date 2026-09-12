@@ -150,14 +150,15 @@ Then, after the reply, paste in C1:
 The `1000` is not redundant. Without it Dante answers `Para cotizarlo, pasame: cantidad.`
 and the step stalls on camera.
 
-Dante must: introduce itself as automated once, in the first reply only; ask for papel,
-caras and terminación in that one message and not one at a time; then quote `$45.000` final
-with VAT included, name the number once, and say the quote holds 15 days.
+Dante must: introduce itself as Dante once, in the first reply only, naming the shop and
+never calling itself an agent; ask for papel, caras and terminación in that one message and
+not one at a time; then quote `$45.000` final with VAT included, name the number once, and
+say the quote holds 15 days. ADR 0021 is why the greeting no longer says it is automated.
 
 Notice: three questions in one message.
 
-Narration: `Un cliente escribe por primera vez. Dante se presenta como automático, pide
-todo lo que falta en un solo mensaje, y recién ahí cotiza, con IVA incluido.`
+Narration: `Un cliente escribe por primera vez. Dante se presenta, pide todo lo que falta en
+un solo mensaje, y recién ahí cotiza, con IVA incluido.`
 
 ### 2. A size the list does not carry
 
@@ -188,8 +189,8 @@ Dante must: hand the conversation to a person and produce no address.
 
 Notice: no address, invented or otherwise.
 
-Narration: `La dirección del local no está cargada. El bot anterior la inventaba. Dante
-delega.`
+Narration: `La dirección del local no está cargada. El bot anterior la inventaba. Dante dice
+que lo confirma en el local, y no inventa nada.`
 
 ### 4. An injection
 

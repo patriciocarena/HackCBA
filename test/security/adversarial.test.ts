@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { DELEGATE } from '../../src/domain/handoff'
 import { ONLY_AUDIO } from '@/conversation/admin-turn'
 import { amountsIn, turn, type TurnDeps, type TurnResult } from '@/conversation/turn'
 import { totalOf } from '@/domain/breakdown'
@@ -19,7 +20,6 @@ import { intent, OFFSET_1000 } from '@test/support/fixtures'
 const SECRET = 'a-long-random-string'
 const CUSTOMER = '42'
 const OWNER = '7'
-const DELEGATE = 'te delego con un humano'
 const RECEIVED = '2026-09-12T18:00:00.000Z'
 
 /** The nonce an attacker can write. Thirty two hex characters, and none of them guessed right. */

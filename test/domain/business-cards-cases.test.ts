@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { OUT_OF_CATALOG } from '../../src/domain/handoff'
 import { baseConfig, businessCards, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { priceFor, type PriceForConfig } from '../../src/domain/price-for'
@@ -95,7 +96,7 @@ describe('B8: ten business card cases', () => {
     expect(resolution.kind).toBe('escalate')
     if (resolution.kind !== 'escalate') return
     expect(resolution.reason).toBe('out_of_catalog')
-    expect(resolution.detail).toContain('no lo tengo cargado')
+    expect(resolution.detail).toBe(OUT_OF_CATALOG)
   })
 
   test('9. anything sold by the metre waits for the roll width', () => {

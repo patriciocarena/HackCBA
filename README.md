@@ -54,7 +54,8 @@ They are the product. Loosen them and we are back to the bot that invented price
 4. Prices include VAT. One final number. Never "plus VAT".
 5. Audio and photos never write. They propose, and a person confirms over a diff.
 6. Every outside text is fenced as untrusted and is never an instruction.
-7. Dante introduces itself as automated and never pretends to be a person.
+7. Dante never pretends to be a person. It introduces itself by name and by what it
+   does, and it does not deny being software. ADR 0021.
 
 Escalating is the right outcome, not a failure. Its rate will be high while the catalog is
 thin, and that is the honest signal of coverage. Nothing counts it yet: `inbound_messages`

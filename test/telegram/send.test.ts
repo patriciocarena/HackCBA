@@ -52,7 +52,7 @@ describe('plainText', () => {
   })
 
   it('leaves a plain sentence exactly as the writer wrote it', () => {
-    expect(plainText('Te delego con un humano.')).toBe('Te delego con un humano.')
+    expect(plainText('Eso lo confirmo con el local.')).toBe('Eso lo confirmo con el local.')
   })
 })
 
