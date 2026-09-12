@@ -5,6 +5,7 @@ import type { InboundMessage } from '@/telegram/inbound'
 import { baseConfig, catalogRows, OFFSET_1000, priceOf } from '@test/support/catalog'
 import { totalOf } from '@/domain/breakdown'
 import { pesos } from '@/domain/quote-text'
+import { INTRODUCTION } from '@/conversation/prompt'
 import { priceFor } from '@/domain/price-for'
 import type { Resolution } from '@/domain/types'
 
@@ -143,5 +144,40 @@ describe('the writing model receives the computed amount', () => {
 
     expect(result.reply).toBeNull()
     expect(result.state.escalated).toBe(true)
+  })
+})
+
+describe('it introduces itself once', () => {
+  async function systemOf(introduced: boolean): Promise<string> {
+    let system = ''
+    await turn(
+      deps({ write: async (request) => { system = request.system; return 'te delego con un humano' } }),
+      message('hola'),
+      state({ introduced }),
+    )
+
+    return system
+  }
+
+  test('the first reply of a conversation is told to introduce itself', async () => {
+    expect(await systemOf(false)).toContain(INTRODUCTION)
+  })
+
+  test('every reply after it is not', async () => {
+    expect(await systemOf(true)).not.toContain(INTRODUCTION)
+  })
+
+  test('a sent reply is what marks the conversation introduced', async () => {
+    const result = await turn(deps({ write: async () => 'te delego con un humano' }), message('hola'), state({ introduced: false }))
+
+    expect(result.reply).not.toBeNull()
+    expect(result.state.introduced).toBe(true)
+  })
+
+  test('a reply that was never sent leaves the conversation unintroduced', async () => {
+    const result = await turn(deps({ write: async () => { throw new Error('openrouter 503') } }), message('hola'), state({ introduced: false }))
+
+    expect(result.reply).toBeNull()
+    expect(result.state.introduced).toBe(false)
   })
 })
