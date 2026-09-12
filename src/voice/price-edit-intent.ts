@@ -222,6 +222,7 @@ export function openRouterExtraction(
 
 export function extractionFromEnv(
   env: Record<string, string | undefined> = process.env,
+  fetchImpl?: FetchLike,
 ): PriceEditExtractionPort {
   const missing = ["OPENROUTER_API_KEY", "OPENROUTER_MODEL"].filter(
     (name) => !env[name],
@@ -234,5 +235,6 @@ export function extractionFromEnv(
   return openRouterExtraction({
     apiKey: env.OPENROUTER_API_KEY!,
     model: env.OPENROUTER_MODEL!,
+    fetchImpl,
   });
 }

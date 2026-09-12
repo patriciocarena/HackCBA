@@ -1,12 +1,14 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import type { InboundMessage } from '@/telegram/inbound'
-import { telegramWebhookRoute } from '@/telegram/route'
+import { dispatch, telegramWebhookRoute } from '@/telegram/route'
 import { liveCatalog } from '@/catalog/live-catalog'
 import { catalogRows } from '@/catalog/business-cards'
 import type { OnCallback } from '@/telegram/callback'
+import { inMemoryPriceEdits } from '@/voice/price-edit-proposal'
 
 const noPress: OnCallback = async () => {}
 const aCatalog = () => liveCatalog(catalogRows)
+const aWiring = () => ({ catalog: aCatalog(), edits: inMemoryPriceEdits(), record: async () => {} })
 import type { FetchLike } from '@/voice/transcription'
 
 process.env.TELEGRAM_WEBHOOK_SECRET = 'a-long-random-string'
@@ -75,19 +77,19 @@ function wired(over: { telegram?: () => Response } = {}) {
     return Response.json({ choices: [{ message: { content } }] })
   }
 
-  return { route: telegramWebhookRoute({ onCallback: noPress }, aCatalog(), fetchImpl), calls }
+  return { route: telegramWebhookRoute({ onCallback: noPress }, aWiring(), fetchImpl), calls }
 }
 
 describe('telegramWebhookRoute', () => {
   it('mounts a POST route on the server that already answers the health check', () => {
-    const route = telegramWebhookRoute({ onCallback: noPress }, aCatalog())
+    const route = telegramWebhookRoute({ onCallback: noPress }, aWiring())
 
     expect(route).toMatchObject({ path: '/telegram/webhook', method: 'POST', requiresAuth: false })
   })
 
   it('hands the raw request to the webhook and takes the secret from the environment', async () => {
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aCatalog())
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aWiring())
 
     const denied = await handle(route, delivery('wrong'))
     const accepted = await handle(route, delivery(SECRET))
@@ -103,7 +105,7 @@ describe('telegramWebhookRoute, on who counts as the owner', () => {
 
   it('reads the allowlist from the deployment, so an unconfigured one admits nobody', async () => {
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aCatalog())
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aWiring())
 
     await handle(route, privateDelivery(7))
 
@@ -113,7 +115,7 @@ describe('telegramWebhookRoute, on who counts as the owner', () => {
   it('makes an allowlisted sender the admin in his own private chat', async () => {
     process.env.TELEGRAM_ADMIN_IDS = '7'
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aCatalog())
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aWiring())
 
     await handle(route, privateDelivery(7))
     await handle(route, privateDelivery(42))
@@ -148,10 +150,60 @@ describe('every key is read at boot', () => {
       delete process.env[key]
 
       try {
-        expect(() => telegramWebhookRoute({ onCallback: noPress }, aCatalog())).toThrow(`${key} is not set`)
+        expect(() => telegramWebhookRoute({ onCallback: noPress }, aWiring())).toThrow(`${key} is not set`)
       } finally {
         process.env[key] = held
       }
     })
   }
+})
+
+describe('telegramWebhookRoute, on who gets which turn', () => {
+  afterEach(() => { delete process.env.TELEGRAM_ADMIN_IDS })
+
+  function roles() {
+    const seen: { role: string; by: string }[] = []
+    const route = telegramWebhookRoute(
+      { turn: async (message) => void seen.push({ role: message.role, by: 'dispatched' }) },
+      aWiring(),
+    )
+
+    return { seen, route }
+  }
+
+  it('sends an unallowlisted private sender down the customer path, so nobody is an owner by default', async () => {
+    const { seen, route } = roles()
+
+    await handle(route, privateDelivery(7))
+
+    expect(seen).toMatchObject([{ role: 'customer' }])
+  })
+
+  it('makes the allowlisted sender an owner, and only in his own private chat', async () => {
+    process.env.TELEGRAM_ADMIN_IDS = '7'
+    const { seen, route } = roles()
+
+    await handle(route, privateDelivery(7))
+    await handle(route, delivery(SECRET, { id: -100, type: 'supergroup' }))
+
+    expect(seen.map((entry) => entry.role)).toEqual(['admin', 'customer'])
+  })
+})
+
+describe('dispatch', () => {
+  const message = (role: 'admin' | 'customer') =>
+    ({ role, chatId: '7' }) as unknown as Parameters<ReturnType<typeof dispatch>>[0]
+
+  it('runs the owner turn for an owner and the customer turn for everyone else', async () => {
+    const ran: string[] = []
+    const turn = dispatch(
+      async () => void ran.push('customer'),
+      async () => void ran.push('owner'),
+    )
+
+    await turn(message('admin'))
+    await turn(message('customer'))
+
+    expect(ran).toEqual(['owner', 'customer'])
+  })
 })
