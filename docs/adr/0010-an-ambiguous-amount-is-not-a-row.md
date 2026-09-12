@@ -29,7 +29,8 @@ either a proposal or a review, and only a proposal is saved. `price_edits` holds
 could be applied, so every row in it has an amount and a set of lines.
 
 `readAdminAudio` reports three outcomes and keeps them apart: `proposed`, `review` and
-`failed`. The turn adapter discards them; E1 wires the reply that uses them.
+`failed`. It is not a `Turn`, because a `Turn` returns nothing and the outcome is the point;
+E1 wires the reply that reads it.
 
 A proposal carries the old and the new price of every sale row it covers. The owner confirms
 against numbers, not against a percentage, and C7 has the diff it versions.
