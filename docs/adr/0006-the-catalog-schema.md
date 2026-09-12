@@ -52,6 +52,10 @@ A table holds a relationship between rows. JSON holds a value object read whole.
 NULL, because `NULL IN (...)` is NULL and a CHECK only fails on false, so one helper builds
 both the default and the override.
 
+A4 declared two ports and defaulted them to memory rather than wait: `SeenUpdates` and
+`InboundLog`. `telegram_updates` and `inbound_messages` back them, and the claim is one
+insert, so three concurrent deliveries of one update still let exactly one through.
+
 The journal opens in WAL. ADR 0001 said it already did; it opens in delete mode, and WAL is
 what a second reader and any future replica need.
 

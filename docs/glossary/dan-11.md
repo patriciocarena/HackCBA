@@ -29,3 +29,8 @@ _Avoid_: Price history, audit row
 An item together with its current price, which is what the engine reads. An item with no
 price version is not a catalog item, so it cannot be quoted.
 _Avoid_: Priced item, row with price
+
+**Claim**:
+Writing an update id into `telegram_updates`. The insert is the claim, so the first delivery
+of an update claims it and every retry reads it as already seen.
+_Avoid_: Lock, dedupe key, idempotency token
