@@ -92,4 +92,76 @@ describe('the customer sends a transfer', () => {
     expect(store.written).toEqual([])
     expect(notifier.sent).toEqual([])
   })
+  test('typed words of a transfer reach the store still fenced', async () => {
+    const store = aStore()
+    const said = fenced('ya te transferí los 45 mil, te paso el comprobante')
+    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: async () => {} })
+
+    const got = await read(aMessage({ text: said }))
+
+    expect(got).toEqual({ orderId: 'ord_1' })
+    expect(store.written[0]?.text).toBe(said)
+    expect(store.written[0]?.mediaId).toBeNull()
+  })
+
+  test('recording is evidence, so the order does not move', async () => {
+    const order = anOrder()
+    const read = readReceipt({ findOrder: async () => order, store: aStore(), notify: async () => {} })
+
+    await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(order.state).toBe('deposit_pending')
+    expect(order.depositConfirmedBy).toBeNull()
+    expect(order.depositConfirmedAt).toBeNull()
+  })
+
+  test('an order not awaiting a deposit writes nothing and tells nobody', async () => {
+    const store = aStore()
+    const notifier = aNotifier()
+    const read = readReceipt({
+      findOrder: async () => anOrder({ state: 'quoted' }),
+      store,
+      notify: notifier.notify,
+    })
+
+    const got = await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(got).toBeNull()
+    expect(store.written).toEqual([])
+    expect(notifier.sent).toEqual([])
+  })
+
+  test('no order for the conversation means this path is not interested', async () => {
+    const store = aStore()
+    const read = readReceipt({ findOrder: async () => null, store, notify: async () => {} })
+
+    expect(await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))).toBeNull()
+    expect(store.written).toEqual([])
+  })
+})
+
+describe('what the owner is told', () => {
+  test('the notice names the order and sends them to the bank', async () => {
+    const notifier = aNotifier()
+    const read = readReceipt({ findOrder: async () => anOrder(), store: aStore(), notify: notifier.notify })
+
+    await read(aMessage({ media: { kind: 'photo', id: 'AgACphoto' } }))
+
+    expect(notifier.sent).toHaveLength(1)
+    expect(notifier.sent[0]).toContain('ord_1')
+    expect(notifier.sent[0]).toContain('banco')
+  })
+
+  test('a forged receipt reaches the store and nothing the owner reads', async () => {
+    const FORGED = 'AgACforged-receipt-that-looks-right'
+    const store = aStore()
+    const notifier = aNotifier()
+    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: notifier.notify })
+
+    await read(aMessage({ media: { kind: 'photo', id: FORGED }, text: fenced(FORGED) }))
+
+    // Both legs are untrusted. The store is the only place either of them lands.
+    expect(store.written[0]?.mediaId).toBe(FORGED)
+    expect(notifier.sent[0]).not.toContain(FORGED)
+  })
 })
