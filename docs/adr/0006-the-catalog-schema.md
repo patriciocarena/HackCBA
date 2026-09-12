@@ -67,6 +67,11 @@ price, which is a bug that looks like data.
 The canonical bag is a writer's obligation the database cannot check. `canonicalAttributes` is
 the one place it is met, and the seam is small enough to keep it that way.
 
+`SCHEMA` creates and never alters. An object that exists is left alone, so changing a column
+means a statement that says so. The view is the one exception, dropped and recreated on every
+migrate, because rebuilding it costs nothing and `IF NOT EXISTS` would keep an old definition
+forever.
+
 The partial index means a duplicated add-on is caught by its slug, not by its identity. That
 is a weaker guarantee than sale rows get, and it is the guarantee the loaded list allows.
 
@@ -83,4 +88,7 @@ identity into a four column one to hold rows whose identity is not their bag.
 
 `price` on `items` with `price_versions` as an audit trail beside it. Two sources for one
 number, and the first edit that writes one and not the other is silent.
+
+An expression index over `json(attributes)` with no column. It enforces the same identity, and
+it leaves nothing to select: a rejected insert names an index instead of a value you can read.
 

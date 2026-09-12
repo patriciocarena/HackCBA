@@ -1,14 +1,16 @@
 import type { Client } from '@libsql/client'
 import { z } from 'zod'
+import type { ModuleDiscount } from '@/domain/price-for'
 import { unitSchema, type AttributeContract } from '@/domain/types'
+import { recordPrice, type Writer } from '@/storage/price-versions'
 import { canonicalAttributes, type AttributeBag } from './attributes'
-import { ITEM_TIERS } from './tiers'
+import { itemTierSchema } from './tiers'
 
 const attributeValueSchema = z.union([z.string(), z.number()])
 
 const seedItemSchema = z.object({
   id: z.string(),
-  kind: z.enum(ITEM_TIERS),
+  kind: itemTierSchema,
   label: z.string(),
   unit: unitSchema.optional(),
   attributes: z.record(z.string(), attributeValueSchema).default({}),
@@ -45,7 +47,6 @@ const seedSchema = z.object({
 
 type Seed = z.infer<typeof seedSchema>
 type SeedItem = z.infer<typeof seedItemSchema>
-type Writer = Pick<Client, 'execute'>
 
 export async function loadCatalog(client: Client, file: unknown, recordedAt: string): Promise<void> {
   const seed = seedSchema.parse(file)
@@ -61,8 +62,10 @@ export async function loadCatalog(client: Client, file: unknown, recordedAt: str
     const ids = await itemIds(write, seed.family.slug)
 
     for (const item of seed.items) {
-      await writeApplications(write, ids, item)
-      await writePrice(write, ids[item.id] as number, item.price, recordedAt)
+      const id = ids[item.id] as number
+
+      await writeApplications(write, id, item.applies_to.map((slug) => ids[slug] as number))
+      await recordPrice(write, { itemId: id, price: item.price, recordedAt })
     }
 
     await write.commit()
@@ -135,34 +138,20 @@ async function writeItem(client: Writer, familySlug: string, item: SeedItem): Pr
 
 async function writeApplications(
   client: Writer,
-  ids: Record<string, number>,
-  item: SeedItem,
+  itemId: number,
+  appliesTo: number[],
 ): Promise<void> {
   await client.execute({
     sql: 'DELETE FROM item_applications WHERE item_id = ?',
-    args: [ids[item.id] as number],
+    args: [itemId],
   })
 
-  for (const slug of item.applies_to) {
+  for (const id of appliesTo) {
     await client.execute({
       sql: 'INSERT INTO item_applications (item_id, applies_to_id) VALUES (?, ?)',
-      args: [ids[item.id] as number, ids[slug] as number],
+      args: [itemId, id],
     })
   }
-}
-
-async function writePrice(
-  client: Writer,
-  itemId: number,
-  price: number,
-  recordedAt: string,
-): Promise<void> {
-  await client.execute({
-    sql: `INSERT INTO price_versions (item_id, price, recorded_at)
-          SELECT ?, ?, ?
-          WHERE ? IS NOT (SELECT price FROM catalog_items WHERE id = ?)`,
-    args: [itemId, price, recordedAt, price, itemId],
-  })
 }
 
 async function itemIds(client: Writer, familySlug: string): Promise<Record<string, number>> {
@@ -196,7 +185,7 @@ function contractFor(name: string, bags: AttributeBag[]): AttributeContract {
   return { name, kind: 'enum', values: values.map(String).sort() }
 }
 
-function moduleDiscounts(seed: Seed) {
+function moduleDiscounts(seed: Seed): ModuleDiscount[] {
   return seed.module_discounts.map((discount) => ({
     fromModules: discount.from_modules,
     toModules: discount.to_modules,

@@ -1,8 +1,8 @@
-import { createClient, type Client } from '@libsql/client'
+import type { Client } from '@libsql/client'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { conversationId } from '@/domain/types'
-import { migrate } from '@/storage/migrate'
 import { sqliteInboundLog } from '@/storage/inbound-log'
+import { migratedDb } from '@test/support/db'
 import { localFence, type InboundMessage } from '@/telegram/inbound'
 
 const message: InboundMessage = {
@@ -19,8 +19,7 @@ const message: InboundMessage = {
 let client: Client
 
 beforeEach(async () => {
-  client = createClient({ url: 'file::memory:' })
-  await migrate(client)
+  client = await migratedDb()
 })
 
 afterEach(() => {

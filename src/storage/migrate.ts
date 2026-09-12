@@ -3,8 +3,5 @@ import { SCHEMA } from './schema'
 
 export async function migrate(client: Client): Promise<void> {
   await client.execute('PRAGMA journal_mode = WAL')
-
-  for (const statement of SCHEMA) {
-    await client.execute(statement)
-  }
+  await client.migrate([...SCHEMA])
 }

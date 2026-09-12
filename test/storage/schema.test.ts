@@ -1,13 +1,12 @@
-import { createClient, type Client } from '@libsql/client'
+import type { Client } from '@libsql/client'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { canonicalAttributes, type AttributeBag } from '@/catalog/attributes'
-import { migrate } from '@/storage/migrate'
+import { migratedDb } from '@test/support/db'
 
 let client: Client
 
 beforeEach(async () => {
-  client = createClient({ url: 'file::memory:' })
-  await migrate(client)
+  client = await migratedDb()
   await client.execute(`INSERT INTO families
     (slug, label, unit, vat_rate, vat_included, quote_validity_days, attributes)
     VALUES ('business_cards', 'Tarjetas personales', 'unit', 0.21, 1, 15, '[]')`)
@@ -48,7 +47,7 @@ describe('the identity of an item', () => {
 
     const count = await client.execute("SELECT count(*) AS n FROM items WHERE tier = 'add_on'")
 
-    await expect(Number(count.rows[0]?.n)).toBe(2)
+    expect(Number(count.rows[0]?.n)).toBe(2)
   })
 
   it('refuses a tier the domain does not declare', async () => {
@@ -71,7 +70,7 @@ describe('unit', () => {
     const row = await client.execute(`SELECT coalesce(item.unit, family.unit) AS unit
       FROM items AS item JOIN families AS family ON family.slug = item.family_slug`)
 
-    await expect(row.rows[0]?.unit).toBe('unit')
+    expect(row.rows[0]?.unit).toBe('unit')
   })
 
   it('overrides the family when an item declares one', async () => {

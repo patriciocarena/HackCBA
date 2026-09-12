@@ -1,15 +1,14 @@
-import { createClient, type Client } from '@libsql/client'
+import type { Client } from '@libsql/client'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { loadCatalog } from '@/catalog/load'
-import { migrate } from '@/storage/migrate'
+import { migratedDb } from '@test/support/db'
 
 const RECORDED_AT = '2026-09-12T08:00:00.000Z'
 
 let client: Client
 
 beforeEach(async () => {
-  client = createClient({ url: 'file::memory:' })
-  await migrate(client)
+  client = await migratedDb()
   await loadCatalog(client, await Bun.file('seed/business-cards.json').json(), RECORDED_AT)
 })
 
@@ -27,7 +26,7 @@ describe('loadCatalog', () => {
   it('writes the family with its unit and its module', async () => {
     const family = await one('SELECT * FROM families')
 
-    await expect(family.slug).toBe('business_cards')
+    expect(family.slug).toBe('business_cards')
     expect(family.unit).toBe('unit')
     expect(family.module_width_cm).toBe(8.5)
     expect(family.module_height_cm).toBe(5)
@@ -120,7 +119,7 @@ describe('a catalog that cannot be trusted', () => {
 
     const counts = await one('SELECT count(*) AS n FROM items')
 
-    await expect(counts.n).toBe(0)
+    expect(counts.n).toBe(0)
   })
 
   it('refuses an attribute the family declares and no sale row carries', async () => {

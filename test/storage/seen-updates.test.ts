@@ -1,13 +1,12 @@
-import { createClient, type Client } from '@libsql/client'
+import type { Client } from '@libsql/client'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { migrate } from '@/storage/migrate'
 import { sqliteSeenUpdates } from '@/storage/seen-updates'
+import { migratedDb } from '@test/support/db'
 
 let client: Client
 
 beforeEach(async () => {
-  client = createClient({ url: 'file::memory:' })
-  await migrate(client)
+  client = await migratedDb()
 })
 
 afterEach(() => {
