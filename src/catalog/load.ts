@@ -1,6 +1,6 @@
 import { ars } from '../domain/money'
 import type { CatalogItemKind, CatalogRow, ModuleDiscount, PriceForConfig } from '../domain/price-for'
-import { unitSchema, type FamilyContract } from '../domain/types'
+import { unitSchema, type AttributeContract, type FamilyContract } from '../domain/types'
 
 export type CatalogSeedItem = {
   id: string
@@ -48,7 +48,7 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
       seed.family.module === null
         ? null
         : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
-    attributes: [],
+    attributes: seed.family.attributes.map((name) => attributeContract(name, saleRows(rows))),
     askOrder: seed.family.ask_order,
     addOns: [],
   }
@@ -77,4 +77,24 @@ function catalogRow(item: CatalogSeedItem): CatalogRow {
     appliesToFamily: item.applies_to_family,
     price: ars(item.price),
   }
+}
+
+function attributeContract(name: string, rows: CatalogRow[]): AttributeContract {
+  const values = [
+    ...new Set(
+      rows
+        .map((row) => row.attributes?.[name])
+        .filter((value): value is string | number => value !== undefined),
+    ),
+  ]
+
+  if (values.every((value) => typeof value === 'number')) {
+    return { name, kind: 'number', values: values as number[] }
+  }
+
+  return { name, kind: 'enum', values: values.map(String) }
+}
+
+function saleRows(rows: CatalogRow[]): CatalogRow[] {
+  return rows.filter((row) => row.kind === 'sale')
 }

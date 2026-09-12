@@ -61,4 +61,38 @@ describe('loadCatalog', () => {
       { fromModules: 13, toModules: null, rate: 0.25 },
     ])
   })
+
+  it('derives each attribute contract from the values the sale rows carry', () => {
+    const { config } = loadCatalog(seed)
+
+    expect(config.family.askOrder).toEqual(['quantity', 'paper', 'sides', 'finish'])
+    expect(config.family.attributes).toEqual([
+      { name: 'quantity', kind: 'number', values: [100, 200, 1000, 500] },
+      { name: 'paper', kind: 'enum', values: ['special', 'illustration_300', 'illustration_350'] },
+      {
+        name: 'sides',
+        kind: 'enum',
+        values: ['front', 'front_and_back', 'front_color_back_grayscale'],
+      },
+      {
+        name: 'finish',
+        kind: 'enum',
+        values: [
+          'none',
+          'uv_front',
+          'opp_both_sides',
+          'opp_both_sides_uv_one_side',
+          'opp_both_sides_uv_both_sides',
+        ],
+      },
+    ])
+  })
+
+  it('leaves out a paper the list names but no sale row carries', () => {
+    const { config } = loadCatalog(seed)
+    const paper = config.family.attributes.find((attribute) => attribute.name === 'paper')
+
+    expect(seed.papers.map((entry) => entry.slug)).toContain('illustration_300_plain')
+    expect(paper?.values).not.toContain('illustration_300_plain')
+  })
 })
