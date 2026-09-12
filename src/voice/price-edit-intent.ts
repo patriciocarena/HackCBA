@@ -1,6 +1,10 @@
 import { ESCALATION_REASONS, type EscalationReason } from "../domain/types";
 import { fence } from "../security/fence";
-import { arrayTypedPaths, nullable } from "../conversation/structured-output";
+import {
+  arrayTypedPaths,
+  nullable,
+  structuredJson,
+} from "../conversation/structured-output";
 import type { FetchLike } from "./transcription";
 
 
@@ -48,6 +52,7 @@ export interface OpenRouterConfig {
 // exists to refuse. A legitimate raise above the ceiling costs one review.
 export const MAX_PERCENT = 100;
 
+const PORT = "price edit extraction";
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -221,11 +226,16 @@ export function openRouterExtraction(
         return { ok: false, reason: "the model returned no content" };
       }
 
-      try {
-        return { ok: true, intent: toIntent(JSON.parse(content)) };
-      } catch (error) {
-        return { ok: false, reason: `unparseable intent: ${String(error)}` };
-      }
+      // structuredJson throws, and the throw is not folded into `ok: false` on purpose. A
+      // schema this repo wrote and the provider refused is a deploy fault, the same kind as a
+      // missing key, and `ok: false` here means the owner was not understood. Reporting one as
+      // the other is what let a dead model layer look like a vague voice note.
+      return {
+        ok: true,
+        intent: toIntent(
+          structuredJson(content, { port: PORT, model }) as RawIntent,
+        ),
+      };
     },
   };
 }

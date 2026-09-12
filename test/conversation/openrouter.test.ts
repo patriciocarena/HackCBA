@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { openRouterModel } from '@/conversation/openrouter'
+import { SchemaDropped } from '@/conversation/structured-output'
 
 const CONFIG = { apiKey: 'sk-test', model: 'anthropic/claude-opus-5' }
 
@@ -43,6 +44,20 @@ describe('extraction', () => {
     const { fetchImpl } = answering('Claro, te ayudo con eso.')
 
     expect(openRouterModel({ ...CONFIG, fetchImpl }).extract({ system: 's', user: 'u', schema: {} })).rejects.toThrow()
+  })
+
+  test('and the throw says the schema was dropped, names the model, and is not an outage', async () => {
+    const { fetchImpl } = answering('**Claro!** Te ayudo con eso.')
+
+    expect(
+      openRouterModel({ ...CONFIG, fetchImpl }).extract({ system: 's', user: 'u', schema: {} }),
+    ).rejects.toBeInstanceOf(SchemaDropped)
+    expect(
+      openRouterModel({ ...CONFIG, fetchImpl }).extract({ system: 's', user: 'u', schema: {} }),
+    ).rejects.toThrow('customer extraction lost its schema')
+    expect(
+      openRouterModel({ ...CONFIG, fetchImpl }).extract({ system: 's', user: 'u', schema: {} }),
+    ).rejects.toThrow(CONFIG.model)
   })
 
   test('a refused request throws with the status on it', async () => {

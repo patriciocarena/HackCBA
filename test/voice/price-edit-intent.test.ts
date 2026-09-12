@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { SchemaDropped } from "@/conversation/structured-output";
 import { ESCALATION_REASONS } from "../../src/domain/types";
 import {
   extractionFromEnv,
@@ -312,15 +313,11 @@ describe("an outage is not the owner being vague", () => {
       "a completion with no content",
       async () => new Response(JSON.stringify({ choices: [] }), { status: 200 }),
     ],
-    [
-      "content the model did not render as JSON",
-      async () =>
-        new Response(
-          JSON.stringify({ choices: [{ message: { content: "sure thing!" } }] }),
-          { status: 200 },
-        ),
-    ],
   ];
+
+  // Content the model did not render as JSON used to be the fourth row here. It is not an
+  // outage: the request succeeded and the envelope was well formed, so the only thing that
+  // went wrong is a schema this repo wrote. It throws now, and the case below pins that.
 
   for (const [name, impl] of outages) {
     test(`${name} is reported as a failure, not as a review`, async () => {
@@ -387,5 +384,27 @@ describe("the shape refuses to represent a half known edit", () => {
     const rejected: PriceEditIntent = missingChange;
 
     expect(rejected).toBeDefined();
+  });
+});
+
+describe("a response that lost its schema", () => {
+  test("throws instead of reporting ok: false, which this module reserves for an outage", async () => {
+    const port = openRouterExtraction({
+      apiKey: "sk-test",
+      model: "anthropic/claude-sonnet-5",
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            choices: [{ message: { content: "**Claro!** Entiendo que querés subir un 20%." } }],
+          }),
+          { status: 200 },
+        ),
+    });
+
+    expect(port.extract("subime un 20% las tarjetas")).rejects.toBeInstanceOf(SchemaDropped);
+    expect(port.extract("subime un 20% las tarjetas")).rejects.toThrow(
+      "price edit extraction lost its schema",
+    );
+    expect(port.extract("subime un 20% las tarjetas")).rejects.toThrow("anthropic/claude-sonnet-5");
   });
 });
