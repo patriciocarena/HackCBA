@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { businessCards, catalogRows } from '@/catalog/business-cards'
-import { confirmingPrints, workOrders, workOrderText } from '@/conversation/work-order'
+import { confirmingPrints, printingSale, workOrders, workOrderText } from '@/conversation/work-order'
 import { inMemorySale } from '@/conversation/sale'
 import { priceFor } from '@/domain/price-for'
 import { conversationId, type Order } from '@/domain/types'
@@ -224,5 +224,35 @@ describe('nothing a customer wrote reaches the page the owner acts on', () => {
     expect(lines.filter((one) => one.startsWith('Cobrado:'))).toEqual([
       `Cobrado: ${pesos(totalOf(BREAKDOWN))}, seña confirmada.`,
     ])
+  })
+})
+
+describe('the sale everything holds is the one that prints', () => {
+  test('confirming through it prints the job without anyone having asked', async () => {
+    const wiring = wired()
+    const held = inMemorySale({ alias: 'dante.imprenta.mp', now: () => QUOTED_AT, id: () => 'x' })
+    const sale = printingSale(held, wiring.deliver)
+
+    sale.hold(CUSTOMER, PRICED)
+    sale.accept(CUSTOMER, { kind: 'person', id: OWNER })
+
+    const outcome = sale.confirmDeposit(CUSTOMER, { kind: 'person', id: OWNER }, (id) => id === OWNER)
+    await Promise.resolve()
+
+    expect(outcome.ok).toBe(true)
+    expect(wiring.sent).toHaveLength(1)
+    expect(wiring.sent[0]?.text).toContain('ORDEN')
+  })
+
+  test('and the order it reports is the confirmed one, so orderFor still works through it', async () => {
+    const wiring = wired()
+    const sale = printingSale(inMemorySale({ alias: 'a', now: () => QUOTED_AT, id: () => 'x' }), wiring.deliver)
+
+    sale.hold(CUSTOMER, PRICED)
+    sale.accept(CUSTOMER, { kind: 'person', id: OWNER })
+    sale.confirmDeposit(CUSTOMER, { kind: 'person', id: OWNER }, (id) => id === OWNER)
+    await Promise.resolve()
+
+    expect(sale.orderFor(CUSTOMER)?.state).toBe('deposit_confirmed')
   })
 })

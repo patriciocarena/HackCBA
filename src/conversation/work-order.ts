@@ -111,10 +111,9 @@ export type ConfirmAndPrint = (
 ) => Promise<DepositOutcome>
 
 /**
- * The one funnel. `Sale.confirmDeposit` is the only edge into deposit_confirmed, so wrapping
- * it is what makes the work order fire from the state change rather than from whoever
- * remembered to send it. Every path that confirms a deposit calls this instead of the sale's
- * own method, and a path that does not is a job nobody prints.
+ * The one funnel, for a caller that can await. `Sale.confirmDeposit` is the only edge into
+ * deposit_confirmed, so wrapping it is what makes the work order fire from the state change
+ * rather than from whoever remembered to send it.
  */
 export function confirmingPrints(sale: Sale, deliver: DeliverWorkOrder): ConfirmAndPrint {
   return async (conversationId, by, isAdmin) => {
@@ -122,5 +121,29 @@ export function confirmingPrints(sale: Sale, deliver: DeliverWorkOrder): Confirm
     if (confirmed.ok) await deliver(confirmed.order)
 
     return confirmed
+  }
+}
+
+/**
+ * The same funnel wearing the `Sale` interface, so a path that confirms a deposit prints the
+ * job without having been told to. Every holder of the sale gets it, which is the difference
+ * between a rule the next lane has to remember and one it cannot avoid.
+ *
+ * ponytail: `Sale.confirmDeposit` is synchronous because the domain under it is pure, so the
+ * send is started and not awaited, and a send that fails is swallowed. Same trade as the
+ * confirm reply: the deposit is already confirmed, and the alternative is throwing out of a
+ * sync domain call to undo nothing. The delivery is idempotent, so the retry that follows a
+ * failure is safe; what is missing is a logger, and this is where the failure gets reported
+ * when there is one.
+ */
+export function printingSale(sale: Sale, deliver: DeliverWorkOrder): Sale {
+  return {
+    ...sale,
+    confirmDeposit(conversationId, by, isAdmin) {
+      const confirmed = sale.confirmDeposit(conversationId, by, isAdmin)
+      if (confirmed.ok) void deliver(confirmed.order).catch(() => {})
+
+      return confirmed
+    },
   }
 }
