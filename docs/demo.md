@@ -49,7 +49,7 @@ Not run by me, and why:
   both extraction paths answer and the owner's voice note round-trips to
   `tarjetas personales raise by 20%`.
 - **Steps 2, 3 and 4.** Pinned by tests rather than driven through the route here:
-  `test/domain/module-math.test.ts:83` for `$162.000`, and `test/conversation/adversarial.test.ts`
+  `test/domain/module-math.test.ts:83` for `$162.000`, and `test/security/adversarial.test.ts`
   for the injection.
 - **Anything on a phone.** Every claim below about what Telegram renders is unverified.
 - **dan-34 and dan-37.** Not merged. Their output is not quoted anywhere in this file.
@@ -297,7 +297,7 @@ Ranked by what each step proves, best first.
 | 1 | 1 | Without a quote there is no product |
 | 2 | 5 | The owner runs his own price list by talking to it |
 | 3 | 3 | The client's stated pain. The bot he has invents things |
-| 4 | 6 | Money moves when a person says it moved, and the order holds its price |
+| 4 | 6 | The agent confirms the money itself, and the order holds its price |
 | 5 | 2 | It is not a lookup table |
 | 6 | 4 | It is safe, but on screen it is a non-event |
 
