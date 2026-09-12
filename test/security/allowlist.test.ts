@@ -96,7 +96,7 @@ describe('adminAllowlist', () => {
     expect(isAdmin('123 ')).toBe(false)
   })
 
-  test('reads a duplicated entry once', () => {
+  test('reads a duplicated entry without refusing the list', () => {
     const isAdmin = adminAllowlist({ ids: '123,123' })
 
     expect(isAdmin('123')).toBe(true)
