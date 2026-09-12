@@ -1,9 +1,8 @@
-import { totalOf } from '../domain/breakdown'
 import { answerFromFacts, factsBlock, type Fact } from '../domain/facts'
 import { DELEGATE, OUT_OF_CATALOG } from '../domain/handoff'
 import { configFor } from '../catalog/families'
 import { priceFor, type CatalogRow } from '../domain/price-for'
-import { askText, pesos, quoteText } from '../domain/quote-text'
+import { askText, quoteText } from '../domain/quote-text'
 import {
   quoteIntentSchema,
   type EscalationReason,
@@ -13,12 +12,13 @@ import {
   type OtherIntent,
   type QuoteIntent,
   type Resolution,
+  type Role,
   type TurnState,
 } from '../domain/types'
 import { fence } from '../security/fence'
 import type { InboundMessage } from '../telegram/inbound'
-import { extractionSchema, EXTRACTION_REASONS, EXTRACTION_SYSTEM, WRITING_SYSTEM, INTRODUCTION } from './prompt'
-import { ONLY_AUDIO } from './admin-turn'
+import { extractionSchema, ADMIN_INTRODUCTION_PROMPT, EXTRACTION_REASONS, EXTRACTION_SYSTEM, WRITING_SYSTEM, INTRODUCTION } from './prompt'
+import { ADMIN_INTRODUCTION, NOT_LOADED, ONLY_AUDIO, WHAT_I_CAN_DO } from './admin-turn'
 import { depositText, type Sale } from './sale'
 
 export type Extract = (request: { system: string; user: string; schema: object }) => Promise<unknown>
@@ -95,14 +95,19 @@ export async function turn(
   // What this conversation has already asked, for the family it is now about. A message that
   // names a new family asks nothing twice, however many of the names repeat.
   const asked = askedFor(state, resolved)
-  // Everything the customer has said, which a family switch does not unsay.
-  const stated = [...new Set([...state.stated, ...Object.values(resolved.attributes).map(String)])]
-  const settled = settle(resolved.resolution, asked)
+  const settled = toldToTheOwner(settle(resolved.resolution, asked), message, state)
   const answer = answerOf(settled)
+
+  // An instruct is Dante's own sentence, not an answer to be phrased. It is said as written,
+  // because the writer would paraphrase the one wording the owner picked, and it spends no
+  // model call, which is what a greeting on stage should cost.
+  if (settled.kind === 'instruct') {
+    return { reply: answer, resolution: settled, state: nextState(state, settled, resolved, asked) }
+  }
 
   const reply = await deps
     .write({
-      system: writingSystem(state),
+      system: writingSystem(state, message.role),
       user: writingUser(deps, fenced, answer),
       thread: message.conversationId,
       resource: message.senderId,
@@ -110,17 +115,14 @@ export async function turn(
     .catch(() => null)
 
   // A writer that never answered owes the customer the one sentence that does not need it.
-  // A writer that answered with an amount it was not given is told nothing back, because
-  // anything said after that would be a second chance to state the wrong number.
   if (reply === null) {
-    return { reply: DELEGATE, resolution: escalate('ambiguous'), state: { ...state, escalated: true } }
+    return { reply: DELEGATE, resolution: escalate('ambiguous'), state: { ...state, escalated: ends(message) } }
   }
 
-  if (!amountsHold(reply, answer, fenced, settled, state.amounts, stated)) {
-    return silence({ ...state, escalated: true })
-  }
-
-  return { reply, resolution: settled, state: nextState(state, settled, resolved, answer, asked, stated) }
+  // Whatever it wrote is what is sent. ADR 0010's guard used to read the reply first and refuse
+  // it, and ADR 0027 says why it is gone: it answered a refusal with silence, and silence in
+  // front of a customer is the one failure nobody in the shop can recover from.
+  return { reply, resolution: settled, state: nextState(state, settled, resolved, asked) }
 }
 
 function silence(state: TurnState): TurnResult {
@@ -225,6 +227,33 @@ function escalate(reason: EscalationReason, detail: string = DELEGATE): Resoluti
   return { kind: 'escalate', reason, detail }
 }
 
+/**
+ * The owner is never handed to a person: he is the person.
+ *
+ * ADR 0011 closes a conversation on its first escalation so a customer who was told somebody
+ * will answer stops talking to a bot that has stopped answering. Applied to the owner's chat it
+ * takes down the only text channel the shop is run from, and it did: one "hola" extracted as
+ * `other`, escalated, and every message after it got silence. His voice notes survived only
+ * because `adminTurn` reads them before this turn ever runs.
+ *
+ * Converting here rather than at each `escalate` call is what makes it hold for all of them at
+ * once: the greeting, a fact nobody loaded, a family the list does not carry, an attribute asked
+ * twice, the five reasons extraction states, and the catch around `resolve`.
+ */
+function toldToTheOwner(resolution: Resolution, message: InboundMessage, state: TurnState): Resolution {
+  if (message.role !== 'admin' || resolution.kind !== 'escalate') return resolution
+
+  // One sentence for everything he cannot be answered, the way ADR 0012 gives the customer one.
+  if (resolution.reason !== 'ambiguous') return { kind: 'instruct', text: NOT_LOADED }
+
+  return { kind: 'instruct', text: state.introduced ? WHAT_I_CAN_DO : ADMIN_INTRODUCTION }
+}
+
+/** Whether this message's escalation closes the conversation. ADR 0011, and who it is for. */
+function ends(message: InboundMessage): boolean {
+  return message.role !== 'admin'
+}
+
 function statedReason(raw: unknown): EscalationReason | null {
   const stated = (raw as Record<string, unknown>)?.reason
 
@@ -312,86 +341,31 @@ function nextState(
   state: TurnState,
   resolution: Resolution,
   resolved: Resolved,
-  answer: string,
   asked: string[],
-  stated: string[],
 ): TurnState {
   return {
     ...state,
     attributes: resolved.attributes,
-    stated,
     family: resolved.family ?? state.family,
-    amounts: [...new Set([...state.amounts, ...amountsIn(answer)])],
     introduced: true,
     escalated: resolution.kind === 'escalate',
     asked: resolution.kind === 'ask' ? [...new Set([...asked, ...resolution.missing])] : asked,
   }
 }
 
-function writingSystem(state: TurnState): string {
-  return state.introduced ? WRITING_SYSTEM : `${WRITING_SYSTEM}\n\n${INTRODUCTION}`
+/**
+ * The writer's rules, plus an introduction on the first message of a conversation and never
+ * after it. Which introduction is the role's: the owner is not at the counter, and ADR 0026
+ * covered only the sentences he reads instead of an escalation. A price question from him on
+ * message one comes through here.
+ */
+function writingSystem(state: TurnState, role: Role): string {
+  if (state.introduced) return WRITING_SYSTEM
+
+  return `${WRITING_SYSTEM}\n\n${role === 'admin' ? ADMIN_INTRODUCTION_PROMPT : INTRODUCTION}`
 }
 
 function writingUser(deps: TurnDeps, fenced: string, answer: string): string {
   return [factsBlock(deps.facts), fenced, fence(answer, 'respuesta')].join('\n\n')
 }
 
-const AMOUNT = /\$\s*[\d.,]*\d/g
-const NUMBER = /\d[\d.,]*/g
-const DELIMITER = /<\/?[a-z][a-z0-9_]*:[0-9a-f]{32}>/g
-
-// ponytail: the floor is what keeps a quantity from reading as a price. The cheapest row in
-// the catalog is 12100, so nothing a customer is charged can hide under it. Drop the floor and
-// compare against the catalog's own minimum when a row goes cheaper than this.
-const FLOOR = 1000
-
-export function amountsIn(text: string): string[] {
-  return text.match(AMOUNT) ?? []
-}
-
-/** Every number as the guard compares them, so `37.190` and `37190` are one value. */
-function numbersIn(text: string): string[] {
-  return (text.match(NUMBER) ?? []).map((run) => run.replace(/[.,]/g, ''))
-}
-
-/** The customer's words without the fence around them: a nonce is hex and hex carries digits. */
-function said(fenced: string): string {
-  return fenced.replace(DELIMITER, '')
-}
-
-/**
- * A reply may stand only on numbers it was given. A pesos sign is the shape a price usually
- * has, and the prompt cannot stop a model writing `37190 pesos` or `ARS 30.000` instead, so
- * every number above the floor has to come from the answer or from the customer's own message.
- */
-function amountsHold(
-  reply: string,
-  answer: string,
-  fenced: string,
-  resolution: Resolution,
-  earlier: string[],
-  stated: string[],
-): boolean {
-  // A pesos sign may only ever come from the engine: this turn's answer, or an amount it
-  // already gave this conversation. Nothing the customer said widens this set.
-  const shaped = new Set([...amountsIn(answer), ...earlier])
-  if (amountsIn(reply).some((amount) => !shaped.has(amount))) return false
-
-  // A bare number may also be one the customer stated themselves. `quantity: 1000` sits on the
-  // floor, so once the writer has a memory it says "las 1000 tarjetas" in a turn whose message
-  // never repeats the number, and without this the reply is refused and the customer hears
-  // nothing. An attribute is the customer's own word, read under a strict schema, and repeating
-  // it invents no price.
-  //
-  // Their words across the whole conversation, not the family's pricing bag: a conversation that
-  // moves to another product clears the bag and does not unsay what was said before it.
-  const given = new Set([
-    ...numbersIn(answer),
-    ...numbersIn(said(fenced)),
-    ...numbersIn(earlier.join(' ')),
-    ...numbersIn(stated.join(' ')),
-  ])
-  if (numbersIn(reply).some((number) => Number(number) >= FLOOR && !given.has(number))) return false
-
-  return resolution.kind !== 'price' || reply.includes(pesos(totalOf(resolution.breakdown)))
-}

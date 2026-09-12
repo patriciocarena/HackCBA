@@ -44,7 +44,5 @@ function opening(conversationId: ConversationId): TurnState {
     introduced: false,
     family: null,
     attributes: {},
-    stated: [],
-    amounts: [],
   }
 }

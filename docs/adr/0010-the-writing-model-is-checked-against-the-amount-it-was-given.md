@@ -4,7 +4,9 @@ Date: 2026-09-12
 
 ## Status
 
-Accepted.
+Superseded by ADR 0027, which drops the guard. The reasoning below is kept because it is the
+argument for what was given up: a refused reply was answered with silence, and silence in front
+of a customer is what got it dropped.
 
 ## Context
 

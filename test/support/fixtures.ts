@@ -63,3 +63,12 @@ export const SPECIAL_100 = {
   sides: 'front',
   finish: 'none',
 } as const
+
+/**
+ * Every pesos-shaped run in a text, which is what a test asserts a reply does and does not
+ * carry. It was `turn.ts`'s own helper while the ADR 0010 guard read replies; ADR 0027 dropped
+ * the guard, and the assertion is the half worth keeping.
+ */
+export function amountsIn(text: string): string[] {
+  return text.match(/\$\s*[\d.,]*\d/g) ?? []
+}

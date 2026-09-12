@@ -306,3 +306,53 @@ new tests outnumbered what they replaced, so nothing said anything was gone. Onl
 Check the path exists before writing to it, and read a diffstat for deletions in files you meant
 only to add to. A passing suite does not prove you did not delete a test: it proves the tests
 that are still there pass.
+
+## "The demo runs" only covers the paths the runbook walks
+
+2026-09-12. `eval:demo` came back 37/37 and I reported the demo was ready. Javier then typed
+`hola` as the owner and got the customer's greeting plus the customer's handoff line. Worse,
+his next two messages got nothing at all: the greeting extracted as `other`, escalated, and
+ADR 0011 closed his conversation for the life of the process. One message bricked the channel
+the shop is run from.
+
+Nothing was wrong with the eval. It mirrors `docs/demo-live.md`, and in the runbook the owner
+only ever sends a voice note and presses a button. So the owner's *text* path had no coverage
+anywhere, and the suite was green because no test asked the question.
+
+Before calling a demo ready, list the roles the system has and ask what each one can send that
+the script does not. Here it was two roles times four message kinds, and the runbook exercised
+five of the eight cells. A green eval says the rehearsed path works, never that the unrehearsed
+one does, and the first thing anybody does with a chat bot is say hello to it.
+
+Related: an escalation rule inherited by a second role is worth re-reading as that role. ADR
+0011 is right for the customer it was written for and was never reconsidered for the owner, who
+is the person it hands conversations to.
+
+## A fixed sentence written for one turn reads as a stall on the next
+
+2026-09-12. ADR 0026 gave the owner "¿En qué te puedo servir?" for every message the engine
+cannot read. On the first message it is a greeting. On the second it is a bot with nothing to
+say, and he said so: "Dante has to have conscience of what he can do." The same sentence also
+offered twice inside the greeting, "estoy a tu servicio" then "en qué te puedo servir".
+
+Two habits come out of it. Read a canned reply twice in a row before shipping it, because the
+second reading is the one the user gets when their message does not parse. And when a fallback
+has nothing to answer, spend it on what the channel *can* do instead of asking the question
+again: the three clauses that replaced it are the three capabilities the code actually has, and
+the test pins them so a fourth cannot be promised.
+
+One offer per sentence. `servicio` and `servir` in the same breath is the same offer twice.
+
+## The silence a guard produces is the failure nobody sees
+
+2026-09-12. ADR 0010's amount guard refused any reply carrying a number the engine had not
+given, and answered the refusal with silence. On the ask branch no amount is allowed at all, so
+a writer offering "¿1000 o 2000?" lost the whole reply and a client's first message got nothing.
+The guard was correct and the outcome was a dead bot in front of a customer.
+
+A refusal needs a fallback, not an absence. The writer-failure branch two lines above it already
+had one: DELEGATE, a constant with no number in it. Two branches of the same function disagreed
+about what a customer is owed when the shop cannot answer, and only one of them was ever read.
+
+Whenever a check can reject, ask what the user sees when it does. "Nothing" is an answer that
+has to be chosen on purpose, and it almost never survives contact with a live demo.

@@ -70,6 +70,21 @@ Puede que además te llegue contexto de lo que ya se habló en esta conversació
 export const INTRODUCTION = `Es tu primer mensaje en esta conversación: presentate en una frase, "Soy Dante, asesoro y tomo los pedidos de Multimpresos", y seguí con lo que tengas que contestar.`
 
 /**
+ * The same first message, when the person writing owns the shop.
+ *
+ * ADR 0026 gave him his own greeting, and it only covered the escalations: a price question or
+ * a fact on his first message settles as an answer, goes to the writer, and the writer was
+ * handed the line above. He read "asesoro y tomo los pedidos de Multimpresos" on his own phone,
+ * which is what the counter says to a customer.
+ *
+ * It is the writer saying it rather than the constant, because this message also carries a
+ * price or a fact and the shop answers in one message. `agente` is his word on his own channel,
+ * which is the ADR 0021 exception ADR 0026 carries, and the half that faces customers is pinned
+ * without it in `test/conversation/prompt.test.ts`.
+ */
+export const ADMIN_INTRODUCTION_PROMPT = `Es tu primer mensaje en esta conversación y quien escribe es el dueño del negocio, no un cliente: presentate en una frase, "Soy Dante, tu agente de administración del negocio y atención al cliente", y seguí con lo que tengas que contestar.`
+
+/**
  * `factKeys` are the keys the shop actually loaded, and offering them as an enum is ADR 0005's
  * rule applied to a fact: a key nobody loaded is a key extraction cannot name. It was the one
  * open string in this schema, and an open string means the model picks the word. "hours" on

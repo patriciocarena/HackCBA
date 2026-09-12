@@ -19,6 +19,40 @@ const NOT_HEARD = 'No pude escuchar ese audio. Mandámelo de nuevo.'
 export const ONLY_AUDIO = 'Soy el canal de los precios. Mandame un audio con el cambio y te lo propongo.'
 
 /**
+ * What the owner reads, and it is not what a customer reads.
+ *
+ * "Agente" is deliberate here and stays out of the customer's greeting, where ADR 0021 removed
+ * it because Javier heard it on a customer's phone and objected: in rioplatense it is a
+ * salesperson on commission. On his own channel the word means what he means by it, and he is
+ * the one who asked for this sentence.
+ */
+export const ADMIN_INTRODUCTION =
+  '¡Hola! ¿Cómo estás? Soy Dante, tu agente de administración del negocio y atención al cliente, estoy a tu servicio. ¿Qué necesitás?'
+
+/**
+ * What he reads after the introduction, and it is not the introduction's offer said again.
+ *
+ * He got "¿En qué te puedo servir?" twice, once inside the greeting and once on his next
+ * message, and asked what Dante is for. The three clauses here are his channel: `readAdminAudio`
+ * turns a voice note into a price proposal, the customer turn prices a family the list carries,
+ * and `answerFromFacts` reads `seed/facts.json`. There is no fourth, and a sentence that offered
+ * one would be the invention the rest of this repo refuses.
+ */
+export const WHAT_I_CAN_DO =
+  'Te cambio un precio si me mandás un audio, te paso un precio de la lista y te doy los datos del local. ¿Qué necesitás?'
+
+/**
+ * Every other thing the engine cannot answer him, in one sentence, the way ADR 0012 gives the
+ * customer one: the reason is audit metadata, not a branch.
+ *
+ * It tells him what a customer would have got, which is the coverage gap reported to the one
+ * person who can close it. It does not say "cargámelo": facts come from `seed/facts.json` and
+ * not from a message, and a sentence that offers what Dante cannot do is the invention this
+ * whole repo is built against.
+ */
+export const NOT_LOADED = 'Eso no lo tengo cargado. Si lo pregunta un cliente, se lo paso al local.'
+
+/**
  * The owner's voice note, turned into a proposal he can agree to. The inbound half of step 5:
  * nothing here applies anything, and the button it sends is the only way the edit lands.
  *

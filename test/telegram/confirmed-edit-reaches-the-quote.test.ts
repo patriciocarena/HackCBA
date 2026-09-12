@@ -62,7 +62,7 @@ function message(): InboundMessage {
 }
 
 function opening(): TurnState {
-  return { conversationId: conversationId('telegram', '42', 'customer'), asked: [], escalated: false, introduced: true, family: null, attributes: {}, stated: [], amounts: [] }
+  return { conversationId: conversationId('telegram', '42', 'customer'), asked: [], escalated: false, introduced: true, family: null, attributes: {} }
 }
 
 /** What the catalog says the answer is, computed the way the engine computes it. */

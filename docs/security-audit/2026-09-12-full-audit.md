@@ -15,7 +15,7 @@ análisis estático).
 | M1 | 🟡 Medio | FENCE_SECRET degrada en silencio si falta, en vez de fallar el boot | `src/security/fence.ts` |
 | M2 | 🟡 Medio | Race condition en TurnState (ya conocida por el equipo) | `src/conversation/customer-turn.ts` |
 | M3 | 🟡 Medio | /health/db sin auth, hace escritura real de DB sin rate limit | `src/health/route.ts` |
-| N1 | 🟢 Bajo/Info | Sin guardrail de salida contra fuga de system prompt en redacción — mitigado porque no hay secretos/authz embebidos en el prompt | `src/conversation/prompt.ts`, `turn.ts` (amountsHold) |
+| N1 | 🟠 Medio | Sin guardrail de salida. `amountsHold` fue eliminado (ADR 0027), así que un redactor que obedece un precio inyectado lo dice: el importe que llega al cliente ya no se verifica contra el que calculó el motor | `src/conversation/prompt.ts`, `turn.ts` |
 | L1 | 🟢 Bajo | Bot token en URL en set-webhook.ts | `src/telegram/set-webhook.ts` |
 | L2 | 🟢 Bajo | Texto de error de proveedor sin sanitizar en script manual | `scripts/` |
 

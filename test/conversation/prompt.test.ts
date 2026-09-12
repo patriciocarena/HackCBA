@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { EXTRACTION_REASONS, extractionSchema, INTRODUCTION, WRITING_SYSTEM } from '@/conversation/prompt'
 import { NO_MEDIA } from '@/conversation/turn'
+import { ADMIN_INTRODUCTION, NOT_LOADED, ONLY_AUDIO, WHAT_I_CAN_DO } from '@/conversation/admin-turn'
 import { businessCards } from '@/catalog/business-cards'
 import { LOADED_FAMILIES } from '@/catalog/families'
 
@@ -238,5 +239,61 @@ describe('the extraction schema over every loaded family', () => {
     expect(many.properties.attributes.required.sort()).toEqual(
       Object.keys(many.properties.attributes.properties).sort(),
     )
+  })
+})
+
+/**
+ * The owner's own sentences, which are the third place Dante introduces himself and the only
+ * one a customer never reads. ADR 0026: his conversation does not end, so what would have been
+ * an escalation is one of these instead, said as written and never through the writer.
+ */
+describe('what the owner reads is not what a customer reads', () => {
+  test('he gets his own introduction, not the counter’s', () => {
+    expect(ADMIN_INTRODUCTION).toContain('Dante')
+    expect(ADMIN_INTRODUCTION).not.toContain(INTRODUCTION)
+    expect(ADMIN_INTRODUCTION).not.toContain('asesoro y tomo los pedidos')
+  })
+
+  // ADR 0021 banned the word where he complained about it, which is the customer's greeting.
+  // Here he asked for it. The pin above on INTRODUCTION is what keeps the two apart.
+  test('the word he objected to on a customer’s phone is his to use on his own', () => {
+    expect(ADMIN_INTRODUCTION).toContain('agente')
+    expect(INTRODUCTION).not.toContain('agente')
+  })
+
+  // He read it and said the offer lands twice: "estoy a tu servicio" and then "en qué te puedo
+  // servir" are the same sentence said twice in one breath.
+  test('the introduction offers once, and the offer is a question he can answer', () => {
+    expect(ADMIN_INTRODUCTION).toContain('estoy a tu servicio')
+    expect(ADMIN_INTRODUCTION).toContain('¿Qué necesitás?')
+    expect(ADMIN_INTRODUCTION).not.toContain('servir')
+  })
+
+  /**
+   * The second time he writes something the engine cannot read, repeating the same offer tells
+   * him nothing he did not already know. What replaces it is the three things his channel does,
+   * and it is pinned to them: a sentence that offers a fourth is the invention this repo refuses.
+   */
+  test('after the introduction he is told what Dante can do, not asked again', () => {
+    expect(WHAT_I_CAN_DO).toMatch(/audio/i)
+    expect(WHAT_I_CAN_DO).toMatch(/precio/i)
+    expect(WHAT_I_CAN_DO).toContain('¿Qué necesitás?')
+    expect(WHAT_I_CAN_DO).not.toContain('servir')
+  })
+
+  test('none of his sentences hands him to a person, because he is the person', () => {
+    for (const sentence of [ADMIN_INTRODUCTION, WHAT_I_CAN_DO, NOT_LOADED, ONLY_AUDIO]) {
+      expect(sentence).not.toMatch(/humano|delego|derivo|te paso con|te contestamos/i)
+    }
+  })
+
+  /**
+   * What a customer would have been told, reported to the one person who can load it. It must
+   * not offer to take the value here: facts come from seed/facts.json, and a sentence promising
+   * what Dante cannot do is the invention the rest of this repo is built to refuse.
+   */
+  test('an unloaded fact names the gap and promises nothing', () => {
+    expect(NOT_LOADED).toMatch(/no lo tengo cargado/i)
+    expect(NOT_LOADED).not.toMatch(/cargá|mandame|pasame/i)
   })
 })

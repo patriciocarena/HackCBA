@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'bun:test'
 import { LOADED_FAMILIES } from '@/catalog/families'
 import { DELEGATE } from '../../src/domain/handoff'
-import { amountsIn, NO_MEDIA, turn, type TurnDeps, type TurnResult } from '@/conversation/turn'
-import { ONLY_AUDIO } from '@/conversation/admin-turn'
+import { NO_MEDIA, turn, type TurnDeps, type TurnResult } from '@/conversation/turn'
+import { ADMIN_INTRODUCTION, NOT_LOADED, ONLY_AUDIO, WHAT_I_CAN_DO } from '@/conversation/admin-turn'
 import { conversationId, type Role, type TurnState } from '@/domain/types'
 import type { InboundMessage } from '@/telegram/inbound'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
-import { OFFSET_1000, priceOf } from '@test/support/fixtures'
+import { amountsIn, OFFSET_1000, priceOf } from '@test/support/fixtures'
 import { totalOf } from '@/domain/breakdown'
 import { askText, pesos } from '@/domain/quote-text'
-import { EXTRACTION_REASONS, INTRODUCTION } from '@/conversation/prompt'
+import { ADMIN_INTRODUCTION_PROMPT, EXTRACTION_REASONS, INTRODUCTION } from '@/conversation/prompt'
 import { priceFor } from '@/domain/price-for'
 import { inMemorySale } from '@/conversation/sale'
 import { fence, fencer } from '@/security/fence'
@@ -42,8 +42,6 @@ function state(overrides: Partial<TurnState> = {}): TurnState {
     introduced: true,
     family: null,
     attributes: {},
-    stated: [],
-    amounts: [],
     ...overrides,
   }
 }
@@ -69,84 +67,6 @@ function priced(addOns: string[] = []): Extract<Resolution, { kind: 'price' }> {
 
   return resolution
 }
-
-describe('an amount the engine gave earlier is still the engine\'s', () => {
-  // A fact carries no amount, so the second turn's own answer cannot be where the price
-  // came from. Without the widening the only source left is this turn's message, and the
-  // guard refuses the reply.
-  const HOURS = { key: 'hours', label: 'Horario', value: 'de lunes a viernes' }
-  const quote = priced()
-  const QUOTED = pesos(totalOf(quote.breakdown))
-
-  async function quoting(): Promise<TurnResult> {
-    return await turn(
-      deps({
-        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
-        write: async () => `Te cotizo ${QUOTED} final con IVA incluido.`,
-      }),
-      message('cuánto 1000 tarjetas'),
-      state(),
-    )
-  }
-
-  test('lets a later reply refer back to it, which is what history makes the writer do', async () => {
-    const quoted = await quoting()
-
-    const again = await turn(
-      deps({
-        facts: [HOURS],
-        extract: async () => ({ kind: 'fact', factKey: 'hours' }),
-        write: async () => `Abrimos ${HOURS.value}. Te había cotizado ${QUOTED}.`,
-      }),
-      message('a qué hora abren?'),
-      quoted.state,
-    )
-
-    expect(again.reply).toContain(QUOTED)
-    expect(again.state.escalated).toBeFalse()
-  })
-
-  test('lets the reply repeat a quantity the customer stated in an earlier turn', async () => {
-    const asked = await turn(
-      deps({
-        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: { quantity: 1000 }, size: null, addOns: [], factKey: null }),
-        write: async () => 'Decime el papel, las caras y la terminación.',
-      }),
-      message('quiero 1000 tarjetas'),
-      state(),
-    )
-
-    // The customer never repeats the quantity, and with a memory the writer names it anyway.
-    const priced = await turn(
-      deps({
-        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
-        write: async () => `Para las 1000 tarjetas te cotizo ${QUOTED} final con IVA incluido.`,
-      }),
-      message('ilustración 350, frente color dorso gris, sin terminación'),
-      asked.state,
-    )
-
-    expect(priced.reply).toContain(QUOTED)
-    expect(priced.state.escalated).toBeFalse()
-  })
-
-  test('still refuses an amount no turn of this conversation ever gave', async () => {
-    const quoted = await quoting()
-
-    const invented = await turn(
-      deps({
-        facts: [HOURS],
-        extract: async () => ({ kind: 'fact', factKey: 'hours' }),
-        write: async () => `Abrimos ${HOURS.value}. Te había cotizado $14.000.`,
-      }),
-      message('a qué hora abren?'),
-      quoted.state,
-    )
-
-    expect(invented.reply).toBeNull()
-    expect(invented.state.escalated).toBeTrue()
-  })
-})
 
 describe('the writer is told which conversation it is in', () => {
   test('carries the conversation as the thread and the sender as the resource', async () => {
@@ -251,39 +171,6 @@ describe('the writing model receives the computed amount', () => {
     expect(user).not.toContain(pesos(priceOf('bc_addon_extra_cut')))
     expect(user).not.toContain(String(baseConfig.family.vatRate))
   })
-
-  test('a writer that states a different amount fails the turn and sends nothing', async () => {
-    const result = await turn(
-      deps({ extract: async () => quote, write: async () => 'Te cotizo $1.000 final con IVA incluido.' }),
-      message('cuánto 1000 tarjetas'),
-      state(),
-    )
-
-    expect(result.reply).toBeNull()
-    expect(result.state.escalated).toBe(true)
-  })
-
-  test('a writer that adds a second amount next to the right one fails the turn', async () => {
-    const result = await turn(
-      deps({ extract: async () => quote, write: async () => `Te cotizo ${total}, o $9.000 sin IVA.` }),
-      message('cuánto 1000 tarjetas'),
-      state(),
-    )
-
-    expect(result.reply).toBeNull()
-    expect(result.state.escalated).toBe(true)
-  })
-
-  test('a writer that drops the amount fails the turn', async () => {
-    const result = await turn(
-      deps({ extract: async () => quote, write: async () => 'Te paso el precio por privado.' }),
-      message('cuánto 1000 tarjetas'),
-      state(),
-    )
-
-    expect(result.reply).toBeNull()
-    expect(result.state.escalated).toBe(true)
-  })
 })
 
 describe('it introduces itself once', () => {
@@ -311,21 +198,6 @@ describe('it introduces itself once', () => {
 
     expect(result.reply).not.toBeNull()
     expect(result.state.introduced).toBe(true)
-  })
-
-  test('a reply the guard refused leaves the conversation unintroduced', async () => {
-    const result = await turn(
-      deps({
-        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
-        write: async () => 'Te cotizo $1.000 final con IVA incluido.',
-      }),
-      message('cuánto 1000 tarjetas'),
-      state({ introduced: false }),
-    )
-
-    expect(result.reply).toBeNull()
-    expect(result.state.introduced).toBe(false)
-    expect(result.state.escalated).toBe(true)
   })
 })
 
@@ -450,12 +322,14 @@ describe('nothing told as admin reaches a customer', () => {
     )
   })
 
+  // Said as written and never handed to the writer, which is what every instruct now is: a
+  // sentence Dante says for himself, with no amount and no fact in it to be guarded.
   test('an admin asking for a price change by text is sent to the audio, not escalated', async () => {
-    let answer = ''
+    let wrote = 0
     const result = await turn(
       deps({
         extract: async () => ({ kind: 'admin_edit' }),
-        write: async (request) => { answer = request.user; return ONLY_AUDIO },
+        write: async () => { wrote += 1; return 'otra cosa' },
       }),
       message('subí las tarjetas un 20%', 'admin'),
       state({ conversationId: conversationId('telegram', '42', 'admin') }),
@@ -463,7 +337,8 @@ describe('nothing told as admin reaches a customer', () => {
 
     expect(result.resolution).toEqual({ kind: 'instruct', text: ONLY_AUDIO })
     expect(result.state.escalated).toBeFalse()
-    expect(answer).toContain(ONLY_AUDIO)
+    expect(result.reply).toBe(ONLY_AUDIO)
+    expect(wrote).toBe(0)
   })
 
   test('an admin asking for a price is quoted like anybody else', async () => {
@@ -570,19 +445,12 @@ describe('what the turn hands back to whoever wired it', () => {
     expect(result.resolution).toEqual({ kind: 'escalate', reason: 'not_authorized', detail: DELEGATE })
   })
 
+  // The one silence left. ADR 0027 dropped the amount guard, which was the other one.
   test('a reply that never left carries no resolution to act on', async () => {
-    const result = await turn(
-      deps({
-        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
-        write: async () => 'Te cotizo $1 final.',
-      }),
-      message('cuánto 1000 tarjetas'),
-      state(),
-    )
+    const result = await turn(deps(), message('seguís ahí?'), state({ escalated: true }))
 
     expect(result.reply).toBeNull()
     expect(result.resolution).toBeNull()
-    expect(result.state.escalated).toBe(true)
   })
 })
 
@@ -654,71 +522,6 @@ describe('the reasons only extraction can raise', () => {
   })
 })
 
-describe('the amount guard reads numbers, not only pesos signs', () => {
-  const quote = { kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }
-  const discount = { kind: 'other', reason: 'commercial_discount' }
-  const total = pesos(totalOf(priced().breakdown))
-
-  async function sent(written: string, answered: Record<string, unknown>, said: string): Promise<string | null> {
-    const result = await turn(
-      deps({ extract: async () => answered, write: async () => written }),
-      message(said),
-      state(),
-    )
-
-    return result.reply
-  }
-
-  test('two spaces after the pesos sign is an amount, not a gap in the pattern', async () => {
-    expect(await sent(`Te cotizo ${total} con IVA, o $  35.000 sin IVA.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
-  })
-
-  test('the same gap on the escalate branch, where no amount may be stated at all', async () => {
-    expect(await sent('Te dejo las 2000 en $  30.000. ${DELEGATE}', discount, 'me hacen precio por 2000?')).toBeNull()
-  })
-
-  test('an amount the model wrote without a pesos sign is still an amount', async () => {
-    expect(await sent(`Te cotizo ${total} final con IVA. Sin IVA serían 37190 pesos.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
-    expect(await sent(`Te cotizo ${total} final. Neto: 37.190 + IVA.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
-    expect(await sent(`Te cotizo ${total}. Con descuento por volumen: ARS 30.000.`, quote, 'cuánto 1000 tarjetas')).toBeNull()
-  })
-
-  test('and on the escalate branch a bare one is the whole of what was offered', async () => {
-    expect(await sent('Te hago 35.000 pesos si llevás 2000. ${DELEGATE}', discount, 'me hacen precio por 2000?')).toBeNull()
-  })
-
-  test('the reader of a reply sees an amount however the model spaced it', () => {
-    expect(amountsIn('Te cotizo $  35.000 sin IVA.')).toEqual(['$  35.000'])
-  })
-
-  test('the digits inside the nonce are not numbers the customer stated', async () => {
-    const fenced = fencer('fence-secret-0')('cuánto 1000 tarjetas', 'message')
-    const inNonce = '3903'
-
-    expect(fenced).toContain(inNonce)
-
-    const result = await turn(
-      deps({ extract: async () => quote, write: async () => `Te cotizo ${total} final con IVA. Sin IVA, ${inNonce}.` }),
-      { ...message('cuánto 1000 tarjetas'), text: fenced },
-      state(),
-    )
-
-    expect(result.reply).toBeNull()
-  })
-
-  test('a number the customer said is not a number the turn invented', async () => {
-    const written = `Te cotizo las 1000 tarjetas en ${total} final con IVA incluido.`
-
-    expect(await sent(written, quote, 'cuánto 1000 tarjetas ilustración 350 4/1')).toBe(written)
-  })
-
-  test('a number under the floor is a quantity or a gramaje, and the catalog has no row that cheap', async () => {
-    const written = `Te cotizo ${total} final con IVA incluido. Son 350 gramos, 4/1, en 90 días.`
-
-    expect(await sent(written, quote, 'cuánto tarjetas')).toBe(written)
-  })
-})
-
 describe('a writer that never answered', () => {
   test('still tells the customer a person is coming, instead of saying nothing', async () => {
     const result = await turn(
@@ -776,5 +579,171 @@ describe('the customer accepts the quote they were shown', () => {
 
     expect(got.state.escalated).toBe(false)
     expect(got.reply).not.toBeNull()
+  })
+})
+
+/**
+ * ADR 0011 closes a conversation on its first escalation so a customer told that a person will
+ * answer stops talking to a bot that has stopped answering. The owner is that person, and
+ * applied to his chat the rule took down the only text channel the shop is run from: one "hola"
+ * extracted as `other`, escalated, and every message he sent after it got silence.
+ */
+describe('an admin conversation does not end', () => {
+  const owner = conversationId('telegram', '42', 'admin')
+
+  function ownerState(overrides: Partial<TurnState> = {}): TurnState {
+    return state({ conversationId: owner, ...overrides })
+  }
+
+  test('his first greeting is answered with his own introduction, not the counter’s', async () => {
+    const result = await turn(deps(), message('hola', 'admin'), ownerState({ introduced: false }))
+
+    expect(result.reply).toBe(ADMIN_INTRODUCTION)
+    expect(result.state.escalated).toBeFalse()
+  })
+
+  test('the introduction is his and carries nothing a customer is told', async () => {
+    const result = await turn(deps(), message('hola', 'admin'), ownerState({ introduced: false }))
+
+    expect(result.reply).not.toContain('asesoro y tomo los pedidos')
+    expect(result.reply).not.toContain('te contestamos')
+    expect(result.reply).toContain('Dante')
+  })
+
+  test('the writer never sees it, so the wording he picked cannot be paraphrased', async () => {
+    let wrote = 0
+    const result = await turn(
+      deps({ write: async () => { wrote += 1; return 'otra cosa' } }),
+      message('hola', 'admin'),
+      ownerState({ introduced: false }),
+    )
+
+    expect(wrote).toBe(0)
+    expect(result.reply).toBe(ADMIN_INTRODUCTION)
+  })
+
+  test('he is not introduced twice: small talk after it is told what Dante can do', async () => {
+    const result = await turn(deps(), message('todo bien?', 'admin'), ownerState())
+
+    expect(result.reply).toBe(WHAT_I_CAN_DO)
+    expect(result.state.escalated).toBeFalse()
+  })
+
+  /**
+   * His first message is not always "hola". A price question on message one settles as a quote,
+   * which goes to the writer, and the writer was handed the counter's INTRODUCTION: the owner
+   * read "asesoro y tomo los pedidos de Multimpresos" on his own phone, which is the sentence
+   * ADR 0021 wrote for a customer.
+   */
+  describe('his first message is introduced as his, whatever it asks', () => {
+    // A loaded fact, because an unloaded one is NOT_LOADED and never reaches the writer at all.
+    const HOURS = { key: 'hours', label: 'Horario', value: 'de lunes a viernes de 9 a 18' }
+
+    async function firstWrite(text: string, extract: TurnDeps['extract']): Promise<string> {
+      let system = ''
+      await turn(
+        deps({ extract, facts: [HOURS], write: async (call) => { system = call.system; return 'una respuesta' } }),
+        message(text, 'admin'),
+        ownerState({ introduced: false }),
+      )
+
+      return system
+    }
+
+    const quoting: TurnDeps['extract'] = async () => ({
+      kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null,
+    })
+
+    test('a price question on his first message does not draw the counter’s introduction', async () => {
+      const system = await firstWrite('cuánto 1000 tarjetas', quoting)
+
+      expect(system).not.toContain(INTRODUCTION)
+      expect(system).toContain(ADMIN_INTRODUCTION_PROMPT)
+    })
+
+    test('a fact on his first message is introduced the same way', async () => {
+      const system = await firstWrite('qué horario tenemos?', async () => ({ kind: 'fact', factKey: 'hours' }))
+
+      expect(system).not.toContain(INTRODUCTION)
+      expect(system).toContain(ADMIN_INTRODUCTION_PROMPT)
+    })
+
+    test('a customer’s first message still draws the counter’s', async () => {
+      let system = ''
+      await turn(
+        deps({ extract: quoting, write: async (call) => { system = call.system; return 'una respuesta' } }),
+        message('cuánto 1000 tarjetas'),
+        state({ introduced: false }),
+      )
+
+      expect(system).toContain(INTRODUCTION)
+      expect(system).not.toContain(ADMIN_INTRODUCTION_PROMPT)
+    })
+
+    test('once introduced, neither of them is sent again', async () => {
+      let system = ''
+      await turn(
+        deps({ extract: quoting, write: async (call) => { system = call.system; return 'una respuesta' } }),
+        message('cuánto 1000 tarjetas', 'admin'),
+        ownerState(),
+      )
+
+      expect(system).not.toContain(INTRODUCTION)
+      expect(system).not.toContain(ADMIN_INTRODUCTION_PROMPT)
+    })
+  })
+
+  test('a fact nobody loaded tells him it is not loaded, and the chat stays open', async () => {
+    const result = await turn(
+      deps({
+        facts: [{ key: 'delivery_times', label: 'Plazos de entrega', value: null }],
+        extract: async () => ({ kind: 'fact', factKey: 'delivery_times' }),
+      }),
+      message('cuánto tardamos en entregar?', 'admin'),
+      ownerState(),
+    )
+
+    expect(result.reply).toBe(NOT_LOADED)
+    expect(result.state.escalated).toBeFalse()
+  })
+
+  test('a product the list does not carry is the same one sentence, and does not close him', async () => {
+    const result = await turn(
+      deps({ extract: async () => ({ kind: 'other', reason: 'out_of_catalog' }) }),
+      message('cuánto una gigantografía?', 'admin'),
+      ownerState(),
+    )
+
+    expect(result.reply).toBe(NOT_LOADED)
+    expect(result.state.escalated).toBeFalse()
+  })
+
+  test('a writer that fails does not lock him out either', async () => {
+    const result = await turn(
+      deps({
+        extract: async () => ({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [], factKey: null }),
+        write: async () => { throw new Error('openrouter is down') },
+      }),
+      message('cuánto salen 1000 tarjetas?', 'admin'),
+      ownerState(),
+    )
+
+    expect(result.state.escalated).toBeFalse()
+  })
+
+  test('an escalated state was never written, so nothing he sends next is silence', async () => {
+    const first = await turn(deps(), message('hola', 'admin'), ownerState({ introduced: false }))
+    const second = await turn(deps(), message('y esto?', 'admin'), first.state)
+
+    expect(second.reply).not.toBeNull()
+  })
+
+  // ADR 0011 itself. The owner is the exception and the customer is the rule.
+  test('a customer greeting still ends the conversation', async () => {
+    const first = await turn(deps({ write: async () => DELEGATE }), message('hola'), state())
+    const second = await turn(deps(), message('y esto?'), first.state)
+
+    expect(first.state.escalated).toBeTrue()
+    expect(second.reply).toBeNull()
   })
 })

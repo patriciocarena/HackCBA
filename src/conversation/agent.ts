@@ -9,11 +9,11 @@ import type { Write } from './turn'
  * The writing phase, and only the writing phase.
  *
  * Observational Memory hangs off a Memory on an Agent, so the phase that gets one has to become
- * an agent. Writing is the phase where that is safe: it receives the amount as data it may only
- * copy, and `amountsHold` in turn.ts checks the reply against the amounts the engine actually
- * gave. Extraction stays on the raw OpenRouter port with its strict schema, because an
- * observation is written by a model and an attribute that reaches `priceFor` may only come from
- * a customer's own words. See ADR 0019.
+ * an agent. Writing is the phase where that is cheapest to give one: it receives the amount as
+ * data it may only copy, and it decides no price. Nothing reads the reply back, since ADR 0027
+ * dropped the guard that did. Extraction stays on the raw OpenRouter port with its strict
+ * schema, because an observation is written by a model and an attribute that reaches `priceFor`
+ * may only come from a customer's own words. See ADR 0019.
  */
 
 /** `Agent.generate`, narrowed to what the writer uses, so a test can stand in for it. */

@@ -136,24 +136,6 @@ describe('a customer message crosses the whole vertical', () => {
    * is unit tested: this vertical loads the families the shop actually loaded, and every one
    * of them is net.
    */
-  it('refuses the list amount when the list is net, because the customer reads the gross', async () => {
-    const reply = `Te cotizo ${QUOTED_FINAL_LIST} final con IVA incluido.`
-    const { webhook, replies } = vertical({ write: async () => reply })
-
-    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
-
-    expect(replies).toBeEmpty()
-  })
-
-  it('says nothing when the writer states an amount the engine did not compute', async () => {
-    const { webhook, replies } = vertical({ write: async () => 'Te cotizo $1 final con IVA incluido.' })
-
-    const response = await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
-
-    expect(response.status).toBe(200)
-    expect(replies).toBeEmpty()
-  })
-
   it('carries one message of state into the next, so the introduction happens once', async () => {
     const { webhook, requests } = vertical()
 

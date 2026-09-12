@@ -30,8 +30,6 @@ function state(overrides: Partial<TurnState> = {}): TurnState {
     introduced: true,
     family: null,
     attributes: {},
-    stated: [],
-    amounts: [],
     ...overrides,
   }
 }
