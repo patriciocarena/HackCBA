@@ -9,6 +9,15 @@ import type {
 } from '../domain/types'
 import type { PriceChange, PriceEditIntent } from './price-edit-intent'
 
+export type SavePriceEdit = (proposal: PriceEditProposal) => Promise<void>
+
+// ponytail: in memory, A3's price_edits table once a proposal has to outlive the process
+export function inMemoryPriceEdits(): { proposals: PriceEditProposal[]; save: SavePriceEdit } {
+  const proposals: PriceEditProposal[] = []
+
+  return { proposals, save: async (proposal) => void proposals.push(proposal) }
+}
+
 export type Review = { reason: EscalationReason; detail: string }
 
 export type Proposal = { ok: true; proposal: PriceEditProposal } | { ok: false; review: Review }
