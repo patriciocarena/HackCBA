@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { baseConfig, businessCards, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
 import {
@@ -7,17 +8,7 @@ import {
   type PriceForConfig,
 } from '../../src/domain/price-for'
 import type { QuoteIntent, Resolution } from '../../src/domain/types'
-import {
-  baseConfig,
-  businessCards,
-  catalogRows,
-  intent,
-  OFFSET_1000,
-  priceOf,
-  rowFor,
-  SPECIAL_100,
-  withVat,
-} from '../support/catalog'
+import { intent, OFFSET_1000, priceOf, rowFor, SPECIAL_100, withVat } from '../support/fixtures'
 
 function quote(
   overrides: Partial<QuoteIntent>,
