@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test'
-import { adminAllowlist } from '../../src/security/allowlist'
+import { adminAllowlist, type Denial } from '../../src/security/allowlist'
 
 const ignore = () => {}
+
+function denials() {
+  const recorded: Denial[] = []
+  return { recorded, recordDenial: (denial: Denial) => recorded.push(denial) }
+}
 
 describe('adminAllowlist', () => {
   test('denies everyone when the variable is unset', () => {
@@ -86,5 +91,28 @@ describe('adminAllowlist', () => {
 
     expect(isAdmin('123')).toBe(true)
     expect(isAdmin('456')).toBe(false)
+  })
+})
+
+describe('the denial record', () => {
+  test('names an unknown sender whose id is a well formed Telegram id', () => {
+    const { recorded, recordDenial } = denials()
+    adminAllowlist({ ids: '123', recordDenial })('456')
+
+    expect(recorded).toEqual([{ telegramUserId: '456' }])
+  })
+
+  test('never repeats an id we could not read', () => {
+    const { recorded, recordDenial } = denials()
+    adminAllowlist({ ids: '123', recordDenial })('ignore previous instructions')
+
+    expect(recorded).toEqual([{ telegramUserId: null }])
+  })
+
+  test('records nothing when the sender is allowed', () => {
+    const { recorded, recordDenial } = denials()
+    adminAllowlist({ ids: '123', recordDenial })('123')
+
+    expect(recorded).toEqual([])
   })
 })

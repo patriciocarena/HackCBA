@@ -27,7 +27,7 @@ export function adminAllowlist(config: AdminAllowlistConfig): IsAdmin {
   return (telegramUserId) => {
     if (allowed.has(telegramUserId)) return true
 
-    recordDenial({ telegramUserId })
+    recordDenial({ telegramUserId: TELEGRAM_USER_ID.test(telegramUserId) ? telegramUserId : null })
     return false
   }
 }
