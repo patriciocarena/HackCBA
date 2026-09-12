@@ -69,4 +69,15 @@ describe('the customer sends a transfer', () => {
       { orderId: 'ord_1', mediaId: 'AgACphoto', text: null, receivedAt: now },
     ])
   })
+  test('a voice note is not a transfer, so nothing is written', async () => {
+    const store = aStore()
+    const notifier = aNotifier()
+    const read = readReceipt({ findOrder: async () => anOrder(), store, notify: notifier.notify })
+
+    const got = await read(aMessage({ media: { kind: 'voice', id: 'AwACvoice' } }))
+
+    expect(got).toBeNull()
+    expect(store.written).toEqual([])
+    expect(notifier.sent).toEqual([])
+  })
 })

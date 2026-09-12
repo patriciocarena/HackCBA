@@ -23,7 +23,7 @@ export function readReceipt(deps: ReceiptPathDeps): (message: InboundMessage) =>
 
     const recorded = await recordReceipt(
       order,
-      { mediaId: message.media?.id ?? null, text: message.text, receivedAt: message.receivedAt },
+      { mediaId: photoId(message), text: message.text, receivedAt: message.receivedAt },
       store,
     )
     if (!recorded.ok) return null
@@ -32,4 +32,13 @@ export function readReceipt(deps: ReceiptPathDeps): (message: InboundMessage) =>
 
     return { orderId: order.id }
   }
+}
+
+/**
+ * A transfer is a photo or it is typed. A voice note is neither, and passing its id would
+ * store a dictated question as evidence of a payment, which is the one thing a receipt has
+ * to be able to answer for.
+ */
+function photoId(message: InboundMessage): string | null {
+  return message.media?.kind === 'photo' ? message.media.id : null
 }
