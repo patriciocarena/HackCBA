@@ -23,9 +23,9 @@ The half tsc does not enforce is the one that matters. `UntrustedText` is a bran
 a cast produces one. Any file can write `as UntrustedText` and the compiler accepts it.
 `test/domain/deposit.test.ts:77` already does, for a fair reason: a test needs a fenced value
 without a fence secret. That file is inside `tsconfig`'s include, it typechecks, and nothing in
-the repo noticed. So the escape is not a theory about a future contributor. It is one line, it
-is already in the tree, and the only thing keeping it out of `src/` is that nobody has needed it
-there yet.
+the repo noticed. `test/voice/admin-audio.test.ts:121` is a second one. So the escape is not a
+theory about a future contributor. It is two lines, both already in the tree, and the only thing
+keeping it out of `src/` is that nobody has needed it there yet.
 
 The finding came from PR #11. That thread is closed, which is why it is written here.
 
