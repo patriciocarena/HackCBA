@@ -170,6 +170,7 @@ export type Resolution =
   | { kind: 'price'; breakdown: PriceBreakdown; validityDays: number }
   | { kind: 'ask'; missing: string[] }
   | { kind: 'fact'; key: string; value: string }
+  | { kind: 'accepted'; order: Order; alias: string }
   | { kind: 'escalate'; reason: EscalationReason; detail: string }
 
 export type Quote = {

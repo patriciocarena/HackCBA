@@ -15,6 +15,7 @@ import {
 import { fence } from '../security/fence'
 import type { InboundMessage } from '../telegram/inbound'
 import { extractionSchema, EXTRACTION_REASONS, EXTRACTION_SYSTEM, WRITING_SYSTEM, INTRODUCTION } from './prompt'
+import { depositText, type Sale } from './sale'
 
 export type Extract = (request: { system: string; user: string; schema: object }) => Promise<unknown>
 
@@ -168,6 +169,8 @@ function answerOf(resolution: Resolution): string {
       return askText(resolution.missing)
     case 'fact':
       return resolution.value
+    case 'accepted':
+      return depositText(resolution)
     case 'escalate':
       return resolution.detail
   }

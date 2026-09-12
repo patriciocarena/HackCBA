@@ -125,6 +125,8 @@ describe('the contract the four lanes switch on', () => {
         return resolution.kind
       case 'fact':
         return resolution.kind
+      case 'accepted':
+        return resolution.kind
       case 'escalate':
         return resolution.kind
       default: {
