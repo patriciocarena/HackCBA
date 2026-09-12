@@ -97,3 +97,38 @@ Corollary from the same review round: I nearly shipped prefix normalisation insi
 admin check, inferred from a single test fixture. Nothing in src/ constructed an Actor
 at all. A convention seen only in test data is not a contract, and a security check is
 the worst place to guess one.
+
+## Resolve a ref against the authoritative remote, not against a working repo
+
+A scratch clone taken from a local working copy inherits that copy's
+remote-tracking refs. `origin/<branch>` inside it is as old as the last fetch the
+source repo ran, which may be hours. Every command against it can be correct and
+every one of them points at the wrong repository.
+
+Clone from the authoritative remote, or fetch in the scratch copy before reading
+anything. Then name the remote you checked inside the finding itself, so a reader
+can tell which repository the claim is about. "Line 6 still reads localFence" is
+not a fact until it says where line 6 was read.
+
+## A defect that matches half of what the author described is a staleness signature
+
+Tonight a branch was reported as missing a two part fix. Applying the described
+fix to the reported tree left exactly one failure, and that failure was the second
+half of the same description. A tree that is missing a change does not reproduce
+half of it.
+
+So when a report contradicts an author's account but lines up with part of it,
+suspect the ref before the account. A wrong claim and a stale checkout look alike
+from a distance; what separates them is that staleness reproduces the earlier
+state exactly, including the parts nobody disputed.
+
+## Read the commit, not a checkout
+
+`git show <sha>:<path>` answers what a commit contains. A working tree answers
+what a working tree contains, which is the commit plus whatever is uncommitted,
+unpushed, or fetched at a different time. The second is what produced every
+stale-ref mistake in this repo today, in both directions. See "Check a claimed
+commit, and say what the check actually proves" above.
+
+Cite the sha and the path. It is the cheaper check whoever turns out to be stale,
+and it costs nothing when everyone is current.
