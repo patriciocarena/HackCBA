@@ -9,6 +9,7 @@ import { conversationId } from '@/domain/types'
 import { adminAllowlist } from '@/security/allowlist'
 import type { Send } from '@/telegram/send'
 import { liveCatalog } from '@/catalog/live-catalog'
+import { inMemoryPriceEdits } from '@/voice/price-edit-proposal'
 import { telegramWebhookRoute } from '@/telegram/route'
 import type { FetchLike } from '@/voice/transcription'
 import { telegramWebhook } from '@/telegram/webhook'
@@ -183,7 +184,11 @@ function routed() {
     return Response.json({ choices: [{ message: { content } }] })
   }
 
-  const route = telegramWebhookRoute({ onCallback: async () => {} }, liveCatalog(catalogRows), fetchImpl)
+  const route = telegramWebhookRoute(
+    { onCallback: async () => {} },
+    { catalog: liveCatalog(catalogRows), edits: inMemoryPriceEdits(), record: async () => {} },
+    fetchImpl,
+  )
   const { handler } = route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }
 
   return { deliver: (request: Request) => handler({ req: { raw: request } }), sends }
