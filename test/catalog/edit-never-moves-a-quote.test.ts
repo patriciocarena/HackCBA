@@ -47,6 +47,7 @@ describe('applying an edit never moves a price already quoted', () => {
     expect(totalOf(accepted.order.breakdown)).toBe(ars(12100))
 
     const applied = applyPriceEdit(raiseTwentyPercent('bc_special_100_front'), catalogRows, {
+      id: 'ver_1',
       by: BY,
       now: APPLIED_AT,
     })
@@ -63,6 +64,7 @@ describe('applying an edit never moves a price already quoted', () => {
     const before = priceOf('bc_special_100_front')
 
     const applied = applyPriceEdit(raiseTwentyPercent('bc_special_100_front'), catalogRows, {
+      id: 'ver_1',
       by: BY,
       now: APPLIED_AT,
     })

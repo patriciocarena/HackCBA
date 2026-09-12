@@ -25,6 +25,7 @@ const ROWS = [
 describe('applyPriceEdit', () => {
   it('a person applying a proposal resolves it, naming who and when', () => {
     const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      id: 'ver_1',
       by: { kind: 'person', id: '42' },
       now: '2026-09-12T10:05:00.000Z',
     })
@@ -38,6 +39,7 @@ describe('applyPriceEdit', () => {
 
   it('the agent cannot apply an edit on its own', () => {
     const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      id: 'ver_1',
       by: { kind: 'agent' },
       now: '2026-09-12T10:05:00.000Z',
     })
@@ -48,7 +50,8 @@ describe('applyPriceEdit', () => {
   it('a proposal already resolved is not applied a second time', () => {
     for (const state of ['applied', 'rejected'] as const) {
       const outcome = applyPriceEdit({ ...PROPOSED, state }, ROWS, {
-        by: { kind: 'person', id: '42' },
+        id: 'ver_1',
+      by: { kind: 'person', id: '42' },
         now: '2026-09-12T10:05:00.000Z',
       })
 
@@ -58,6 +61,7 @@ describe('applyPriceEdit', () => {
 
   it('a time nobody can read is refused, not turned into an Invalid Date', () => {
     const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      id: 'ver_1',
       by: { kind: 'person', id: '42' },
       now: 'yesterday',
     })
@@ -67,6 +71,7 @@ describe('applyPriceEdit', () => {
 
   it('the version records who applied it, when, and the audio that caused it', () => {
     const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      id: 'ver_1',
       by: { kind: 'person', id: '42' },
       now: '2026-09-12T10:05:00.000Z',
     })
@@ -78,11 +83,12 @@ describe('applyPriceEdit', () => {
     expect(version.appliedBy).toBe('42')
     expect(version.appliedAt).toBe('2026-09-12T10:05:00.000Z')
     expect(version.mediaId).toBe('voice_abc')
-    expect(version.id).not.toBe('')
+    expect(version.id).toBe('ver_1')
   })
 
   it('the rows come back carrying the new price', () => {
     const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      id: 'ver_1',
       by: { kind: 'person', id: '42' },
       now: '2026-09-12T10:05:00.000Z',
     })
@@ -96,6 +102,7 @@ describe('applyPriceEdit', () => {
   it('leaves a row the edit does not name alone', () => {
     const untouched = { slug: 'bc_other', kind: 'sale' as const, label: 'otra', price: ars(500) }
     const outcome = applyPriceEdit(PROPOSED, [...ROWS, untouched], {
+      id: 'ver_1',
       by: { kind: 'person', id: '42' },
       now: '2026-09-12T10:05:00.000Z',
     })
@@ -107,6 +114,7 @@ describe('applyPriceEdit', () => {
 
   it('refuses when the row the edit names is no longer in the catalog', () => {
     const outcome = applyPriceEdit(PROPOSED, [], {
+      id: 'ver_1',
       by: { kind: 'person', id: '42' },
       now: '2026-09-12T10:05:00.000Z',
     })
@@ -117,6 +125,7 @@ describe('applyPriceEdit', () => {
   it('refuses when somebody else moved the price after the proposal was made', () => {
     const moved = [{ ...ROWS[0], price: ars(13000) }]
     const outcome = applyPriceEdit(PROPOSED, moved, {
+      id: 'ver_1',
       by: { kind: 'person', id: '42' },
       now: '2026-09-12T10:05:00.000Z',
     })

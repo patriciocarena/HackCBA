@@ -21,6 +21,7 @@ export type ApplyRefusal = 'not_a_person' | 'not_proposed' | 'not_a_time' | 'sta
 export type ApplyOutcome = { ok: true; applied: Applied } | { ok: false; reason: ApplyRefusal }
 
 export type ApplyInput = {
+  id: string
   by: Actor
   now: string
 }
@@ -31,7 +32,6 @@ export function applyPriceEdit(
   input: ApplyInput,
 ): ApplyOutcome {
   if (input.by.kind !== 'person') {
-    // The owner's voice proposes. A person confirming is what moves a price.
     return { ok: false, reason: 'not_a_person' }
   }
 
@@ -50,8 +50,6 @@ export function applyPriceEdit(
   })
 
   if (stale) {
-    // The proposal priced off rows that have since moved. Applying it now would quote off
-    // arithmetic nobody confirmed, and silently discard whatever moved them.
     return { ok: false, reason: 'stale' }
   }
 
@@ -60,7 +58,7 @@ export function applyPriceEdit(
     applied: {
       proposal: { ...proposal, state: 'applied', resolvedBy: input.by.id, resolvedAt: input.now },
       version: {
-        id: crypto.randomUUID(),
+        id: input.id,
         proposalId: proposal.id,
         appliedBy: input.by.id,
         appliedAt: input.now,
