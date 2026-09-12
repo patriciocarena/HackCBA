@@ -13,6 +13,7 @@ import {
 import { readCallback, type OnCallback } from './callback'
 import { inMemoryRateLimit, type RateLimit } from './rate-limit'
 import { inMemorySeenUpdates, type SeenUpdates } from './seen-updates'
+import type { ChatAction } from './send'
 import { readUpdate } from './update'
 
 const CHANNEL = 'telegram'
@@ -30,6 +31,12 @@ export type WebhookDeps = {
   // to be a compile error rather than a button that does nothing in a live demo.
   onCallback: OnCallback
   rateLimit?: RateLimit
+  /**
+   * The "escribiendo..." line, sent after the budget check and before the turn. Optional, and
+   * defaulted to nothing: a wiring that forgets it is a quiet screen, never a lost answer,
+   * which is the opposite of the trade `onCallback` above makes.
+   */
+  typing?: ChatAction
   now?: () => string
 }
 
@@ -42,6 +49,7 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
     turn = silentTurn,
     onCallback,
     rateLimit = inMemoryRateLimit(),
+    typing = noIndicator,
     now = () => new Date().toISOString(),
   } = deps
 
@@ -87,11 +95,20 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
     }
 
     await log.record(message)
+
+    // Before the turn and not beside it. The turn is three model calls on a quote and about
+    // twenty seconds on the voice path, and until it answers the customer's screen is blank.
+    // Its failure is swallowed here as well as inside the port: this line owes the customer
+    // nothing that is worth the answer they came for.
+    await typing(message.chatId).catch(() => {})
+
     await turn(message)
 
     return acknowledged()
   }
 }
+
+const noIndicator: ChatAction = async () => {}
 
 function acknowledged(): Response {
   return new Response(null, { status: 200 })

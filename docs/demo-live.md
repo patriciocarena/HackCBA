@@ -222,9 +222,14 @@ proves the vision path reads a clean render and not a glare.
 
 `bun test` is the wiring, not the models.
 
-One thing the writing model does that no check catches: it sometimes wraps the amount in
-markdown, and replies are sent with no `parse_mode`, so `**$45.000**` reaches the phone with
-the asterisks showing. It is cosmetic and it is the first thing on screen in action 1.
+The writing model still wraps the amount in markdown sometimes. Replies are sent with no
+`parse_mode`, so the markers used to reach the phone; `plainText` in `src/telegram/send.ts`
+takes them off now. A lone asterisk is left alone on purpose, so a multiplication sign in
+somebody's text survives.
+
+Every chat gets the "escribiendo..." indicator before the turn runs
+(`src/telegram/webhook.ts`). Telegram clears it after five seconds, so on the voice path it
+goes dark well before the proposal lands. Do not narrate it as a progress bar.
 
 ### The reset
 

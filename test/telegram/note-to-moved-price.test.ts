@@ -98,7 +98,7 @@ describe('a voice note becomes a moved price, through the real composition root'
       expect(sentText(world.sent)).toContain('→')
 
       // The press carries the id this end minted, read back through the parser.
-      const { yes } = buttonIn(world.sent[0]!)
+      const { yes } = buttonIn(messages(world.sent)[0]!)
 
       expect(yes).toContain(minted.id)
 
@@ -118,7 +118,7 @@ describe('a voice note becomes a moved price, through the real composition root'
       // The press is answered, so Telegram stops spinning, and the owner reads what moved.
       expect(world.answered).toHaveLength(1)
       expect(world.answered[0]).toMatchObject({ callback_query_id: 'cbq_1' })
-      expect(String(world.sent[1]?.text)).toContain('ya está en vigencia')
+      expect(sentText(world.sent, 1)).toContain('ya está en vigencia')
       expect(String(world.sent[1]?.text)).toContain('→')
     } finally {
       delete process.env.TELEGRAM_ADMIN_IDS
@@ -126,6 +126,11 @@ describe('a voice note becomes a moved price, through the real composition root'
   })
 })
 
-function sentText(sent: Record<string, unknown>[]): string {
-  return String(sent[0]?.text ?? '')
+/** What was sent carrying words, in order. A chat action carries none, and it goes first. */
+function messages(sent: Record<string, unknown>[]): Record<string, unknown>[] {
+  return sent.filter((call) => call.text !== undefined)
+}
+
+function sentText(sent: Record<string, unknown>[], nth = 0): string {
+  return String(messages(sent)[nth]?.text ?? '')
 }

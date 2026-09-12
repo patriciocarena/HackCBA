@@ -20,7 +20,7 @@ import { transcriptionFromEnv, type FetchLike } from '../voice/transcription'
 import { telegramAudio } from './audio-file'
 import { confirmCallback, type RecordVersion } from './confirm-callback'
 import type { Turn } from './inbound'
-import { telegramAnswerCallback, telegramAsk, telegramSend } from './send'
+import { telegramAnswerCallback, telegramAsk, telegramChatAction, telegramSend } from './send'
 import { telegramWebhook, type WebhookDeps } from './webhook'
 
 /**
@@ -54,6 +54,7 @@ export function telegramWebhookRoute(
     ...deps,
     isAdmin,
     secret: requireEnv('TELEGRAM_WEBHOOK_SECRET'),
+    typing: deps.typing ?? telegramChatAction(botToken, fetchImpl),
     turn: deps.turn ?? productionTurn(fetchImpl, wiring),
     onCallback:
       deps.onCallback ??
