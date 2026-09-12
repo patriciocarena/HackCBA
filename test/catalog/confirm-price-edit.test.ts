@@ -52,4 +52,22 @@ describe('confirmPriceEdit', () => {
     expect(outcome).toEqual({ ok: false, reason: 'not_an_admin' })
     expect(store.saved).toEqual([])
   })
+
+  it('refuses an id the store does not hold, rather than inventing a proposal', async () => {
+    const store = aStore()
+
+    const outcome = await confirmPriceEdit(
+      {
+        proposalId: 'edit_missing',
+        versionId: 'ver_1',
+        senderId: ADMIN,
+        accepted: true,
+        now: '2026-09-12T10:05:00.000Z',
+      },
+      { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+    )
+
+    expect(outcome).toEqual({ ok: false, reason: 'unknown_proposal' })
+    expect(store.saved).toEqual([])
+  })
 })

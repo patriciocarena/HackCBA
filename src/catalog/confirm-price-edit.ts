@@ -21,7 +21,7 @@ export type ConfirmInput = {
   now: string
 }
 
-export type ConfirmRefusal = 'not_an_admin'
+export type ConfirmRefusal = 'not_an_admin' | 'unknown_proposal'
 
 export type ConfirmOutcome = { ok: false; reason: ConfirmRefusal }
 
@@ -29,9 +29,12 @@ export async function confirmPriceEdit(
   input: ConfirmInput,
   deps: ConfirmDeps,
 ): Promise<ConfirmOutcome> {
-  const { isAdmin = () => false } = deps
+  const { load, isAdmin = () => false } = deps
 
   if (!isAdmin(input.senderId)) return { ok: false, reason: 'not_an_admin' }
 
-  return { ok: false, reason: 'not_an_admin' }
+  const proposal = await load(input.proposalId)
+  if (proposal === null) return { ok: false, reason: 'unknown_proposal' }
+
+  return { ok: false, reason: 'unknown_proposal' }
 }
