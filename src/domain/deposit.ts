@@ -130,10 +130,11 @@ export function confirmDeposit(
     return { ok: false, reason: 'not_an_admin' }
   }
 
-  if (order.depositAlias === null) {
+  if (order.depositAlias === null || order.depositAlias.trim().length === 0) {
     // advanceOrder is public, so an order can reach deposit_pending without going through
     // requestDeposit and without ever naming where the money was meant to go. Confirming that
-    // is confirming a transfer to nothing.
+    // is confirming a transfer to nothing. Blank counts: requestDeposit refuses a blank alias,
+    // and an order round-tripping through A3's TEXT column comes back '' rather than null.
     return { ok: false, reason: 'no_alias' }
   }
 

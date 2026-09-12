@@ -157,6 +157,14 @@ describe('only an admin confirms, and confirming never shows the receipt', () =>
     expect(confirmed).toEqual({ ok: false, reason: 'not_an_admin' })
   })
 
+  test('a blank alias is no alias, the same refusal the asking end already gives', () => {
+    for (const depositAlias of ['', '   ']) {
+      const confirmed = confirmDeposit({ ...awaitingDeposit(), depositAlias }, { by: admin, now }, onlyAdmin)
+
+      expect(confirmed).toEqual({ ok: false, reason: 'no_alias' })
+    }
+  })
+
   test('the confirmation path cannot reach the receipt it is confirming', async () => {
     const FORGED = 'AgACforged-receipt-that-looks-right'
     const store = aStore()
