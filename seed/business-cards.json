@@ -9,6 +9,7 @@
   "currency": "ARS",
   "vat_included": false,
   "vat_rate": 0.21,
+  "quote_validity_days": 15,
   "family": {
     "slug": "business_cards",
     "label": "Tarjetas personales",

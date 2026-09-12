@@ -48,6 +48,7 @@ export type PriceForConfig = {
   family: PriceForFamily
   vatRate: number
   quoteValidityDays: number
+  maxModules?: number
   moduleDiscounts?: ModuleDiscount[]
   listDiscountPolicy?: ListDiscountPolicy
 }
@@ -66,6 +67,11 @@ type PricedPart = {
   amount: number
   operation: 'base' | 'add' | 'subtract'
 }
+
+// A sanity ceiling, not a price: past this many modules the piece is not a business card
+// any more, and a confident quote would be the exact failure this engine exists to prevent.
+// Override it through config when a family legitimately runs larger.
+const DEFAULT_MAX_MODULES = 50
 
 const DELEGATE_DETAIL = 'te delego con un humano'
 const OUT_OF_CATALOG_DETAIL = 'eso no lo tengo cargado, te delego con un humano'
@@ -90,6 +96,8 @@ export function priceFor(
     return { kind: 'escalate', reason: 'vat_question', detail: DELEGATE_DETAIL }
   }
 
+  // Whether the shop discounts for a repeat customer is a shop policy, which is a fact,
+  // and no such fact is loaded. That is what not_a_fact means, so this is not a misuse.
   if (isCommercialDiscountQuestion(intent)) {
     return { kind: 'escalate', reason: 'not_a_fact', detail: DELEGATE_DETAIL }
   }
@@ -127,7 +135,7 @@ export function priceFor(
 
 const PRICE_STRATEGIES: PriceStrategy[] = [
   exactSaleRowStrategy,
-  moduleMathPlaceholderStrategy, // B5 slots the module pricing strategy here.
+  moduleMathStrategy,
 ]
 
 function exactSaleRowStrategy(context: PriceContext): Resolution | null {
@@ -166,7 +174,7 @@ function exactSaleRowStrategy(context: PriceContext): Resolution | null {
   return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
 }
 
-function moduleMathPlaceholderStrategy(context: PriceContext): Resolution | null {
+function moduleMathStrategy(context: PriceContext): Resolution | null {
   if (!hasModuleSizeRequest(context.intent)) {
     return null
   }
@@ -229,6 +237,10 @@ function moduleMathPlaceholderStrategy(context: PriceContext): Resolution | null
   }
 
   const moduleCount = Math.ceil(pieceArea / moduleArea)
+  const maxModules = context.config.maxModules ?? DEFAULT_MAX_MODULES
+  if (moduleCount > maxModules) {
+    return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG_DETAIL }
+  }
   // Provisional owner-facing assumption: the module price is the matching
   // standard row price for the same quantity, paper, sides and finish.
   const moduleSubtotal = saleRow.price * moduleCount

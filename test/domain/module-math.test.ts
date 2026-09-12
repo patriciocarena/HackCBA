@@ -143,3 +143,26 @@ describe('what the customer reads about modules', () => {
     expect(priced.derivation).toContain('4 módulos')
   })
 })
+
+describe('a piece that is no longer a business card', () => {
+  test('a 500 x 300 cm piece is refused, not quoted', () => {
+    const resolution = quote({ ...standard, width_cm: 500, height_cm: 300 })
+
+    // 3530 modules is a billboard. Quoting it confidently is the failure this project exists to prevent.
+    expect(resolution.kind).toBe('escalate')
+  })
+
+  test('a piece past the module ceiling is refused', () => {
+    // 50 x 50 cm is 2500 cm2, which is 59 modules.
+    const resolution = quote({ ...standard, width_cm: 50, height_cm: 50 })
+
+    expect(resolution.kind).toBe('escalate')
+  })
+
+  test('a large but plausible piece still quotes', () => {
+    // 40 x 40 cm is 1600 cm2, which is 38 modules, under the ceiling.
+    const resolution = quote({ ...standard, width_cm: 40, height_cm: 40 })
+
+    expect(resolution.kind).toBe('price')
+  })
+})

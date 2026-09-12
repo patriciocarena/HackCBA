@@ -55,7 +55,7 @@ price as the matching standard row. Confirm before B5.
 |---|---|---|
 | 11 | 100 cards, special, front, with lamination | 12.100 + 5.100 = 17.200 net, **20.812** gross |
 | 12 | a finish the column shows as a dash | escalate `no_match`. A dash means the finish is not offered, there is no row |
-| 13 | 100 cards, illustration 300g, 4/0 | list discount applies: 10.300 − 1.800 = 8.500 net, **10.285** gross |
+| 13 | 100 cards, illustration 300g, 4/0 | 10.300 net, **12.463** gross. The two plain-illustration discount rows are NOT applied: the column price reads as already discounted. One named flag flips it, and both sides have a test |
 | 14 | "¿me hacés precio si llevo varias?" | escalate. A commercial discount is never the engine's call |
 
 ## Sizes without a unit
@@ -72,6 +72,7 @@ explicit unit that contradicts the family is asked about, never guessed.
 | 17 | "el IVA es obligatorio?" | escalate `vat_question` |
 | 18 | two products in one message | quote each separately. The turn calls the engine once per product |
 | 19 | anything priced by the metre | escalate. No such family is loaded, and the roll width is still missing |
+| 20 | a piece of 500 x 300 cm | escalate. It works out to 3530 modules, which is a billboard, not a card. The ceiling is 50 modules and lives in config |
 
 ## Invariants
 
