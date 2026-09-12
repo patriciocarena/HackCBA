@@ -47,7 +47,9 @@ export async function turn(
   if (state.escalated) return silence(state)
   if (message.role !== 'customer' || message.text === null) return silence(state)
 
-  const fenced = fence(message.text, 'message')
+  // The webhook fenced it on the way in, which is what UntrustedText brands. Fencing a
+  // second time nests one nonce inside another and tells the model nothing it did not know.
+  const fenced = message.text
 
   const resolution = await resolve(deps, fenced).catch((): Resolution => escalate('ambiguous'))
   const settled = settle(resolution, state)

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { amountsIn, turn, type TurnDeps } from '@/conversation/turn'
-import { conversationId, type Role, type TurnState, type UntrustedText } from '@/domain/types'
+import { conversationId, type Role, type TurnState } from '@/domain/types'
 import type { InboundMessage } from '@/telegram/inbound'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { OFFSET_1000, priceOf } from '@test/support/fixtures'
@@ -8,6 +8,7 @@ import { totalOf } from '@/domain/breakdown'
 import { askText, pesos } from '@/domain/quote-text'
 import { EXTRACTION_REASONS, INTRODUCTION } from '@/conversation/prompt'
 import { priceFor } from '@/domain/price-for'
+import { fence } from '@/security/fence'
 import type { Resolution } from '@/domain/types'
 
 function message(text: string, role: Role = 'customer'): InboundMessage {
@@ -17,7 +18,8 @@ function message(text: string, role: Role = 'customer'): InboundMessage {
     role,
     chatId: '42',
     senderId: '42',
-    text: text as UntrustedText,
+    // What the webhook hands over: already fenced, which is what UntrustedText brands.
+    text: fence(text, 'message'),
     mediaId: null,
     receivedAt: '2026-09-12T14:00:00.000Z',
   }
