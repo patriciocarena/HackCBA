@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { telegramWebhookRoute } from '@/telegram/route'
-import type { InboundMessage } from '@/telegram/seams'
+import type { InboundMessage } from '@/telegram/inbound'
 
 process.env.TELEGRAM_WEBHOOK_SECRET = 'a-long-random-string'
 

@@ -59,8 +59,8 @@ nothing from `src/domain/` except the `UntrustedText` and `ConversationId` types
 
 A restart empties the in-memory claim set, so an update delivered before the restart and
 retried after it replies twice. A3's table closes that, and the seam is already the shape
-the table fills. The in-memory set is bounded and evicts its oldest entry, so a process
-that stays up does not grow without limit.
+the table fills. The in-memory set and the in-memory log are both bounded and evict their
+oldest entry, so a process that stays up does not grow without limit.
 
 The role lives inside the `ConversationId`, so an admin turn and a customer turn from the
 same person are two conversations by construction, and D6's memory isolation has a key to

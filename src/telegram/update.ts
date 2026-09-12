@@ -16,7 +16,7 @@ const updateSchema = z.object({
   message: messageSchema.optional(),
 })
 
-export type ParsedUpdate = {
+type Update = {
   updateId: number
   chatId: string
   senderId: string
@@ -24,7 +24,7 @@ export type ParsedUpdate = {
   mediaId: string | null
 }
 
-export function readUpdate(body: unknown): ParsedUpdate | null {
+export function readUpdate(body: unknown): Update | null {
   const update = updateSchema.safeParse(body)
   if (!update.success) return null
 

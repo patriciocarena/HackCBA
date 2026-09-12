@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { telegramWebhook } from '@/telegram/webhook'
-import { inMemoryInboundLog, type InboundMessage } from '@/telegram/seams'
+import { inMemoryInboundLog, type InboundMessage } from '@/telegram/inbound'
 
 const SECRET = 'a-long-random-string'
 
@@ -28,21 +28,12 @@ function spy() {
 }
 
 describe('telegramWebhook', () => {
-  it('refuses a delivery with no secret header, without reading the body', async () => {
+  it('refuses a delivery whose secret header is missing or wrong', async () => {
     const { turns, turn } = spy()
+    const webhook = telegramWebhook({ secret: SECRET, turn })
 
-    const response = await telegramWebhook({ secret: SECRET, turn })(delivery(update(70), null))
-
-    expect(response.status).toBe(401)
-    expect(turns).toBeEmpty()
-  })
-
-  it('refuses a delivery whose secret does not match', async () => {
-    const { turns, turn } = spy()
-
-    const response = await telegramWebhook({ secret: SECRET, turn })(delivery(update(70), 'a-long-random-strinh'))
-
-    expect(response.status).toBe(401)
+    expect((await webhook(delivery(update(70), null))).status).toBe(401)
+    expect((await webhook(delivery(update(70), 'a-long-random-strinh'))).status).toBe(401)
     expect(turns).toBeEmpty()
   })
 

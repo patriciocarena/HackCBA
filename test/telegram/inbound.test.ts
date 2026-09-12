@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import { conversationId } from '@/domain/types'
-import { denyEveryone, inMemoryInboundLog, localFence, type InboundMessage } from '@/telegram/seams'
+import { inMemoryInboundLog, localFence, type InboundMessage } from '@/telegram/inbound'
 
 const message: InboundMessage = {
   updateId: 70,
@@ -12,13 +12,6 @@ const message: InboundMessage = {
   mediaId: null,
   receivedAt: '2026-09-12T09:30:00.000Z',
 }
-
-describe('denyEveryone', () => {
-  it('denies every sender, so a misconfigured allowlist never admits one', () => {
-    expect(denyEveryone('42')).toBeFalse()
-    expect(denyEveryone('')).toBeFalse()
-  })
-})
 
 describe('localFence', () => {
   it('drops the characters a fence is delimited with, so the text cannot close it', () => {

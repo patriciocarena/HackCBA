@@ -9,7 +9,7 @@ import {
   type InboundLog,
   type IsAdmin,
   type Turn,
-} from './seams'
+} from './inbound'
 import { inMemorySeenUpdates, type SeenUpdates } from './seen-updates'
 import { readUpdate } from './update'
 
@@ -38,9 +38,10 @@ export function telegramWebhook(deps: WebhookDeps): (request: Request) => Promis
   } = deps
 
   if (secret.length === 0) throw new Error('webhook secret is empty')
+  const known = Buffer.from(secret)
 
   return async (request) => {
-    if (!secretMatches(request.headers.get(SECRET_HEADER), secret)) return new Response(null, { status: 401 })
+    if (!secretMatches(request.headers.get(SECRET_HEADER), known)) return new Response(null, { status: 401 })
 
     const update = readUpdate(await request.json().catch(() => null))
     if (update === null) return acknowledged()
@@ -69,11 +70,10 @@ function acknowledged(): Response {
   return new Response(null, { status: 200 })
 }
 
-function secretMatches(given: string | null, expected: string): boolean {
+function secretMatches(given: string | null, known: Buffer): boolean {
   if (given === null) return false
 
   const offered = Buffer.from(given)
-  const known = Buffer.from(expected)
 
   return offered.length === known.length && timingSafeEqual(offered, known)
 }

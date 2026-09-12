@@ -27,13 +27,14 @@ export const localFence: Fence = (text) => text.replaceAll(/[<>]/g, '') as Untru
 
 export const silentTurn: Turn = async () => {}
 
-export function inMemoryInboundLog(): InboundLog & { messages: InboundMessage[] } {
+export function inMemoryInboundLog(capacity = 1000): InboundLog & { messages: InboundMessage[] } {
   const messages: InboundMessage[] = []
 
   return {
     messages,
     async record(message) {
       messages.push(message)
+      if (messages.length > capacity) messages.shift()
     },
   }
 }

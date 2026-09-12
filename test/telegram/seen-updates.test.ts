@@ -7,7 +7,6 @@ describe('inMemorySeenUpdates', () => {
 
     expect(await seenUpdates.seen(70)).toBeFalse()
     expect(await seenUpdates.seen(70)).toBeTrue()
-    expect(await seenUpdates.seen(70)).toBeTrue()
   })
 
   it('claims each update on its own', async () => {

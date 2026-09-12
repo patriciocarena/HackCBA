@@ -15,7 +15,8 @@ and what is recorded.
 _Avoid_: Incoming message, request, payload
 
 **Claim**:
-Marking an `update_id` as handled. The claim and the question "was it already handled" are
+Marking an `update_id` as handled. The type is `SeenUpdates` and the method is `seen`,
+because A3 fills that seam with its table and the name is fixed across the two lanes. The claim and the question "was it already handled" are
 one call, so two concurrent deliveries of one update cannot both find it free. A claimed
 update is acknowledged and runs nothing.
 _Avoid_: Dedupe, idempotency check, lock

@@ -2,9 +2,7 @@ export type SeenUpdates = {
   seen(updateId: number): Promise<boolean>
 }
 
-const CAPACITY = 1000
-
-export function inMemorySeenUpdates(capacity = CAPACITY): SeenUpdates {
+export function inMemorySeenUpdates(capacity = 1000): SeenUpdates {
   const claimed = new Set<number>()
 
   return {
