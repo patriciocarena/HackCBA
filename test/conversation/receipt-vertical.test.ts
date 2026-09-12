@@ -6,6 +6,7 @@ import { inMemorySale } from '@/conversation/sale'
 import type { TurnDeps } from '@/conversation/turn'
 import type { Receipt, ReceiptStore } from '@/domain/deposit'
 import { conversationId } from '@/domain/types'
+import { AGENT, type ReceiptReading } from '@/domain/deposit'
 import { adminAllowlist } from '@/security/allowlist'
 import type { Send } from '@/telegram/send'
 import { liveCatalog } from '@/catalog/live-catalog'
@@ -31,6 +32,14 @@ const ADMIN = '77'
 const CUSTOMER_CHAT = '-100'
 const conversation = conversationId('telegram', CUSTOMER_CHAT, 'customer')
 
+/** What the model reads off a clean receipt for this order: $45.000 to the alias it was told. */
+const MATCHES: ReceiptReading = {
+  looksLikeReceipt: true,
+  amount: 45000,
+  destination: 'dante.imprenta.mp',
+  confidence: 0.95,
+}
+
 const QUOTE = {
   kind: 'quote',
   family: 'business_cards',
@@ -47,7 +56,7 @@ const ACCEPT = { kind: 'accept', family: null, attributes: {}, size: null, addOn
  * sale port is built once, and the receipt path is handed its `orderFor` rather than a store
  * of its own: that is the whole point of the test.
  */
-function vertical() {
+function vertical(reading: ReceiptReading | null = MATCHES) {
   const written: Receipt[] = []
   const notices: string[] = []
   const replies: { chatId: string; text: string }[] = []
@@ -69,7 +78,14 @@ function vertical() {
   const webhook = telegramWebhook({
     secret: SECRET,
     turn: receiptTurn(
-      { findOrder: sale.orderFor, store, notify: async (text) => void notices.push(text) },
+      {
+        findOrder: sale.orderFor,
+        store,
+        notify: async (text) => void notices.push(text),
+        fetchImage: async () => new Uint8Array([1, 2, 3]) as Uint8Array<ArrayBuffer>,
+        readImage: async () => reading,
+        confirm: sale.confirmFromReceipt,
+      },
       customerTurn(deps, send),
     ),
     onCallback: async () => {},
@@ -111,7 +127,7 @@ function delivery(updateId: number, message: Record<string, unknown>): Request {
 }
 
 describe('the receipt attaches to the order the confirmation moves', () => {
-  test('quote, accept, photo, confirm, and the order reaches deposit_confirmed', async () => {
+  test('quote, accept, photo, and the order confirms itself with nobody pressing anything', async () => {
     const { webhook, sale, written, notices } = vertical()
 
     await webhook(says(1, 'hola, cuánto 1000 tarjetas'))
@@ -122,17 +138,33 @@ describe('the receipt attaches to the order the confirmation moves', () => {
 
     await webhook(sendsAPhoto(3, 'AgACtransfer'))
 
-    // One store, one order. The receipt names the order the sale port is holding, and the
-    // confirmation below moves that same one.
+    // One store, one order. The receipt names the order the sale port is holding, and that
+    // same one is the one that moved.
     expect(written).toHaveLength(1)
     expect(written[0]?.orderId).toBe(ordered!.id)
+
+    const confirmed = sale.orderFor(conversation)
+    expect(confirmed?.id).toBe(written[0]!.orderId)
+    expect(confirmed?.state).toBe('deposit_confirmed')
+    expect(confirmed?.depositConfirmedBy).toBe(AGENT)
+
     expect(notices).toHaveLength(1)
     expect(notices[0]).toContain(ordered!.id)
+  })
 
+  test('a reading that does not match waits for the admin, who still has the power', async () => {
+    const { webhook, sale } = vertical({ ...MATCHES, amount: 1 })
+
+    await webhook(says(1, 'hola, cuánto 1000 tarjetas'))
+    await webhook(says(2, 'dale, la quiero'))
+    await webhook(sendsAPhoto(3, 'AgACtransfer'))
+
+    expect(sale.orderFor(conversation)?.state).toBe('deposit_pending')
+
+    // confirmDeposit is untouched: the admin path is exactly what it was.
     const confirmed = sale.confirmDeposit(conversation, { kind: 'person', id: ADMIN }, adminAllowlist({ ids: ADMIN }))
     if (!confirmed.ok) throw new Error(`expected a confirmation, got ${confirmed.reason}`)
 
-    expect(confirmed.order.id).toBe(written[0]!.orderId)
     expect(confirmed.order.state).toBe('deposit_confirmed')
     expect(confirmed.order.depositConfirmedBy).toBe(ADMIN)
   })
@@ -144,7 +176,7 @@ describe('the receipt attaches to the order the confirmation moves', () => {
     await webhook(says(2, 'dale, la quiero'))
     await webhook(sendsAPhoto(3, 'AgACtransfer'))
 
-    sale.confirmDeposit(conversation, { kind: 'person', id: ADMIN }, adminAllowlist({ ids: ADMIN }))
+    expect(sale.orderFor(conversation)?.state).toBe('deposit_confirmed')
 
     await webhook(sendsAPhoto(4, 'AgACsecond'))
 

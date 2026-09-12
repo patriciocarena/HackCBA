@@ -6,6 +6,7 @@ import { adminTurn } from '../conversation/admin-turn'
 import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
 import { receiptTurn } from '../conversation/receipt-path'
+import { receiptReader } from '../conversation/receipt-reading'
 import { inMemorySale } from '../conversation/sale'
 import { inMemoryReceipts } from '../domain/deposit'
 import { adminAllowlistFromEnv } from '../security/allowlist'
@@ -109,6 +110,13 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
       // ADR 0013 says why there is no accessor to add one.
       store: inMemoryReceipts(),
       notify: (text) => send(ownerChat, text),
+      // getFile plus download, which telegramAudio already is: it takes a file id and returns
+      // bytes, and a photo is fetched the same two ways an audio is. C11 uses the same seam.
+      fetchImage: telegramAudio(token, fetchImpl),
+      readImage: receiptReader(model.look),
+      // The port owns its orders, so the port does the writing. confirmDeposit is untouched
+      // beside it and an admin keeps every power they had.
+      confirm: sale.confirmFromReceipt,
     },
     customerTurn(
       // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
