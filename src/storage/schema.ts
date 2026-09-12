@@ -14,7 +14,7 @@ export const SCHEMA: readonly string[] = [
     unit TEXT NOT NULL ${sqliteCheck('unit', UNITS)},
     vat_rate REAL NOT NULL,
     vat_included INTEGER NOT NULL ${flag('vat_included')},
-    quote_validity_days INTEGER NOT NULL,
+    quote_validity_days INTEGER,
     module_width_cm REAL,
     module_height_cm REAL,
     attributes TEXT NOT NULL ${jsonArray('attributes')},
