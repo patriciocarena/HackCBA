@@ -39,6 +39,7 @@ function post(body: unknown): Request {
 /** The whole outside world: Telegram's file API, ElevenLabs, OpenRouter and sendMessage. */
 function theWorld() {
   const sent: Record<string, unknown>[] = []
+  const answered: Record<string, unknown>[] = []
 
   const fetchImpl: FetchLike = async (url, init) => {
     if (url.includes('/getFile')) return Response.json({ ok: true, result: { file_path: 'voice/note.oga' } })
@@ -49,12 +50,14 @@ function theWorld() {
       return Response.json({ choices: [{ message: { content: JSON.stringify(DICTATED) } }] })
     }
 
-    sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>
+    if (url.includes('/answerCallbackQuery')) answered.push(body)
+    else sent.push(body)
 
     return Response.json({ ok: true })
   }
 
-  return { fetchImpl, sent }
+  return { fetchImpl, sent, answered }
 }
 
 function buttonIn(message: Record<string, unknown>): { yes: string; no: string } {
@@ -110,6 +113,12 @@ describe('a voice note becomes a moved price, through the real composition root'
       expect(versions).toHaveLength(1)
       expect(versions[0]).toMatchObject({ proposalId: minted.id, appliedBy: String(OWNER) })
       expect((await edits.load(minted.id))?.state).toBe('applied')
+
+      // The press is answered, so Telegram stops spinning, and the owner reads what moved.
+      expect(world.answered).toHaveLength(1)
+      expect(world.answered[0]).toMatchObject({ callback_query_id: 'cbq_1' })
+      expect(String(world.sent[1]?.text)).toContain('ya está en vigencia')
+      expect(String(world.sent[1]?.text)).toContain('→')
     } finally {
       delete process.env.TELEGRAM_ADMIN_IDS
     }
