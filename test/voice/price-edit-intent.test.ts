@@ -221,9 +221,11 @@ describe("openRouterExtraction", () => {
     await port.extract("Subí las tarjetas un 20 %");
 
     const messages = body?.messages as { role: string; content: string }[];
-    expect(messages[1]?.content).toMatch(
-      /^<transcript:[0-9a-f]{32}>\nSubí las tarjetas un 20 %\n<\/transcript:[0-9a-f]{32}>$/,
-    );
+    const [open, fenced, close] = String(messages[1]?.content).split("\n");
+
+    expect(open).toMatch(/^<transcript:[0-9a-f]{32}>$/);
+    expect(close).toBe(`</${open!.slice(1, -1)}>`);
+    expect(fenced).toBe("Subí las tarjetas un 20 %");
     expect(body?.temperature).toBe(0);
     expect((body?.response_format as { type: string }).type).toBe("json_schema");
   });
