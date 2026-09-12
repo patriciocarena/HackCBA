@@ -7,9 +7,18 @@ export type AdminAllowlistConfig = {
   recordDenial: (denial: Denial) => void
 }
 
+function parse(ids: string | undefined): ReadonlySet<string> {
+  const entries = (ids ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+
+  return new Set(entries)
+}
+
 export function adminAllowlist(config: AdminAllowlistConfig): IsAdmin {
   const { ids, recordDenial } = config
-  const allowed = new Set((ids ?? '').split(','))
+  const allowed = parse(ids)
 
   return (telegramUserId) => {
     if (allowed.has(telegramUserId)) return true

@@ -17,4 +17,32 @@ describe('adminAllowlist', () => {
     expect(isAdmin('456')).toBe(true)
     expect(isAdmin('789')).toBe(false)
   })
+
+  test('denies everyone when the variable is empty', () => {
+    const isAdmin = adminAllowlist({ ids: '', recordDenial: ignore })
+
+    expect(isAdmin('')).toBe(false)
+    expect(isAdmin('123')).toBe(false)
+  })
+
+  test('denies everyone when the variable is whitespace', () => {
+    const isAdmin = adminAllowlist({ ids: '   ', recordDenial: ignore })
+
+    expect(isAdmin('   ')).toBe(false)
+    expect(isAdmin('123')).toBe(false)
+  })
+
+  test('reads a trailing comma as punctuation, not as an allowed empty id', () => {
+    const isAdmin = adminAllowlist({ ids: '123,', recordDenial: ignore })
+
+    expect(isAdmin('')).toBe(false)
+    expect(isAdmin('123')).toBe(true)
+  })
+
+  test('trims what the owner typed around an id', () => {
+    const isAdmin = adminAllowlist({ ids: ' 123 , 456 ', recordDenial: ignore })
+
+    expect(isAdmin('123')).toBe(true)
+    expect(isAdmin('456')).toBe(true)
+  })
 })
