@@ -42,6 +42,7 @@ export async function confirmPriceEdit(
 
   const proposal = await load(input.proposalId)
   if (proposal === null) return { ok: false, reason: 'unknown_proposal' }
+  if (proposal.state !== 'proposed') return { ok: false, reason: 'not_proposed' }
 
   if (!input.accepted) {
     const rejected: PriceEditProposal = {

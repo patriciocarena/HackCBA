@@ -120,4 +120,26 @@ describe('confirmPriceEdit', () => {
     expect(store.saved).toEqual([outcome.rejected])
     expect(ROWS[0]?.price).toEqual(ars(12100))
   })
+
+  it('refuses to resolve an edit that is already resolved, whichever way the owner answers', async () => {
+    for (const state of ['applied', 'rejected'] as const) {
+      for (const accepted of [true, false]) {
+        const store = aStore({ ...PROPOSED, state })
+
+        const outcome = await confirmPriceEdit(
+          {
+            proposalId: 'edit_1',
+            versionId: 'ver_1',
+            senderId: ADMIN,
+            accepted,
+            now: '2026-09-12T10:05:00.000Z',
+          },
+          { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+        )
+
+        expect(outcome).toEqual({ ok: false, reason: 'not_proposed' })
+        expect(store.saved).toEqual([])
+      }
+    }
+  })
 })
