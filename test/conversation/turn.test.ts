@@ -8,6 +8,7 @@ import { totalOf } from '@/domain/breakdown'
 import { askText, pesos } from '@/domain/quote-text'
 import { EXTRACTION_REASONS, INTRODUCTION } from '@/conversation/prompt'
 import { priceFor } from '@/domain/price-for'
+import { inMemorySale } from '@/conversation/sale'
 import { fence, fencer } from '@/security/fence'
 import type { Resolution } from '@/domain/types'
 
@@ -558,5 +559,51 @@ describe('a writer that never answered', () => {
     expect(result.reply).toBe('te delego con un humano')
     expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'ambiguous' })
     expect(result.state.escalated).toBe(true)
+  })
+})
+
+describe('the customer accepts the quote they were shown', () => {
+  const priced: Resolution = priceFor({ kind: 'quote', family: 'business_cards', attributes: OFFSET_1000, size: null, addOns: [] }, catalogRows, baseConfig)
+  const total = priced.kind === 'price' ? pesos(totalOf(priced.breakdown)) : ''
+
+  function acceptingDeps(overrides: Partial<TurnDeps> = {}): TurnDeps {
+    const sale = inMemorySale({
+      alias: 'dante.imprenta.mp',
+      now: () => '2026-09-12T14:00:00.000Z',
+      id: () => 'id_1',
+    })
+    sale.hold(conversationId('telegram', '42', 'customer'), priced)
+
+    return deps({
+      sale,
+      extract: async () => ({ kind: 'accept' }),
+      write: async ({ user }) => user.split('<respuesta:')[1]?.split('\n')[1] ?? 'sin respuesta',
+      ...overrides,
+    })
+  }
+
+  test('the order is born, the deposit is asked for, and the alias reaches the customer', async () => {
+    const got = await turn(acceptingDeps(), message('dale, la quiero'), state())
+
+    expect(got.resolution?.kind).toBe('accepted')
+    if (got.resolution?.kind !== 'accepted') return
+    expect(got.resolution.order.state).toBe('deposit_pending')
+    expect(got.resolution.order.depositAlias).toBe('dante.imprenta.mp')
+    expect(got.reply).toContain('dante.imprenta.mp')
+    expect(got.reply).toContain(total)
+    expect(got.state.escalated).toBe(false)
+  })
+
+  test('an acceptance with no sale port wired escalates instead of inventing an order', async () => {
+    const got = await turn(deps({ extract: async () => ({ kind: 'accept' }) }), message('dale'), state())
+
+    expect(got.resolution).toMatchObject({ kind: 'escalate' })
+  })
+
+  test('accepting does not escalate the conversation, because the sale continues', async () => {
+    const got = await turn(acceptingDeps(), message('listo, dale'), state())
+
+    expect(got.state.escalated).toBe(false)
+    expect(got.reply).not.toBeNull()
   })
 })

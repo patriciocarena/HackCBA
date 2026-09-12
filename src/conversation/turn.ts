@@ -5,6 +5,7 @@ import { askText, pesos, quoteText } from '../domain/quote-text'
 import {
   quoteIntentSchema,
   type EscalationReason,
+  type AcceptIntent,
   type FactIntent,
   type FamilyContract,
   type OtherIntent,
@@ -30,6 +31,8 @@ export type TurnDeps = {
   facts: Fact[]
   extract: Extract
   write: Write
+  /** Absent means no acceptance can be taken, which is the state before E6 is wired. */
+  sale?: Sale
 }
 
 /** `resolution` is what was said, so it carries a value exactly when `reply` does. */
@@ -55,7 +58,7 @@ export async function turn(
   // second time nests one nonce inside another and tells the model nothing it did not know.
   const fenced = message.text
 
-  const resolution = await resolve(deps, fenced).catch((): Resolution => escalate('ambiguous'))
+  const resolution = await resolve(deps, message, fenced).catch((): Resolution => escalate('ambiguous'))
   const settled = settle(resolution, state)
   const answer = answerOf(settled)
 
@@ -81,7 +84,7 @@ function silence(state: TurnState): TurnResult {
 
 const DELEGATE = 'te delego con un humano'
 
-async function resolve(deps: TurnDeps, fenced: string): Promise<Resolution> {
+async function resolve(deps: TurnDeps, message: InboundMessage, fenced: string): Promise<Resolution> {
   const family = deps.config.family
   const raw = await deps.extract({
     system: EXTRACTION_SYSTEM,
@@ -100,10 +103,20 @@ async function resolve(deps: TurnDeps, fenced: string): Promise<Resolution> {
   if (intent === null) return escalate('unsupported_option')
 
   switch (intent.kind) {
-    case 'quote':
-      return priceFor(intent, deps.rows(), deps.config)
+    case 'quote': {
+      // C10's getter, so a quote reads the catalog as it is now and not as it was at boot.
+      const priced = priceFor(intent, deps.rows(), deps.config)
+      // Held before it is said, so the quote the customer may accept is the one they read.
+      deps.sale?.hold(message.conversationId, priced)
+
+      return priced
+    }
     case 'fact':
       return answerFromFacts(intent.key, deps.facts)
+    case 'accept':
+      return deps.sale === undefined
+        ? escalate('ambiguous')
+        : deps.sale.accept(message.conversationId, { kind: 'person', id: message.senderId })
     case 'other':
       return escalate('ambiguous')
   }
@@ -129,10 +142,11 @@ function answerKind(raw: unknown): unknown {
 function readIntent(
   raw: unknown,
   family: FamilyContract,
-): QuoteIntent | FactIntent | OtherIntent | null {
+): QuoteIntent | FactIntent | AcceptIntent | OtherIntent | null {
   const answered = raw as Record<string, unknown>
 
   if (answerKind(raw) === 'fact') return { kind: 'fact', key: String(answered.factKey ?? '') }
+  if (answerKind(raw) === 'accept') return { kind: 'accept' }
   if (answerKind(raw) !== 'quote') return { kind: 'other' }
 
   const parsed = quoteIntentSchema(family).safeParse({
