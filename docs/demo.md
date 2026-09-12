@@ -241,3 +241,47 @@ Narration: `El cliente acepta. Nace el pedido, Dante pide la seña por alias, y 
 la confirma. El pedido sigue en cuarenta y cinco mil, aunque la lista subió veinte por
 ciento hace treinta segundos.`
 
+## The timing budget
+
+Thirty seconds a step is the wrong shape for these six steps. The narration lines were
+counted at 150 words per minute, not read against a stopwatch, so time them once before
+19:00.
+
+| Step | Seconds | Why |
+|---|---|---|
+| 1 | 30 | Two turns, two round trips, and the introduction makes the first reply longer to read |
+| 2 | 25 | One turn, and the reply has a second sentence to take in |
+| 3 | 20 | One turn, one short reply |
+| 4 | 15 | One turn, and the point is what is absent |
+| 5 | 55 | Audio, upload, download, transcription, extraction, the diff, the confirmation, the version |
+| 6 | 35 | Four messages across two chats |
+
+Step 5 is the one that cannot be told in thirty seconds, and the step is right, not the
+budget. Before a word is narrated it spends five seconds of audio, two on the upload, two
+fetching the file back from Telegram, three to six on transcription and three on
+extraction. That is twenty seconds of waiting with nothing to say, and the beats that
+follow are the ones that carry the ticket.
+
+The table totals exactly 180 seconds, which means it holds only if nobody hesitates. Plan
+for 3:20 and cut step 4 if three minutes is hard.
+
+## What to cut if the clock runs out
+
+Ranked by what each step proves, best first.
+
+1. Step 1. Without a quote there is no product.
+2. Step 5. The half that is not a chatbot: the owner runs his own price list by talking to it.
+3. Step 3. The client's stated pain. The bot he has invents things.
+4. Step 6. Money moves when a person says it moved, and the order holds its price.
+5. Step 2. Proof it is not a lookup table.
+6. Step 4. Proof it is safe, but on screen it is a non-event.
+
+Drop 4 first, then 2. Step 4's outcome is that nothing happened, which needs narration to
+read as a win and reads as a bug without it, and `docs/amenazas.md` carries the argument in
+writing. Step 2 is provable from `docs/pricing-cases.md`, and step 1 has already shown a
+real number.
+
+What is left is 1, 3, 5 and 6: it quotes, it refuses to invent, the owner changes his prices
+by voice, and a person confirms the money. That is not a chatbot with a price list.
+
+Do not drop 5 to save time. Cutting it leaves four steps that a search box could do.
