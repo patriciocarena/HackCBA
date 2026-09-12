@@ -63,6 +63,11 @@ export function conversationId(channel: string, chatId: string, role: Role): Con
   return `${channel}:${chatId}:${role}` as ConversationId
 }
 
+/** The chat the conversation is with, read back out of its id. The middle segment is the chat. */
+export function chatIdOf(conversationId: ConversationId): string {
+  return conversationId.split(':')[1] ?? ''
+}
+
 export const ATTRIBUTE_KINDS = ['enum', 'number'] as const
 export type AttributeKind = (typeof ATTRIBUTE_KINDS)[number]
 

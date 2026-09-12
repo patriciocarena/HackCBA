@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { LOADED_FAMILIES } from '../../src/catalog/families'
 import { withVat } from '../support/fixtures'
+import { pesos } from '@/domain/quote-text'
 import { catalogRows, baseConfig } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
 import { receiptTurn } from '@/conversation/receipt-path'
@@ -65,7 +66,7 @@ function vertical(reading: ReceiptReading | null = MATCHES) {
   const written: Receipt[] = []
   const notices: string[] = []
   const replies: { chatId: string; text: string }[] = []
-  const answers: unknown[] = [QUOTE, ACCEPT]
+  const answers: unknown[] = [QUOTE, ACCEPT, QUOTE]
 
   const sale = inMemorySale({ alias: 'dante.imprenta.mp', now: () => NOW, id: sequence('id') })
   const store: ReceiptStore = { async record(receipt) { written.push(receipt) } }
@@ -130,6 +131,45 @@ function delivery(updateId: number, message: Record<string, unknown>): Request {
     }),
   })
 }
+
+/**
+ * What broke the bot on a client's phone, end to end. The receipt path runs before the turn,
+ * and while an order waited for its deposit it claimed every message the conversation carried:
+ * "quiero mil tarjetas mas, serian 54450?" was filed as a comprobante and answered "¡Gracias
+ * por mandar el comprobante!", so the price question reached nothing that could price it.
+ */
+describe('a question asked while the deposit is pending is still answered', () => {
+  test('the extra thousand is quoted, not filed as a receipt', async () => {
+    const { webhook, sale, written, notices, replies } = vertical()
+
+    await webhook(says(1, 'hola, cuánto 1000 tarjetas'))
+    await webhook(says(2, 'dale, la quiero'))
+    expect(sale.orderFor(conversation)?.state).toBe('deposit_pending')
+
+    const before = replies.length
+    await webhook(says(3, 'porfavor cotizame 1.000 tarjetas mas'))
+
+    const answered = replies.slice(before)
+
+    expect(answered).toHaveLength(1)
+    expect(answered[0]?.text).not.toMatch(/comprobante/i)
+    expect(answered[0]?.text).toContain(pesos(withVat(45_000)))
+    // Nothing was recorded against the order, and the owner was not told a receipt arrived.
+    expect(written).toEqual([])
+    expect(notices).toEqual([])
+  })
+
+  test('and saying they paid is still the transfer', async () => {
+    const { webhook, sale, written } = vertical()
+
+    await webhook(says(1, 'hola, cuánto 1000 tarjetas'))
+    await webhook(says(2, 'dale, la quiero'))
+    await webhook(says(3, 'ya te transferí, te paso el comprobante'))
+
+    expect(written).toHaveLength(1)
+    expect(written[0]?.orderId).toBe(sale.orderFor(conversation)!.id)
+  })
+})
 
 describe('the receipt attaches to the order the confirmation moves', () => {
   test('quote, accept, photo, and the order confirms itself with nobody pressing anything', async () => {
@@ -201,7 +241,7 @@ describe('the receipt attaches to the order the confirmation moves', () => {
  * no notice and this fails.
  */
 function routed() {
-  const answers: unknown[] = [QUOTE, ACCEPT]
+  const answers: unknown[] = [QUOTE, ACCEPT, QUOTE]
   const sends: { chatId: string; text: string }[] = []
 
   const fetchImpl: FetchLike = async (url, init) => {

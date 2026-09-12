@@ -1,4 +1,5 @@
 import {
+  claimsPayment,
   recordReceipt,
   type AutoOutcome,
   type AutoRefusal,
@@ -81,6 +82,10 @@ export function readReceipt(deps: ReceiptPathDeps): ReadReceipt {
     if (order === null) return null
 
     const photo = photoId(message)
+    // A photo is the transfer. Typed, only a message that says the money moved is, or this path
+    // eats every message the conversation has left and answers all of them about a comprobante.
+    if (photo === null && !claimsPayment(message.text)) return null
+
     const recorded = await recordReceipt(
       order,
       { mediaId: photo, text: message.text, receivedAt: message.receivedAt },

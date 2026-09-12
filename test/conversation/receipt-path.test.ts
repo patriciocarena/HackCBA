@@ -83,6 +83,12 @@ function aMessage(overrides: Partial<InboundMessage> = {}): InboundMessage {
   }
 }
 
+function aReplier(): { sent: { chatId: string; text: string }[]; reply: (chatId: string, text: string) => Promise<void> } {
+  const sent: { chatId: string; text: string }[] = []
+
+  return { sent, reply: async (chatId, text) => void sent.push({ chatId, text }) }
+}
+
 const fenced = (text: string) => `<message:abc>\n${text}\n</message:abc>` as UntrustedText
 
 describe('the customer sends a transfer', () => {
@@ -153,6 +159,61 @@ describe('the customer sends a transfer', () => {
     expect(got).toBeNull()
     expect(store.written).toEqual([])
     expect(notifier.sent).toEqual([])
+  })
+
+  /**
+   * What broke the bot on a client's phone. Once an order is awaiting a deposit this path ran
+   * on every message the conversation carried, so "quiero mil tarjetas más, serían 54450?" was
+   * recorded as a receipt and answered "¡Gracias por mandar el comprobante!". The turn never
+   * ran, so the question nobody answered was a price question.
+   *
+   * A photo is always the transfer. Typed, it is the transfer only when the message says the
+   * money moved, which is what `claimsPayment` reads.
+   */
+  describe('a typed message is the transfer only when it says so', () => {
+    test('a price question while the deposit is pending is not a receipt', async () => {
+      const store = aStore()
+      const notifier = aNotifier()
+      const replier = aReplier()
+      const read = readReceipt(eyes({ store, notify: notifier.notify, reply: replier.reply }))
+
+      const got = await read(aMessage({ text: fenced('quiero mil tarjetas mas, serian 54450?') }))
+
+      expect(got).toBeNull()
+      expect(store.written).toEqual([])
+      expect(notifier.sent).toEqual([])
+      expect(replier.sent).toEqual([])
+    })
+
+    test('asking how the shop takes payment is not saying you paid', async () => {
+      const store = aStore()
+      const read = readReceipt(eyes({ store }))
+
+      expect(await read(aMessage({ text: fenced('qué formas de pago tienen?') }))).toBeNull()
+      expect(await read(aMessage({ text: fenced('cuánto es la seña?') }))).toBeNull()
+      expect(store.written).toEqual([])
+    })
+
+    test('the ways a customer says they transferred are all the transfer', async () => {
+      const store = aStore()
+      const read = readReceipt(eyes({ store }))
+
+      for (const said of ['ya transferí', 'ya te transferi los 45 mil', 'deposité la seña', 'ya pagué', 'hice la transferencia', 'te mandé el comprobante']) {
+        expect(await read(aMessage({ text: fenced(said) }))).not.toBeNull()
+      }
+
+      expect(store.written).toHaveLength(6)
+    })
+
+    test('a photo is the transfer whatever its caption says', async () => {
+      const store = aStore()
+      const read = readReceipt(eyes({ store }))
+
+      const got = await read(aMessage({ text: fenced('mil tarjetas más'), media: { kind: 'photo', id: 'AgACphoto' } }))
+
+      expect(got).not.toBeNull()
+      expect(store.written).toHaveLength(1)
+    })
   })
 
   test('no order for the conversation means this path is not interested', async () => {
@@ -363,12 +424,6 @@ describe('the customer sends transfer after transfer', () => {
  * runs. A person who has just sent money and got silence assumes it did not arrive.
  */
 describe('the customer is answered for the receipt they sent', () => {
-  function aReplier(): { sent: { chatId: string; text: string }[]; reply: (chatId: string, text: string) => Promise<void> } {
-    const sent: { chatId: string; text: string }[] = []
-
-    return { sent, reply: async (chatId, text) => void sent.push({ chatId, text }) }
-  }
-
   test('a confirmed transfer is thanked and told the job is in', async () => {
     const replier = aReplier()
     const read = readReceipt(eyes({ reply: replier.reply }))

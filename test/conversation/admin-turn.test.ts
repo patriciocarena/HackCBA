@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { adminTurn, ONLY_AUDIO, proposalText } from '@/conversation/admin-turn'
+import type { ConfirmsPending } from '@/conversation/owner-confirm'
 import type { Turn } from '@/telegram/inbound'
 import { ars } from '@/domain/money'
 import type { PriceEditProposal } from '@/domain/types'
@@ -43,7 +44,7 @@ function voiceNote(): InboundMessage {
   }
 }
 
-function wired(heard: AudioRead | null, fallback: Turn = async () => {}) {
+function wired(heard: AudioRead | null, fallback: Turn = async () => {}, confirm?: ConfirmsPending) {
   const asked: { chatId: string; text: string; proposalId: string }[] = []
   const sent: { chatId: string; text: string }[] = []
 
@@ -52,10 +53,82 @@ function wired(heard: AudioRead | null, fallback: Turn = async () => {}) {
     ask: async (chatId, text, proposalId) => void asked.push({ chatId, text, proposalId }),
     send: async (chatId, text) => void sent.push({ chatId, text }),
     fallback,
+    ...(confirm === undefined ? {} : { confirm }),
   })
 
   return { turn, asked, sent }
 }
+
+function typed(text: string): InboundMessage {
+  return { ...voiceNote(), text: fence(text, 'message'), media: null }
+}
+
+/**
+ * The other half of ADR 0028. He types "confirmado" because there is nothing to press: a
+ * deposit is agreed to against a bank statement Dante never sees, so there is no proposal to
+ * read back and no button to mint from one.
+ */
+describe('the owner confirms a deposit by typing it', () => {
+  test('a confirmation is answered here and never handed to the customer turn', async () => {
+    let fellBack = 0
+    const { turn, sent } = wired(
+      { kind: 'not_voice' },
+      async () => void (fellBack += 1),
+      async () => 'Listo, confirmé la seña del pedido ord_1. Ya le avisé al cliente.',
+    )
+
+    await turn(typed('confirmado'))
+
+    expect(fellBack).toBe(0)
+    expect(sent).toEqual([{ chatId: OWNER, text: 'Listo, confirmé la seña del pedido ord_1. Ya le avisé al cliente.' }])
+  })
+
+  test('the order he names is the one passed on', async () => {
+    const named: (string | undefined)[] = []
+    const { turn } = wired({ kind: 'not_voice' }, async () => {}, async (_by, orderId) => {
+      named.push(orderId)
+
+      return 'ok'
+    })
+
+    await turn(typed('confirmado ord_7'))
+    await turn(typed('confirmado'))
+
+    expect(named).toEqual(['ord_7', undefined])
+  })
+
+  test('who pressed is who sent it, because the allowlist reads an id and not a word', async () => {
+    const actors: unknown[] = []
+    const { turn } = wired({ kind: 'not_voice' }, async () => {}, async (by) => {
+      actors.push(by)
+
+      return 'ok'
+    })
+
+    await turn(typed('confirmado'))
+
+    expect(actors).toEqual([{ kind: 'person', id: OWNER }])
+  })
+
+  test('anything else he types is still the customer turn, so a price question is quoted', async () => {
+    let fellBack = 0
+    const { turn, sent } = wired({ kind: 'not_voice' }, async () => void (fellBack += 1), async () => 'never')
+
+    await turn(typed('cuánto 1000 tarjetas?'))
+
+    expect(fellBack).toBe(1)
+    expect(sent).toEqual([])
+  })
+
+  test('with nothing wired to confirm, a confirmation is not swallowed', async () => {
+    let fellBack = 0
+    const { turn } = wired({ kind: 'not_voice' }, async () => void (fellBack += 1))
+
+    await turn(typed('confirmado'))
+
+    expect(fellBack).toBe(1)
+  })
+})
 
 describe('the diff the owner is asked to agree to', () => {
   test('writes out the old and the new price of every line', () => {

@@ -693,6 +693,29 @@ describe('an admin conversation does not end', () => {
     })
   })
 
+  /**
+   * The greeting is for a greeting. Every restart empties the state customerTurn keeps in
+   * memory, so after a deploy his next message looked like his first: he typed "confirmado"
+   * and read the whole introduction back, which is the nonsense a demo cannot afford.
+   */
+  describe('the introduction answers a greeting and nothing else', () => {
+    test('a greeting on an unintroduced conversation is introduced', async () => {
+      for (const said of ['hola', 'buenas', 'buen día Dante', 'qué tal, cómo andás?']) {
+        const result = await turn(deps(), message(said, 'admin'), ownerState({ introduced: false }))
+
+        expect(result.reply).toBe(ADMIN_INTRODUCTION)
+      }
+    })
+
+    test('anything else is told what Dante can do, however new the conversation looks', async () => {
+      for (const said of ['confirmado', 'listo eso', 'y el pedido?']) {
+        const result = await turn(deps(), message(said, 'admin'), ownerState({ introduced: false }))
+
+        expect(result.reply).toBe(WHAT_I_CAN_DO)
+      }
+    })
+  })
+
   test('a fact nobody loaded tells him it is not loaded, and the chat stays open', async () => {
     const result = await turn(
       deps({

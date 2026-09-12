@@ -12,7 +12,7 @@ import { receiptReader } from '../conversation/receipt-reading'
 import { inMemorySale } from '../conversation/sale'
 import { printingSale, workOrders } from '../conversation/work-order'
 import { inMemoryReceipts } from '../domain/deposit'
-import { adminAllowlistFromEnv } from '../security/allowlist'
+import { adminAllowlistFromEnv, type IsAdmin } from '../security/allowlist'
 import { readAdminAudio } from '../voice/admin-audio'
 import { extractionFromEnv } from '../voice/price-edit-intent'
 import type { PriceEditStore } from '../voice/price-edit-proposal'
@@ -21,6 +21,7 @@ import { telegramAudio } from './audio-file'
 import { confirmCallback, type RecordVersion } from './confirm-callback'
 import type { Turn } from './inbound'
 import { telegramAnswerCallback, telegramAsk, telegramChatAction, telegramSend } from './send'
+import { confirmsPending } from '../conversation/owner-confirm'
 import { telegramWebhook, type WebhookDeps } from './webhook'
 
 /**
@@ -55,7 +56,7 @@ export function telegramWebhookRoute(
     isAdmin,
     secret: requireEnv('TELEGRAM_WEBHOOK_SECRET'),
     typing: deps.typing ?? telegramChatAction(botToken, fetchImpl),
-    turn: deps.turn ?? productionTurn(fetchImpl, wiring),
+    turn: deps.turn ?? productionTurn(fetchImpl, wiring, isAdmin),
     onCallback:
       deps.onCallback ??
       confirmCallback({
@@ -86,7 +87,7 @@ export function telegramWebhookRoute(
  * Dispatching here rather than inside `turn()` keeps the customer turn's three phases unaware
  * that an owner exists.
  */
-function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
+function productionTurn(fetchImpl: FetchLike, wiring: Wiring, isAdmin: IsAdmin): Turn {
   const model = openRouterModel({
     apiKey: requireEnv('OPENROUTER_API_KEY'),
     model: requireEnv('OPENROUTER_MODEL'),
@@ -163,6 +164,10 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
   )
 
   const owner = adminTurn({
+    // The manual half of the money path. Nothing in src/ reached `sale.confirmDeposit` before
+    // this line, so a receipt the reader refused left the customer told the shop would confirm
+    // and no way for the shop to do it. `printingSale` above still prints the work order.
+    confirm: confirmsPending({ sale, isAdmin, send }),
     read: readAdminAudio({
       rows: wiring.catalog.rows,
       families: LOADED_FAMILIES,

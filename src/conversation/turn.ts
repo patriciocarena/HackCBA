@@ -246,8 +246,25 @@ function toldToTheOwner(resolution: Resolution, message: InboundMessage, state: 
   // One sentence for everything he cannot be answered, the way ADR 0012 gives the customer one.
   if (resolution.reason !== 'ambiguous') return { kind: 'instruct', text: NOT_LOADED }
 
-  return { kind: 'instruct', text: state.introduced ? WHAT_I_CAN_DO : ADMIN_INTRODUCTION }
+  // The greeting answers a greeting. `introduced` lives in memory, so every deploy makes his
+  // next message look like his first, and he typed "confirmado" after a restart and read the
+  // whole introduction back. Both have to hold: the word, and the conversation not having
+  // heard it yet.
+  const greeted = !state.introduced && greets(message.text)
+
+  return { kind: 'instruct', text: greeted ? ADMIN_INTRODUCTION : WHAT_I_CAN_DO }
 }
+
+/**
+ * Whether the message is somebody saying hello and nothing more pressing. Read off the fenced
+ * text, which is what the webhook hands over; the nonce is hex and carries no letters that
+ * spell any of these.
+ */
+function greets(text: string | null): boolean {
+  return text !== null && GREETING.test(text)
+}
+
+const GREETING = /(?:^|[^a-záéíóúñ])(hola|buenas|buen d[ií]a|buenas tardes|buenas noches|qu[eé] tal|c[oó]mo (and[aá]s|est[aá]s|va))(?![a-záéíóúñ])/i
 
 /** Whether this message's escalation closes the conversation. ADR 0011, and who it is for. */
 function ends(message: InboundMessage): boolean {

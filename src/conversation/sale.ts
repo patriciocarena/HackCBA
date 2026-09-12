@@ -34,6 +34,12 @@ export type Sale = {
    * receipt path: the port owns its orders and nothing outside it may set one.
    */
   confirmFromReceipt(conversationId: ConversationId, reading: ReceiptReading): AutoOutcome
+  /**
+   * Every order waiting for its deposit. The owner types "confirmado" in his own chat, which
+   * carries no customer's conversation, so the one thing he can be answered with is the list
+   * of what is waiting. Derived from the orders the port already holds, never a second store.
+   */
+  awaitingDeposit(): Order[]
 }
 
 // ponytail: a Map, A3's tables when a quote has to outlive the process. One store, because
@@ -89,6 +95,10 @@ export function inMemorySale(config: SaleConfig): Sale {
       if (confirmed.ok) orders.set(conversationId, confirmed.order)
 
       return confirmed
+    },
+
+    awaitingDeposit() {
+      return [...orders.values()].filter((order) => order.state === 'deposit_pending')
     },
 
     confirmDeposit(conversationId, by, isAdmin) {

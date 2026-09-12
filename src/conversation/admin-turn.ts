@@ -1,4 +1,5 @@
 import { pesos } from '../domain/quote-text'
+import { claimsConfirmation, type ConfirmsPending } from './owner-confirm'
 import type { PriceEditProposal } from '../domain/types'
 import type { Turn } from '../telegram/inbound'
 import type { AskToConfirm, Send } from '../telegram/send'
@@ -12,6 +13,12 @@ export type AdminTurnDeps = {
   send: Send
   /** The customer turn. A role decides what the owner may change, not whether he is answered. */
   fallback: Turn
+  /**
+   * What "confirmado" does. Optional, and a wiring without it hands the word to the customer
+   * turn rather than swallowing it: an owner who reads the fallback sentence has lost nothing,
+   * and one whose confirmation is eaten by a path that cannot confirm has lost the money step.
+   */
+  confirm?: ConfirmsPending
 }
 
 const NOT_HEARD = 'No pude escuchar ese audio. Mandámelo de nuevo.'
@@ -63,14 +70,28 @@ export const NOT_LOADED = 'Eso no lo tengo cargado. Si lo pregunta un cliente, s
  * customer turn would read it as something it cannot handle and escalate the owner.
  */
 export function adminTurn(deps: AdminTurnDeps): Turn {
-  const { read, ask, send, fallback } = deps
+  const { read, ask, send, fallback, confirm } = deps
 
   return async (message) => {
     const heard = await read(message)
     if (heard === null) return
 
     if (heard.kind === 'not_voice') {
-      await (message.text === null ? send(message.chatId, ONLY_AUDIO) : fallback(message))
+      if (message.text === null) {
+        await send(message.chatId, ONLY_AUDIO)
+
+        return
+      }
+
+      // Before the customer turn, because extraction reads "confirmado" as `other` and the
+      // owner was answered with his own greeting while a customer waited on the seña.
+      if (confirm !== undefined && claimsConfirmation(message.text)) {
+        await send(message.chatId, await confirm({ kind: 'person', id: message.senderId }, orderIdIn(message.text)))
+
+        return
+      }
+
+      await fallback(message)
 
       return
     }
@@ -113,3 +134,17 @@ function percent(rate: number): string {
 
   return `${(Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, '')).replace('.', ',')}%`
 }
+
+/**
+ * The order he named, when he named one, and nothing when he did not.
+ *
+ * Two shapes, because an order id is `crypto.randomUUID` in production and `ord_`-something in
+ * the seed and the tests. Matching a shape rather than "the last word" is what keeps the fence
+ * delimiter and the word "seña" from being read as an id: one that matches no pending order
+ * confirms nothing, so a wrong guess costs a sentence and never a deposit.
+ */
+function orderIdIn(text: string): string | undefined {
+  return text.match(ORDER_ID)?.[1]
+}
+
+const ORDER_ID = /\b(ord_[A-Za-z0-9_-]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i

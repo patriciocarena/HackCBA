@@ -75,6 +75,26 @@ export type ReceiptInput = {
   receivedAt: string
 }
 
+/**
+ * Whether a typed message says the money moved.
+ *
+ * A photo is the transfer and needs no reading. Text is the other half of it, "ya transferí"
+ * with the screenshot still coming, and the path used to take any text at all: while an order
+ * waited for its deposit, every message the conversation carried was recorded as a receipt and
+ * answered "¡Gracias por mandar el comprobante!". A customer asking "quiero mil tarjetas más,
+ * serían 54450?" got that, and the turn never ran, so the price question was never answered.
+ *
+ * It reads a claim in the past, not the subject of the sentence. "Formas de pago" and "cuánto
+ * es la seña" ask about paying and say nothing about having paid, and a stem list alone would
+ * swallow both.
+ */
+export function claimsPayment(text: string | null): boolean {
+  return text !== null && PAID.test(text)
+}
+
+const PAID =
+  /\b(ya\s+)?(te\s+|les\s+)?(transfer[ií]|deposit[eé]|pagu[eé]|abon[eé]|se[ñn][eé]|hice (la|el) (transferencia|dep[oó]sito|pago)|mand[eé] (el|la|los) (comprobante|transferencia|plata|se[ñn]a|pesos))/i
+
 export async function recordReceipt(
   order: Order,
   input: ReceiptInput,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { EXTRACTION_REASONS, extractionSchema, INTRODUCTION, WRITING_SYSTEM } from '@/conversation/prompt'
+import { EXTRACTION_REASONS, EXTRACTION_SYSTEM, extractionSchema, INTRODUCTION, WRITING_SYSTEM } from '@/conversation/prompt'
 import { NO_MEDIA } from '@/conversation/turn'
 import { ADMIN_INTRODUCTION, NOT_LOADED, ONLY_AUDIO, WHAT_I_CAN_DO } from '@/conversation/admin-turn'
 import { businessCards } from '@/catalog/business-cards'
@@ -247,6 +247,18 @@ describe('the extraction schema over every loaded family', () => {
  * one a customer never reads. ADR 0026: his conversation does not end, so what would have been
  * an escalation is one of these instead, said as written and never through the writer.
  */
+/**
+ * "Porfavor cotizame 1.000 tarjetas más" is how the customer writes a thousand, and quantity is
+ * a number enum: read as 1 it names no value the schema offers, the whole quote comes back null,
+ * and the customer who asked for a price is handed to a person instead.
+ */
+describe('a thousand is written with a dot', () => {
+  test('extraction is told which side of the dot the number is on', () => {
+    expect(EXTRACTION_SYSTEM).toContain('"1.000" is one thousand')
+    expect(EXTRACTION_SYSTEM).toMatch(/dot separates thousands/i)
+  })
+})
+
 describe('what the owner reads is not what a customer reads', () => {
   test('he gets his own introduction, not the counter’s', () => {
     expect(ADMIN_INTRODUCTION).toContain('Dante')

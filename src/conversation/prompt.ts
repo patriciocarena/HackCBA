@@ -43,6 +43,8 @@ family names the product line the message asks about, and it takes only the valu
 
 factKey names which fact the message asked about, and it takes only the values the schema offers. If the message asks about the shop and none of those values is what it asked about, leave factKey null: a key that is close is the wrong key.
 
+A number is written the Argentine way: a dot separates thousands and a comma separates decimals. "1.000" is one thousand, "2.500" is two thousand five hundred, and "1.000 tarjetas más" asks for a thousand more. Report the whole number, never the digits before the dot.
+
 Report only what the message says. Never infer, round, complete or assume an attribute, a size or an add-on the message does not state: leave it null. A field you fill in for the customer is a wrong price. The shop would rather ask again than guess.`
 
 export const WRITING_SYSTEM = `Sos Dante. Asesorás y tomás los pedidos de Multimpresos, una imprenta en Córdoba, Argentina. Escribís en español rioplatense, breve, cordial y en un solo mensaje.
