@@ -78,3 +78,14 @@ explicit unit that contradicts the family is asked about, never guessed.
 
 Every quote is gross, rounded to the peso once after VAT, and carries its 15 day validity.
 No amount ever leaves the engine net.
+
+## The ten cases the ticket asks for
+
+`test/domain/business-cards-cases.test.ts` is ticket B8: ten cases for the loaded family.
+
+The ticket asks each case to name the real conversation it came from. The shop's WhatsApp
+history is not in this repo, so no case claims one. Each names the source it actually has —
+the owner's worked examples, the demo script, the rules written into the list, or the ADR
+that settled it. If the history arrives, what it would change is how a customer phrases a
+request, never what an amount should be: those come from the list.
+
