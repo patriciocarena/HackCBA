@@ -37,7 +37,7 @@ function state(overrides: Partial<TurnState> = {}): TurnState {
 
 function deps(overrides: Partial<TurnDeps> = {}): TurnDeps {
   return {
-    rows: catalogRows,
+    rows: () => catalogRows,
     config: baseConfig,
     facts: [],
     extract: async () => ({ kind: 'other' }),

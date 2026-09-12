@@ -21,7 +21,10 @@ export type Extract = (request: { system: string; user: string; schema: object }
 export type Write = (request: { system: string; user: string }) => Promise<string>
 
 export type TurnDeps = {
-  rows: CatalogRow[]
+  // A getter, not an array. Capturing the catalog once at boot is what makes a confirmed
+  // price edit invisible: applyPriceEdit builds a new array and the captured reference goes
+  // on quoting the old prices. See ADR 0017.
+  rows: () => CatalogRow[]
   config: PriceForConfig
   facts: Fact[]
   extract: Extract
@@ -97,7 +100,7 @@ async function resolve(deps: TurnDeps, fenced: string): Promise<Resolution> {
 
   switch (intent.kind) {
     case 'quote':
-      return priceFor(intent, deps.rows, deps.config)
+      return priceFor(intent, deps.rows(), deps.config)
     case 'fact':
       return answerFromFacts(intent.key, deps.facts)
     case 'other':

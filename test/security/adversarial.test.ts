@@ -74,12 +74,13 @@ async function attack(text: string, model: Hijacked, facts: Fact[] = [], senderI
 
   const webhook = telegramWebhook({
     secret: SECRET,
+    onCallback: async () => {},
     isAdmin: adminAllowlist({ ids: OWNER }),
     turn: async (inbound) => {
       message = inbound
       result = await turn(
         {
-          rows: catalogRows,
+          rows: () => catalogRows,
           config: baseConfig,
           facts,
           extract: async (request) => { extracted = request.user; return model.extract(request) },

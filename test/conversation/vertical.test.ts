@@ -42,7 +42,7 @@ function vertical(overrides: Partial<TurnDeps> = {}, send?: Send) {
   const requests: { system: string; user: string }[] = []
 
   const deps: TurnDeps = {
-    rows: catalogRows,
+    rows: () => catalogRows,
     config: baseConfig,
     facts: [],
     extract: async () => QUOTE,
@@ -58,7 +58,7 @@ function vertical(overrides: Partial<TurnDeps> = {}, send?: Send) {
     replies.push({ chatId, text })
   }
 
-  return { webhook: telegramWebhook({ secret: SECRET, turn: customerTurn(deps, send ?? record) }), replies, requests }
+  return { webhook: telegramWebhook({ secret: SECRET, turn: customerTurn(deps, send ?? record), onCallback: async () => {} }), replies, requests }
 }
 
 function delivery(updateId: number, text: string): Request {

@@ -1,5 +1,6 @@
 import { registerApiRoute, type ApiRoute } from '@mastra/core/server'
-import { baseConfig, catalogRows } from '../catalog/business-cards'
+import { baseConfig } from '../catalog/business-cards'
+import type { LiveCatalog } from '../catalog/live-catalog'
 import { requireEnv } from '../config/env'
 import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
@@ -9,12 +10,16 @@ import type { Turn } from './inbound'
 import { telegramSend } from './send'
 import { telegramWebhook, type WebhookDeps } from './webhook'
 
-export function telegramWebhookRoute(deps: Omit<WebhookDeps, 'secret'> = {}, fetchImpl: FetchLike = fetch): ApiRoute {
+export function telegramWebhookRoute(
+  deps: Omit<WebhookDeps, 'secret'>,
+  catalog: LiveCatalog,
+  fetchImpl: FetchLike = fetch,
+): ApiRoute {
   const handle = telegramWebhook({
     ...deps,
     isAdmin: deps.isAdmin ?? adminAllowlistFromEnv(),
     secret: requireEnv('TELEGRAM_WEBHOOK_SECRET'),
-    turn: deps.turn ?? productionTurn(fetchImpl),
+    turn: deps.turn ?? productionTurn(fetchImpl, catalog),
   })
 
   return registerApiRoute('/telegram/webhook', {
@@ -28,7 +33,7 @@ export function telegramWebhookRoute(deps: Omit<WebhookDeps, 'secret'> = {}, fet
  * The seam where the wiring is real. Every key is read here, so a deployment missing one
  * dies at boot rather than acknowledging customers it will never answer.
  */
-function productionTurn(fetchImpl: FetchLike): Turn {
+function productionTurn(fetchImpl: FetchLike, catalog: LiveCatalog): Turn {
   const model = openRouterModel({
     apiKey: requireEnv('OPENROUTER_API_KEY'),
     model: requireEnv('OPENROUTER_MODEL'),
@@ -38,7 +43,7 @@ function productionTurn(fetchImpl: FetchLike): Turn {
   return customerTurn(
     // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
     // half of the rule; the loaded half arrives with the table that holds them.
-    { rows: catalogRows, config: baseConfig, facts: [], extract: model.extract, write: model.write },
+    { rows: catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write },
     telegramSend(requireEnv('TELEGRAM_BOT_TOKEN'), fetchImpl),
   )
 }

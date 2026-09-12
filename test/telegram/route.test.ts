@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import type { InboundMessage } from '@/telegram/inbound'
 import { telegramWebhookRoute } from '@/telegram/route'
+import { liveCatalog } from '@/catalog/live-catalog'
+import { catalogRows } from '@/catalog/business-cards'
+import type { OnCallback } from '@/telegram/callback'
+
+const noPress: OnCallback = async () => {}
+const aCatalog = () => liveCatalog(catalogRows)
 import type { FetchLike } from '@/voice/transcription'
 
 process.env.TELEGRAM_WEBHOOK_SECRET = 'a-long-random-string'
@@ -69,19 +75,19 @@ function wired(over: { telegram?: () => Response } = {}) {
     return Response.json({ choices: [{ message: { content } }] })
   }
 
-  return { route: telegramWebhookRoute({}, fetchImpl), calls }
+  return { route: telegramWebhookRoute({ onCallback: noPress }, aCatalog(), fetchImpl), calls }
 }
 
 describe('telegramWebhookRoute', () => {
   it('mounts a POST route on the server that already answers the health check', () => {
-    const route = telegramWebhookRoute()
+    const route = telegramWebhookRoute({ onCallback: noPress }, aCatalog())
 
     expect(route).toMatchObject({ path: '/telegram/webhook', method: 'POST', requiresAuth: false })
   })
 
   it('hands the raw request to the webhook and takes the secret from the environment', async () => {
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ turn: async (message) => { turns.push(message) } })
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aCatalog())
 
     const denied = await handle(route, delivery('wrong'))
     const accepted = await handle(route, delivery(SECRET))
@@ -97,7 +103,7 @@ describe('telegramWebhookRoute, on who counts as the owner', () => {
 
   it('reads the allowlist from the deployment, so an unconfigured one admits nobody', async () => {
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ turn: async (message) => { turns.push(message) } })
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aCatalog())
 
     await handle(route, privateDelivery(7))
 
@@ -107,7 +113,7 @@ describe('telegramWebhookRoute, on who counts as the owner', () => {
   it('makes an allowlisted sender the admin in his own private chat', async () => {
     process.env.TELEGRAM_ADMIN_IDS = '7'
     const turns: InboundMessage[] = []
-    const route = telegramWebhookRoute({ turn: async (message) => { turns.push(message) } })
+    const route = telegramWebhookRoute({ onCallback: noPress, turn: async (message) => { turns.push(message) } }, aCatalog())
 
     await handle(route, privateDelivery(7))
     await handle(route, privateDelivery(42))
@@ -142,7 +148,7 @@ describe('every key is read at boot', () => {
       delete process.env[key]
 
       try {
-        expect(() => telegramWebhookRoute()).toThrow(`${key} is not set`)
+        expect(() => telegramWebhookRoute({ onCallback: noPress }, aCatalog())).toThrow(`${key} is not set`)
       } finally {
         process.env[key] = held
       }
