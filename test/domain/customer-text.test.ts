@@ -82,7 +82,7 @@ describe('a plain quote reads like a person too', () => {
   })
 
   test('states the amount and the validity, and stays short', () => {
-    expect(plain()).toContain('$54.450')
+    expect(plain()).toContain('$45.000')
     expect(plain()).toContain('15 días')
     expect(plain()).not.toContain('redondeo al peso')
     expect(plain().length).toBeLessThan(140)

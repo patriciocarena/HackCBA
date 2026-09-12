@@ -7,7 +7,7 @@
     "note": "Amounts are copied from the list exactly as the owner typed them."
   },
   "currency": "ARS",
-  "vat_included": false,
+  "vat_included": true,
   "vat_rate": 0.21,
   "quote_validity_days": 15,
   "family": {

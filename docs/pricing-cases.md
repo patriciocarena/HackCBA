@@ -1,7 +1,8 @@
 # Pricing cases
 
 What `priceFor` must do, case by case, agreed before the code exists. Amounts come from
-`seed/business-cards.json`. Net prices are grossed up at 21% and rounded to the peso.
+`seed/business-cards.json` and are the amounts the owner typed. The list is already final,
+tax included, so there is nothing to add to it. See ADR 0003.
 
 Quoted strings are what Dante says to a customer, so they are in Spanish. Everything else
 here is English, per the rules of the day.
@@ -10,8 +11,8 @@ here is English, per the rules of the day.
 
 | # | Intent | Result |
 |---|---|---|
-| 1 | 1000 cards, illustration 350g, colour front and grayscale back | `bc_offset_1000_4_1`, 45.000 net, **54.450** gross, valid 15 days |
-| 2 | 100 cards, special paper, front only | `bc_special_100_front`, 12.100 net, **14.641** gross |
+| 1 | 1000 cards, illustration 350g, colour front and grayscale back | `bc_offset_1000_4_1`, **45.000**, valid 15 days |
+| 2 | 100 cards, special paper, front only | `bc_special_100_front`, **12.100** |
 
 ## Quantities the list does not carry
 
@@ -46,7 +47,7 @@ module count, and the module discount applies after the multiplication. Percenta
 | # | Intent | Result |
 |---|---|---|
 | 8 | card 15 x 5 cm | 75 cm² / 42.5 = 1.76 → **2 modules**, no discount, the bracket starts at 3 |
-| 9 | large card 10 x 15 cm, 1000 units, illustration 350g 4/1 | 150 / 42.5 = 3.53 → **4 modules** → 4 x 45.000 = 180.000, −10%, 162.000 net, **196.020** gross |
+| 9 | large card 10 x 15 cm, 1000 units, illustration 350g 4/1 | 150 / 42.5 = 3.53 → **4 modules** → 4 x 45.000 = 180.000, −10% = **162.000** |
 | 10 | a piece of 13 modules or more | −25%, the last bracket |
 
 Dante states the derivation: *"entra en 4 módulos"*. A human must be able to catch the error
@@ -65,9 +66,9 @@ declares: `lamination`, `design`, `extra_cut`, `label_perforation`, `rounded_cor
 
 | # | Intent | Result |
 |---|---|---|
-| 11 | 100 cards, special, front, with lamination | 12.100 + 5.100 = 17.200 net, **20.812** gross |
+| 11 | 100 cards, special, front, with lamination | 12.100 + 5.100 = **17.200** |
 | 12 | a finish the column shows as a dash | escalate `no_match`. A dash means the finish is not offered, there is no row |
-| 13 | 100 cards, illustration 300g, 4/0 | 10.300 net, **12.463** gross. The two plain-illustration discount rows are NOT applied: the column price reads as already discounted. One named flag flips it, and both sides have a test |
+| 13 | 100 cards, illustration 300g, 4/0 | **10.300**. The two plain-illustration discount rows are NOT applied: the column price reads as already discounted. One named flag flips it, and both sides have a test |
 | 14 | "¿me hacés precio si llevo varias?" | escalate `commercial_discount`. Read by extraction, which returns a `fact` or `other` intent, never a quote. A commercial discount is never the engine's call |
 
 ## Sizes without a unit
@@ -88,8 +89,13 @@ explicit unit that contradicts the family is asked about, never guessed.
 
 ## Invariants
 
-Every quote is gross, rounded to the peso once after VAT, and carries its 15 day validity.
-No amount ever leaves the engine net.
+Every quote is a whole number of final pesos and carries its 15 day validity. The list is
+already final, so a quote off a single row is the amount the owner typed. Where the engine
+does arithmetic, on modules, add-ons and list discounts, it rounds once at the end.
+
+`vatIncluded` stays on the family, so a family whose list really is net is grossed up by
+`totalOf` and nothing else changes. That flag is what makes ADR 0003 reversible if Javier
+says the list is net after all.
 
 ## The ten cases the ticket asks for
 

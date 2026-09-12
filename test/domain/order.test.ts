@@ -42,7 +42,7 @@ describe('the order copies the price instead of pointing at it', () => {
 
     expect(order.state).toBe('quoted')
     expect(order.quoteId).toBe('qt_1')
-    expect(totalOf(order.breakdown)).toBe(ars(54_450))
+    expect(totalOf(order.breakdown)).toBe(ars(45_000))
   })
 
   test('editing the catalog afterwards does not move the amount', () => {
@@ -56,7 +56,7 @@ describe('the order copies the price instead of pointing at it', () => {
 
     if (reQuoted.kind !== 'price') throw new Error('expected a price')
     expect(totalOf(reQuoted.breakdown)).not.toBe(totalOf(order.breakdown))
-    expect(totalOf(order.breakdown)).toBe(ars(54_450))
+    expect(totalOf(order.breakdown)).toBe(ars(45_000))
   })
 
   test('an escalation is not a quote', () => {

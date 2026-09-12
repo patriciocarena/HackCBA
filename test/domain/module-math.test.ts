@@ -79,7 +79,7 @@ describe('what the customer reads about modules', () => {
   test('says the module count, discount, amount and validity', () => {
     expect(text()).toContain('4 módulos')
     expect(text()).toContain('10%')
-    expect(text()).toContain('$196.020')
+    expect(text()).toContain('$162.000')
     expect(text()).toContain('15 días')
   })
 
