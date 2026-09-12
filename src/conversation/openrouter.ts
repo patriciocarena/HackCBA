@@ -1,3 +1,4 @@
+import { structuredJson } from './structured-output'
 import type { FetchLike } from '../voice/transcription'
 import type { Extract, Write } from './turn'
 
@@ -52,7 +53,10 @@ export function openRouterModel(config: OpenRouterConfig): Model {
         response_format: { type: 'json_schema', json_schema: { name: 'intent', strict: true, schema } },
       }
 
-      return JSON.parse(await complete(system, user, format))
+      // Not JSON.parse. A 200 carrying prose is a schema this repo wrote and the provider
+      // dropped, and SchemaDropped says so instead of raising an anonymous SyntaxError that
+      // reads like a provider having a bad minute.
+      return structuredJson(await complete(system, user, format), { port: 'customer extraction', model })
     },
 
     async write({ system, user }) {
