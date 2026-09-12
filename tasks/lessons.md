@@ -132,3 +132,21 @@ commit, and say what the check actually proves" above.
 
 Cite the sha and the path. It is the cheaper check whoever turns out to be stale,
 and it costs nothing when everyone is current.
+
+## "The only one in the repo" is a claim about a search path
+
+A brief said one file held the only cast to a branded type in the repo. It held
+the only one in `src/`. A second sat in a test, inside `tsconfig`'s include, and
+it typechecked. Both statements come from the same grep; they differ only in
+where it was pointed.
+
+The scope is the claim. State it, because "in `src/`" and "in the repo" support
+different conclusions: the first says production code is clean, the second says
+the escape is unused. Here the escape was already in use, which turned a
+hypothetical gap into a demonstrated one and made the record worth more, not
+less.
+
+This is the same shape as the gate that could not see types and the count that
+could not see people. A precise result measured over the wrong set reads as
+proof. See "Check a claimed commit, and say what the check actually proves"
+above.
