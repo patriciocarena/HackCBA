@@ -2,8 +2,12 @@ declare const arsBrand: unique symbol
 
 export type Ars = number & { readonly [arsBrand]: true }
 
+export function isArs(amount: number): boolean {
+  return Number.isSafeInteger(amount) && amount >= 0
+}
+
 export function ars(amount: number): Ars {
-  if (!Number.isSafeInteger(amount) || amount < 0) {
+  if (!isArs(amount)) {
     throw new Error(`${amount} is not a whole number of pesos`)
   }
 
