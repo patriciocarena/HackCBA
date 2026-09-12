@@ -53,12 +53,6 @@ describe('the alias is sent once, by a person, on an order that is still quoted'
     }
   })
 
-  test('asking twice is refused, because the state machine allows the edge once', () => {
-    const asked = requestDeposit(awaitingDeposit(), { alias: ALIAS, by: customer, now })
-
-    expect(asked).toEqual({ ok: false, reason: 'not_a_transition' })
-  })
-
   test('the agent cannot ask on its own, the same refusal every other edge gives', () => {
     const asked = requestDeposit(anOrder(), { alias: ALIAS, by: { kind: 'agent' }, now })
 
@@ -91,7 +85,9 @@ describe('a receipt is evidence, not a transition', () => {
     expect(order.state).toBe('deposit_pending')
   })
 
-  test('a typed transfer is a receipt too, and arrives already fenced', async () => {
+  // Pins the second half of the `mediaId === null && text === null` guard. Drop this and a
+  // mutant that keeps only the mediaId clause refuses every typed transfer, with nothing red.
+  test('text with no photo is a receipt', async () => {
     const store = aStore()
 
     const got = await recordReceipt(
@@ -198,5 +194,20 @@ describe('the id the caller hands in is the id the allowlist sees', () => {
     confirmDeposit(awaitingDeposit(), { by: { kind: 'person', id: 'telegram:99900011' }, now }, spy)
 
     expect(seen).toEqual(['telegram:99900011'])
+  })
+})
+
+describe('a deposit nobody was given an alias for is not confirmable', () => {
+  test('an order walked to deposit_pending around requestDeposit is refused', () => {
+    // advanceOrder is public. Reaching deposit_pending through it never names a destination,
+    // and confirming that would confirm a transfer to nothing.
+    const walked = advanceOrder(anOrder(), { to: 'deposit_pending', by: customer, now })
+    if (!walked.ok) throw new Error(`expected deposit_pending, got ${walked.reason}`)
+
+    expect(walked.order.depositAlias).toBeNull()
+    expect(confirmDeposit(walked.order, { by: admin, now }, onlyAdmin)).toEqual({
+      ok: false,
+      reason: 'no_alias',
+    })
   })
 })

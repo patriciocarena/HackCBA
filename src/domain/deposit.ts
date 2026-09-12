@@ -2,11 +2,6 @@ import type { IsAdmin } from '../security/allowlist'
 import { advanceOrder, type Actor, type OrderRefusal } from './order'
 import type { Order, UntrustedText } from './types'
 
-/**
- * The deposit is where the conversation stops being a conversation and money moves, so every
- * step here is attributed to a person and none of them is taken by the agent.
- */
-
 export type DepositRefusal = OrderRefusal | 'no_alias' | 'not_an_admin'
 
 export type DepositOutcome = { ok: true; order: Order } | { ok: false; reason: DepositRefusal }
@@ -80,17 +75,34 @@ export async function recordReceipt(
     return { ok: false, reason: 'empty_receipt' }
   }
 
-  await store.record({ orderId: order.id, ...input })
+  // Built field by field rather than spread. TypeScript only checks excess properties on an
+  // object literal, so spreading a wider caller object would carry whatever else it holds into
+  // the store, and the store is the one place a receipt is allowed to reach.
+  await store.record({
+    orderId: order.id,
+    mediaId: input.mediaId,
+    text: input.text,
+    receivedAt: input.receivedAt,
+  })
 
-  return { ok: true, notice: noticeFor(order) }
+  // Everything this module ever says out loud about a receipt: which order, that one arrived,
+  // and the only copy of the transfer that cannot be forged.
+  return {
+    ok: true,
+    notice: `Llegó un comprobante para el pedido ${order.id}. Verificá el banco antes de confirmar.`,
+  }
 }
 
-/**
- * Everything this module ever says out loud about a receipt. It names the order, says one
- * arrived, and points the reader at the only copy that cannot be forged.
- */
-function noticeFor(order: Order): string {
-  return `Llegó un comprobante para el pedido ${order.id}. Verificá el banco antes de confirmar.`
+// ponytail: in memory, A3's table when a receipt has to outlive the process. No accessor, so
+// the seam a later lane picks up cannot read a receipt back either.
+export function inMemoryReceipts(): ReceiptStore {
+  const receipts: Receipt[] = []
+
+  return {
+    async record(receipt) {
+      receipts.push(receipt)
+    },
+  }
 }
 
 export type ConfirmInput = {
@@ -116,6 +128,13 @@ export function confirmDeposit(
 ): DepositOutcome {
   if (input.by.kind !== 'person' || !isAdmin(input.by.id)) {
     return { ok: false, reason: 'not_an_admin' }
+  }
+
+  if (order.depositAlias === null) {
+    // advanceOrder is public, so an order can reach deposit_pending without going through
+    // requestDeposit and without ever naming where the money was meant to go. Confirming that
+    // is confirming a transfer to nothing.
+    return { ok: false, reason: 'no_alias' }
   }
 
   return advanceOrder(order, { to: 'deposit_confirmed', by: input.by, now: input.now })
