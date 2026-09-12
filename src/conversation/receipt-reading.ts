@@ -9,8 +9,8 @@ export type ReadImage = (image: Uint8Array<ArrayBuffer>) => Promise<ReceiptReadi
 /**
  * Nullable properties go through `nullable`, so no call site here has to remember that the
  * obvious spelling, `type: ['number', 'null']`, is the one OpenRouter answers by silently
- * dropping the constraint and returning prose with a 200. ADR 0018, and ADR 0019 for the
- * diagnosis.
+ * dropping the constraint and returning prose with a 200. `structured-output.ts` carries the
+ * diagnosis and ADR 0018 the decision this schema serves.
  */
 export const RECEIPT_SCHEMA = {
   type: 'object',
