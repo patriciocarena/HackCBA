@@ -1,4 +1,4 @@
-# Lessons, E8, the autonomous receipt path
+# Lessons, the autonomous receipt path
 
 ## A security rule that the product reverses needs an ADR, not a quieter comment
 

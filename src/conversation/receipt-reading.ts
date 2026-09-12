@@ -1,26 +1,28 @@
 import { z } from 'zod'
 import type { ReceiptReading } from '../domain/deposit'
+import { nullable } from './structured-output'
 
 export type Look = (request: { system: string; parts: unknown[]; schema: object }) => Promise<unknown>
 
 export type ReadImage = (image: Uint8Array<ArrayBuffer>) => Promise<ReceiptReading | null>
 
 /**
- * Nullable properties are `anyOf`, never `type: ['number', 'null']`. OpenRouter answers a type
- * array by silently dropping structured output and returning prose with a 200, so the feature
- * is off and the only symptom is a reading that never parses. See ADR 0018.
+ * Nullable properties go through `nullable`, so no call site here has to remember that the
+ * obvious spelling, `type: ['number', 'null']`, is the one OpenRouter answers by silently
+ * dropping the constraint and returning prose with a 200. ADR 0018, and ADR 0019 for the
+ * diagnosis.
  */
 export const RECEIPT_SCHEMA = {
   type: 'object',
   properties: {
     looksLikeReceipt: { type: 'boolean' },
-    amount: { anyOf: [{ type: 'number' }, { type: 'null' }] },
-    destination: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+    amount: nullable({ type: 'number' }),
+    destination: nullable({ type: 'string' }),
     confidence: { type: 'number' },
   },
   required: ['looksLikeReceipt', 'amount', 'destination', 'confidence'],
   additionalProperties: false,
-} as const
+}
 
 /**
  * What a person glances at a transfer receipt for. It reports and does not decide: the amount

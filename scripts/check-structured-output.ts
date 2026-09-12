@@ -18,6 +18,7 @@ import '../src/config/load-env'
 import { businessCards } from '../src/catalog/business-cards'
 import { openRouterModel } from '../src/conversation/openrouter'
 import { EXTRACTION_SYSTEM, extractionSchema } from '../src/conversation/prompt'
+import { READING_SYSTEM, RECEIPT_SCHEMA } from '../src/conversation/receipt-reading'
 import { SchemaDropped } from '../src/conversation/structured-output'
 import { requireEnv } from '../src/config/env'
 import { extractionFromEnv } from '../src/voice/price-edit-intent'
@@ -55,6 +56,30 @@ function fail(what: string, detail: string): void {
 console.log(`model: ${model}\n`)
 
 const customer = openRouterModel({ apiKey, model })
+
+/**
+ * One pixel, a valid JPEG. The answer does not matter and will not be a receipt; what is being
+ * checked is that an image request with a schema comes back as JSON rather than prose.
+ */
+const ONE_PIXEL =
+  'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwcJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPDs0NDP/wAALCABAAEABAREA/8QAFAABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFAEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AmAAB/9k='
+
+try {
+  const raw = await customer.look({
+    system: READING_SYSTEM,
+    parts: [
+      { type: 'text', text: 'Report what this receipt shows.' },
+      { type: 'image_url', image_url: { url: ONE_PIXEL } },
+    ],
+    schema: RECEIPT_SCHEMA,
+  })
+  pass('the receipt reading schema is honoured', JSON.stringify(raw))
+} catch (error) {
+  fail(
+    'the receipt reading schema is honoured',
+    error instanceof SchemaDropped ? 'the constraint was dropped' : String(error),
+  )
+}
 
 try {
   const raw = await customer.extract({

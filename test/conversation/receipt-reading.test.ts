@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { RECEIPT_SCHEMA, receiptReader, type Look } from '@/conversation/receipt-reading'
+import { arrayTypedPaths } from '@/conversation/structured-output'
 
 const image = new Uint8Array([1, 2, 3]) as Uint8Array<ArrayBuffer>
 
@@ -23,10 +24,8 @@ describe('the schema OpenRouter will actually honour', () => {
     // A property written type: ['string','null'] makes OpenRouter drop structured output and
     // return prose with a 200, which parses as nothing and fails closed silently. The whole
     // feature is off and the only symptom is an operator reading extraction failures.
-    const json = JSON.stringify(RECEIPT_SCHEMA)
-
-    expect(json).not.toContain('"type":["')
-    expect(json).toContain('"anyOf"')
+    expect(arrayTypedPaths(RECEIPT_SCHEMA)).toEqual([])
+    expect(JSON.stringify(RECEIPT_SCHEMA)).toContain('"anyOf"')
   })
 
   test('it asks for exactly what a person would check and nothing else', () => {

@@ -72,7 +72,9 @@ export function openRouterModel(config: OpenRouterConfig): Model {
         response_format: { type: 'json_schema', json_schema: { name: 'receipt', strict: true, schema } },
       }
 
-      return JSON.parse(await complete(system, parts, format))
+      // Same reason as extraction above. A dropped schema here reads as a receipt nobody
+      // could confirm, which fails closed and says nothing, so the operator needs the line.
+      return structuredJson(await complete(system, parts, format), { port: 'receipt reading', model })
     },
   }
 }
