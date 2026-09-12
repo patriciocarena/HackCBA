@@ -20,6 +20,8 @@ export type Callback = {
   accepted: boolean
 }
 
+export type OnCallback = (callback: Callback) => Promise<void>
+
 export function readCallback(body: unknown): Callback | null {
   const update = callbackSchema.safeParse(body)
   if (!update.success) return null
