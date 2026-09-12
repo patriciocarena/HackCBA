@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { adminAllowlist, type Denial } from '../../src/security/allowlist'
+import { adminAllowlist, adminAllowlistFromEnv, type Denial } from '../../src/security/allowlist'
 
 const ignore = () => {}
 
@@ -114,5 +114,22 @@ describe('the denial record', () => {
     adminAllowlist({ ids: '123', recordDenial })('123')
 
     expect(recorded).toEqual([])
+  })
+})
+
+describe('adminAllowlistFromEnv', () => {
+  test('reads TELEGRAM_ADMIN_IDS', () => {
+    const isAdmin = adminAllowlistFromEnv({
+      env: { TELEGRAM_ADMIN_IDS: '123' },
+      recordDenial: ignore,
+    })
+
+    expect(isAdmin('123')).toBe(true)
+  })
+
+  test('denies everyone when the deployment never set it', () => {
+    const isAdmin = adminAllowlistFromEnv({ env: {}, recordDenial: ignore })
+
+    expect(isAdmin('123')).toBe(false)
   })
 })

@@ -2,9 +2,16 @@ export type IsAdmin = (telegramUserId: string) => boolean
 
 export type Denial = { telegramUserId: string | null }
 
+export type RecordDenial = (denial: Denial) => void
+
 export type AdminAllowlistConfig = {
   ids: string | undefined
-  recordDenial: (denial: Denial) => void
+  recordDenial: RecordDenial
+}
+
+export type AdminAllowlistEnvConfig = {
+  recordDenial: RecordDenial
+  env?: Record<string, string | undefined>
 }
 
 const TELEGRAM_USER_ID = /^[1-9][0-9]{0,18}$/
@@ -30,4 +37,10 @@ export function adminAllowlist(config: AdminAllowlistConfig): IsAdmin {
     recordDenial({ telegramUserId: TELEGRAM_USER_ID.test(telegramUserId) ? telegramUserId : null })
     return false
   }
+}
+
+export function adminAllowlistFromEnv(config: AdminAllowlistEnvConfig): IsAdmin {
+  const { recordDenial, env = process.env } = config
+
+  return adminAllowlist({ ids: env.TELEGRAM_ADMIN_IDS, recordDenial })
 }
