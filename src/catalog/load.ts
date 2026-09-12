@@ -8,8 +8,8 @@ export type CatalogSeedItem = {
   label: string
   group?: string
   provisional?: boolean
-  attributes?: Record<string, string | number>
-  applies_to?: string[]
+  attributes?: Record<string, string | number | undefined>
+  applies_to?: readonly string[]
   applies_to_family?: boolean
   price: number
 }
@@ -23,11 +23,11 @@ export type CatalogSeed = {
     label: string
     unit: string
     module: { width_cm: number; height_cm: number } | null
-    attributes: string[]
-    ask_order: string[]
+    attributes: readonly string[]
+    ask_order: readonly string[]
   }
-  items: CatalogSeedItem[]
-  module_discounts: { from_modules: number; to_modules: number | null; rate: number }[]
+  items: readonly CatalogSeedItem[]
+  module_discounts: readonly { from_modules: number; to_modules: number | null; rate: number }[]
 }
 
 export type Catalog = {
@@ -49,7 +49,7 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
         ? null
         : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
     attributes: seed.family.attributes.map((name) => attributeContract(name, saleRows(rows))),
-    askOrder: seed.family.ask_order,
+    askOrder: [...seed.family.ask_order],
     addOns: [
       ...new Set(
         rows.filter((row) => row.kind === 'add_on').map((row) => row.group ?? row.slug),
@@ -76,8 +76,8 @@ function catalogRow(item: CatalogSeedItem): CatalogRow {
     label: item.label,
     group: item.group,
     provisional: item.provisional,
-    attributes: item.attributes,
-    appliesTo: item.applies_to,
+    attributes: item.attributes === undefined ? undefined : declaredValues(item.attributes),
+    appliesTo: item.applies_to === undefined ? undefined : [...item.applies_to],
     appliesToFamily: item.applies_to_family,
     price: ars(item.price),
   }
@@ -105,4 +105,14 @@ function attributeContract(name: string, rows: CatalogRow[]): AttributeContract 
 
 function saleRows(rows: CatalogRow[]): CatalogRow[] {
   return rows.filter((row) => row.kind === 'sale')
+}
+
+function declaredValues(
+  attributes: Record<string, string | number | undefined>,
+): Record<string, string | number> {
+  return Object.fromEntries(
+    Object.entries(attributes).filter(
+      (entry): entry is [string, string | number] => entry[1] !== undefined,
+    ),
+  )
 }

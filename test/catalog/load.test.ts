@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import seed from '../../seed/business-cards.json'
 import { loadCatalog } from '../../src/catalog/load'
+import { ars } from '../../src/domain/money'
 
 describe('loadCatalog', () => {
   it('reads the family contract off the seed', () => {
@@ -35,7 +36,7 @@ describe('loadCatalog', () => {
       attributes: { quantity: 100, paper: 'special', sides: 'front', finish: 'none' },
       appliesTo: undefined,
       appliesToFamily: undefined,
-      price: 12100,
+      price: ars(12100),
     })
   })
 
