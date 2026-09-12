@@ -43,7 +43,7 @@ function readerWith(overrides: Partial<AdminAudioDeps> = {}) {
   const edits = inMemoryPriceEdits()
   const heard = transcriber()
   const read = readAdminAudio({
-    rows: catalogRows,
+    rows: () => catalogRows,
     family: businessCards,
     transcription: heard.port,
     extraction: extractor(),
@@ -93,7 +93,7 @@ describe('readAdminAudio, against the list it reads', () => {
   it('changes no price, on the path the ticket names', async () => {
     const guarded = watched(catalogRows)
     const before = structuredClone(catalogRows)
-    const { edits, read } = readerWith({ rows: guarded.rows })
+    const { edits, read } = readerWith({ rows: () => guarded.rows })
 
     const outcome = await read(message())
 
