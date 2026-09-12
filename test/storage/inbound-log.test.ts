@@ -13,7 +13,7 @@ const message: InboundMessage = {
   chatId: '-100',
   senderId: '42',
   text: fence('hola', 'message'),
-  mediaId: null,
+  media: null,
   receivedAt: '2026-09-12T09:30:00.000Z',
 }
 
@@ -56,11 +56,26 @@ describe('sqliteInboundLog', () => {
   })
 
   it('records a message that carried media and no text', async () => {
-    await sqliteInboundLog(client).record({ ...message, text: null, mediaId: 'file_42' })
+    await sqliteInboundLog(client).record({
+      ...message,
+      text: null,
+      media: { kind: 'voice', id: 'file_42' },
+    })
 
     const recorded = await client.execute('SELECT text, media_id FROM inbound_messages')
 
     expect(recorded.rows[0]).toMatchObject({ text: null, media_id: 'file_42' })
+  })
+
+  it('stores the id of either kind, because the column holds a locator and not a type', async () => {
+    const log = sqliteInboundLog(client)
+
+    await log.record({ ...message, text: null, media: { kind: 'voice', id: 'voice_1' } })
+    await log.record({ ...message, updateId: 71, text: null, media: { kind: 'photo', id: 'photo_1' } })
+
+    const recorded = await client.execute('SELECT media_id FROM inbound_messages ORDER BY update_id')
+
+    expect(recorded.rows.map((row) => row.media_id)).toEqual(['voice_1', 'photo_1'])
   })
 
   it('refuses a role the domain does not declare', async () => {

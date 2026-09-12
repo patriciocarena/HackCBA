@@ -53,7 +53,7 @@ describe('telegramWebhook', () => {
       conversationId: 'telegram:42:customer',
       role: 'customer',
       senderId: '42',
-      mediaId: null,
+      media: null,
     })
     expect(turns[0]!.text).not.toBe('subí las tarjetas un 20%')
   })
@@ -114,7 +114,7 @@ describe('telegramWebhook', () => {
     expect(log.messages).toHaveLength(1)
     expect(log.messages[0]).toMatchObject({
       conversationId: 'telegram:42:customer',
-      mediaId: 'voice-1',
+      media: { kind: 'voice', id: 'voice-1' },
       text: null,
       receivedAt: '2026-09-12T09:30:00.000Z',
     })

@@ -20,7 +20,7 @@ function message(text: string, role: Role = 'customer'): InboundMessage {
     senderId: '42',
     // What the webhook hands over: already fenced, which is what UntrustedText brands.
     text: fence(text, 'message'),
-    mediaId: null,
+    media: null,
     receivedAt: '2026-09-12T14:00:00.000Z',
   }
 }

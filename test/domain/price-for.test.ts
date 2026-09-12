@@ -3,6 +3,7 @@ import { baseConfig, businessCards, catalogRows } from '../../src/catalog/busine
 import { totalOf } from '../../src/domain/breakdown'
 import { ars } from '../../src/domain/money'
 import {
+  namesFamily,
   priceFor,
   type CatalogRow,
   type PriceForConfig,
@@ -231,5 +232,14 @@ describe('priceFor', () => {
     })
 
     expectEscalation(resolution, 'no_match', 'te delego con un humano')
+  })
+})
+
+describe('namesFamily', () => {
+  test('a short article shared with the label is not the owner naming the family', () => {
+    const withArticle = { ...businessCards, label: 'Tarjetas de presentación' }
+
+    expect(namesFamily('las tarjetas', withArticle)).toBe(true)
+    expect(namesFamily('de algo', withArticle)).toBe(false)
   })
 })
