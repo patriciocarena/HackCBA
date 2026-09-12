@@ -14,7 +14,8 @@
     "start": "bun --bun ./node_modules/.bin/mastra start",
     "set-webhook": "bun src/telegram/set-webhook.ts",
     "check:schemas": "bun scripts/check-structured-output.ts",
-    "eval": "bun scripts/eval-flows.ts"
+    "eval": "bun scripts/eval-flows.ts",
+    "eval:demo": "bun scripts/eval-demo.ts"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",
