@@ -49,4 +49,16 @@ describe('loadCatalog', () => {
     expect(rows.find((row) => row.slug === 'bc_addon_design')?.appliesToFamily).toBe(true)
     expect(discount?.provisional).toBe(true)
   })
+
+  it('reads the module discount tiers and the quote validity off the seed', () => {
+    const { config } = loadCatalog(seed)
+
+    expect(config.quoteValidityDays).toBe(15)
+    expect(config.moduleDiscounts).toEqual([
+      { fromModules: 3, toModules: 5, rate: 0.1 },
+      { fromModules: 6, toModules: 8, rate: 0.15 },
+      { fromModules: 9, toModules: 12, rate: 0.2 },
+      { fromModules: 13, toModules: null, rate: 0.25 },
+    ])
+  })
 })

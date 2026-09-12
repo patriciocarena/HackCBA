@@ -1,5 +1,5 @@
 import { ars } from '../domain/money'
-import type { CatalogItemKind, CatalogRow, PriceForConfig } from '../domain/price-for'
+import type { CatalogItemKind, CatalogRow, ModuleDiscount, PriceForConfig } from '../domain/price-for'
 import { unitSchema, type FamilyContract } from '../domain/types'
 
 export type CatalogSeedItem = {
@@ -27,6 +27,7 @@ export type CatalogSeed = {
     ask_order: string[]
   }
   items: CatalogSeedItem[]
+  module_discounts: { from_modules: number; to_modules: number | null; rate: number }[]
 }
 
 export type Catalog = {
@@ -52,7 +53,16 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
     addOns: [],
   }
 
-  return { rows, config: { family, quoteValidityDays: seed.quote_validity_days } }
+  const moduleDiscounts: ModuleDiscount[] = seed.module_discounts.map((discount) => ({
+    fromModules: discount.from_modules,
+    toModules: discount.to_modules,
+    rate: discount.rate,
+  }))
+
+  return {
+    rows,
+    config: { family, quoteValidityDays: seed.quote_validity_days, moduleDiscounts },
+  }
 }
 
 function catalogRow(item: CatalogSeedItem): CatalogRow {
