@@ -17,4 +17,29 @@ export function fencer(secret: string) {
   }
 }
 
-export const fence = fencer(process.env.FENCE_SECRET ?? randomBytes(32).toString('hex'))
+/**
+ * Unset and empty are different deployments, and `??` read them as the same one.
+ *
+ * Unset is the case ADR 0008 chose the random fallback for: nobody meant to hold a secret, so
+ * nonces are unforgeable and do not survive a restart. Empty is somebody who meant to hold one
+ * and does not, which is what copying `.env.example` leaves behind. An empty HMAC key is a legal
+ * key, so the process runs, every nonce becomes one any customer can derive, and the fence stops
+ * bounding anything while looking exactly as if it does.
+ *
+ * So it throws. `requireEnv` already treats a present and empty value as unset and refuses it, and
+ * absorbing a blank here would make this the one variable in the repo where a blank passes.
+ */
+export function fenceSecret(value: string | undefined): string {
+  if (value === undefined) return randomBytes(32).toString('hex')
+
+  if (value.length === 0) {
+    throw new Error(
+      'FENCE_SECRET is set and empty. An empty HMAC key makes every fence nonce public. ' +
+        'Give it a long random value, or delete the line and take the random per boot secret.',
+    )
+  }
+
+  return value
+}
+
+export const fence = fencer(fenceSecret(process.env.FENCE_SECRET))

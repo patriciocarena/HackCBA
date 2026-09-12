@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, test } from 'bun:test'
-import { fencer } from '../../src/security/fence'
+import { fencer, fenceSecret } from '../../src/security/fence'
 
 const fence = fencer('the secret this deploy holds and a customer does not')
 
@@ -148,5 +148,24 @@ describe('a reader can tell which block is authoritative', () => {
     expect(nonceOf(other('cien tarjetas', 'message'))).not.toBe(
       nonceOf(fence('cien tarjetas', 'message')),
     )
+  })
+})
+
+describe('the secret the process fence is bound to', () => {
+  test('an unset variable takes a random secret, which is what ADR 0008 chose it for', () => {
+    expect(fenceSecret(undefined)).toHaveLength(64)
+    expect(fenceSecret(undefined)).not.toEqual(fenceSecret(undefined))
+  })
+
+  test('a set variable is the secret', () => {
+    expect(fenceSecret('a-long-random-string')).toBe('a-long-random-string')
+  })
+
+  test('a present but empty variable throws, because an empty HMAC key is a public one', () => {
+    expect(() => fenceSecret('')).toThrow('FENCE_SECRET is set and empty')
+  })
+
+  test('and the throw names what to do about it', () => {
+    expect(() => fenceSecret('')).toThrow('delete the line')
   })
 })
