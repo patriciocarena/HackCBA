@@ -4,6 +4,7 @@ import { ars } from '../../src/domain/money'
 import type { PriceEditProposal } from '../../src/domain/types'
 
 const ADMIN = '99900011'
+const OTHER_ADMIN = '99900022'
 
 const PROPOSED: PriceEditProposal = {
   id: 'edit_1',
@@ -14,7 +15,7 @@ const PROPOSED: PriceEditProposal = {
   state: 'proposed',
   source: 'audio',
   mediaId: 'voice_abc',
-  proposedBy: ADMIN,
+  proposedBy: OTHER_ADMIN,
   proposedAt: '2026-09-12T10:00:00.000Z',
   resolvedBy: null,
   resolvedAt: null,
@@ -26,7 +27,42 @@ const ROWS = [
 
 const NOW = '2026-09-12T10:05:00.000Z'
 
-const onlyTheOwner = (id: string) => id === ADMIN
+const onlyTheOwner = (id: string) => id === ADMIN || id === OTHER_ADMIN
+
+describe('the allowlist answers before anything else does', () => {
+  it('denies everyone when nobody wired an allowlist', async () => {
+    const store = aStore()
+
+    const outcome = await confirmPriceEdit(
+      { proposalId: 'edit_1', versionId: 'v1', senderId: ADMIN, accepted: true, now: NOW },
+      { load: store.load, save: store.save, rows: ROWS },
+    )
+
+    expect(outcome).toEqual({ ok: false, reason: 'not_an_admin' })
+    expect(store.saved).toHaveLength(0)
+  })
+
+  it('does not tell a stranger whether a proposal exists', async () => {
+    const store = aStore(null)
+    let loaded = 0
+
+    const outcome = await confirmPriceEdit(
+      { proposalId: 'edit_1', versionId: 'v1', senderId: 'a-stranger', accepted: true, now: NOW },
+      {
+        load: async (id) => {
+          loaded += 1
+          return store.load(id)
+        },
+        save: store.save,
+        rows: ROWS,
+        isAdmin: onlyTheOwner,
+      },
+    )
+
+    expect(outcome).toEqual({ ok: false, reason: 'not_an_admin' })
+    expect(loaded).toBe(0)
+  })
+})
 
 function aStore(proposal: PriceEditProposal | null = PROPOSED) {
   const saved: PriceEditProposal[] = []
