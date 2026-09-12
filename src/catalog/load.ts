@@ -1,4 +1,4 @@
-import { ars } from '../domain/money'
+import { ars, type Ars } from '../domain/money'
 import type { CatalogItemKind, CatalogRow, ModuleDiscount, PriceForConfig } from '../domain/price-for'
 import { unitSchema, type AttributeContract, type FamilyContract } from '../domain/types'
 
@@ -11,7 +11,12 @@ type CatalogSeedItem = {
   attributes?: Record<string, string | number | undefined>
   applies_to?: readonly string[]
   applies_to_family?: boolean
-  price: number
+  /**
+   * What the row charges: an amount, or a rate for an add-on the list states as a percentage.
+   * Exactly one, and a sale row must carry the amount. See ADR 0023.
+   */
+  price?: number
+  rate?: number
 }
 
 type CatalogSeed = {
@@ -22,7 +27,7 @@ type CatalogSeed = {
     slug: string
     label: string
     unit: string
-    module: { width_cm: number; height_cm: number }
+    module: { width_cm: number; height_cm: number } | null
     attributes: readonly string[]
     ask_order: readonly string[]
   }
@@ -47,7 +52,13 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
     unit: unitSchema.parse(seed.family.unit),
     vatRate: seed.vat_rate,
     vatIncluded: seed.vat_included,
-    module: { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
+    // Nullable, because most families have none. `FamilyContract.module` was already
+    // `ModuleContract | null` and `seed-catalog.ts` already allowed nullish, so this loader was
+    // the only thing in the repo stricter than the contract it loads.
+    module:
+      seed.family.module === null
+        ? null
+        : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
     attributes: seed.family.attributes.map((name) => attributeContract(name, sales)),
     askOrder: [...seed.family.ask_order],
     addOns: [
@@ -70,18 +81,43 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
 }
 
 function catalogRow(item: CatalogSeedItem, familySlug: string): CatalogRow {
+  const kind = catalogItemKind(item)
+
   return {
     slug: item.id,
     familySlug,
-    kind: catalogItemKind(item),
+    kind,
     label: item.label,
     group: item.group,
     provisional: item.provisional,
     attributes: item.attributes as Record<string, string | number> | undefined,
     appliesTo: item.applies_to === undefined ? undefined : [...item.applies_to],
     appliesToFamily: item.applies_to_family,
-    price: ars(item.price),
+    ...chargeOf(item, kind),
   }
+}
+
+/**
+ * The amount or the rate, never both and never neither.
+ *
+ * A sale row must carry an amount: the list cannot state a base price as a percentage of
+ * nothing, and a family whose base rows were rates would have no number to multiply. Only an
+ * add-on may carry a rate, and this is the seam that refuses a seed saying otherwise.
+ */
+function chargeOf(item: CatalogSeedItem, kind: CatalogItemKind): { price: Ars } | { rate: number } {
+  const declared = [item.price, item.rate].filter((one) => one !== undefined)
+
+  if (declared.length !== 1) {
+    throw new Error(`${item.id} must declare exactly one of price and rate, and declares ${declared.length}`)
+  }
+
+  if (item.rate !== undefined) {
+    if (kind === 'sale') throw new Error(`${item.id} is a sale row and carries a rate instead of an amount`)
+
+    return { rate: item.rate }
+  }
+
+  return { price: ars(item.price as number) }
 }
 
 function catalogItemKind(item: CatalogSeedItem): CatalogItemKind {

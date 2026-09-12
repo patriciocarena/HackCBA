@@ -1,0 +1,394 @@
+{
+  "source": {
+    "file": "lista-precios.html",
+    "family": "Facturas",
+    "client": "Multimpresos",
+    "closed_on": "2026-09-10",
+    "note": "Amounts are copied from the list exactly as the owner typed them, and the list is net."
+  },
+  "currency": "ARS",
+  "vat_included": false,
+  "vat_rate": 0.21,
+  "quote_validity_days": 15,
+  "family": {
+    "slug": "facturas",
+    "label": "Facturas talonarios",
+    "unit": "set",
+    "module": null,
+    "attributes": [
+      "quantity",
+      "format",
+      "ink"
+    ],
+    "ask_order": [
+      "quantity",
+      "format",
+      "ink"
+    ]
+  },
+  "reading": {
+    "quantity": "The list counts talonarios, not sheets. A talonario is a book of forms and the list never says how many forms it holds, so a question about that escalates. unit is set for the same reason.",
+    "format": "The two subheadings, 1/2 oficio 22 x 34 and Tamano A4, are named sizes the list prices as their own rows. Format, not size: QuoteIntent.size means centimetres the customer states and drives module math, and this family has no module.",
+    "ink": "The two headed columns, B/N and Color. One list row is two seed items, which needs no code and only the reading.",
+    "duplicado": "The list notes that colour printing is only of the original and the duplicate prints in greyscale. That is a fact about the product and not a price, so it is not loaded and a question about it escalates.",
+    "rates": "Triplicado, cuadruplicado and papel quimico are stated as percentages and never as pesos. Triplicado and cuadruplicado are the same rate under both subheadings, so each is one row applying to the whole family. Only papel quimico differs, and the list says so in its own note: 'En 1/2 oficio el papel quimico suma 60% y en A4 suma 70%'. So carbonless is two rows keyed by format, the way lamination is keyed by sale row in the cards family. auditAgainstList caught this: a rate stated once per table is one row, not two. ADR 0023.",
+    "groups": "Groups are namespaced by family. ADR 0023: two families say numerado and mean different jobs, and Javier discarded the price that assumed otherwise."
+  },
+  "items": [
+    {
+      "id": "fa_half_legal_1_bw",
+      "kind": "sale",
+      "label": "1 talonario 1/2 oficio B/N",
+      "attributes": {
+        "quantity": 1,
+        "format": "half_legal",
+        "ink": "bw"
+      },
+      "price": 16000
+    },
+    {
+      "id": "fa_half_legal_1_color",
+      "kind": "sale",
+      "label": "1 talonario 1/2 oficio color",
+      "attributes": {
+        "quantity": 1,
+        "format": "half_legal",
+        "ink": "color"
+      },
+      "price": 26000
+    },
+    {
+      "id": "fa_half_legal_2_bw",
+      "kind": "sale",
+      "label": "2 talonarios 1/2 oficio B/N",
+      "attributes": {
+        "quantity": 2,
+        "format": "half_legal",
+        "ink": "bw"
+      },
+      "price": 24000
+    },
+    {
+      "id": "fa_half_legal_2_color",
+      "kind": "sale",
+      "label": "2 talonarios 1/2 oficio color",
+      "attributes": {
+        "quantity": 2,
+        "format": "half_legal",
+        "ink": "color"
+      },
+      "price": 45500
+    },
+    {
+      "id": "fa_half_legal_4_bw",
+      "kind": "sale",
+      "label": "4 talonarios 1/2 oficio B/N",
+      "attributes": {
+        "quantity": 4,
+        "format": "half_legal",
+        "ink": "bw"
+      },
+      "price": 35000
+    },
+    {
+      "id": "fa_half_legal_4_color",
+      "kind": "sale",
+      "label": "4 talonarios 1/2 oficio color",
+      "attributes": {
+        "quantity": 4,
+        "format": "half_legal",
+        "ink": "color"
+      },
+      "price": 55000
+    },
+    {
+      "id": "fa_half_legal_6_bw",
+      "kind": "sale",
+      "label": "6 talonarios 1/2 oficio B/N",
+      "attributes": {
+        "quantity": 6,
+        "format": "half_legal",
+        "ink": "bw"
+      },
+      "price": 45000
+    },
+    {
+      "id": "fa_half_legal_6_color",
+      "kind": "sale",
+      "label": "6 talonarios 1/2 oficio color",
+      "attributes": {
+        "quantity": 6,
+        "format": "half_legal",
+        "ink": "color"
+      },
+      "price": 68000
+    },
+    {
+      "id": "fa_half_legal_8_bw",
+      "kind": "sale",
+      "label": "8 talonarios 1/2 oficio B/N",
+      "attributes": {
+        "quantity": 8,
+        "format": "half_legal",
+        "ink": "bw"
+      },
+      "price": 52000
+    },
+    {
+      "id": "fa_half_legal_8_color",
+      "kind": "sale",
+      "label": "8 talonarios 1/2 oficio color",
+      "attributes": {
+        "quantity": 8,
+        "format": "half_legal",
+        "ink": "color"
+      },
+      "price": 89500
+    },
+    {
+      "id": "fa_half_legal_10_bw",
+      "kind": "sale",
+      "label": "10 talonarios 1/2 oficio B/N",
+      "attributes": {
+        "quantity": 10,
+        "format": "half_legal",
+        "ink": "bw"
+      },
+      "price": 58000
+    },
+    {
+      "id": "fa_half_legal_10_color",
+      "kind": "sale",
+      "label": "10 talonarios 1/2 oficio color",
+      "attributes": {
+        "quantity": 10,
+        "format": "half_legal",
+        "ink": "color"
+      },
+      "price": 110500
+    },
+    {
+      "id": "fa_half_legal_20_bw",
+      "kind": "sale",
+      "label": "20 talonarios 1/2 oficio B/N",
+      "attributes": {
+        "quantity": 20,
+        "format": "half_legal",
+        "ink": "bw"
+      },
+      "price": 98000
+    },
+    {
+      "id": "fa_half_legal_20_color",
+      "kind": "sale",
+      "label": "20 talonarios 1/2 oficio color",
+      "attributes": {
+        "quantity": 20,
+        "format": "half_legal",
+        "ink": "color"
+      },
+      "price": 190000
+    },
+    {
+      "id": "fa_a4_1_bw",
+      "kind": "sale",
+      "label": "1 talonario A4 B/N",
+      "attributes": {
+        "quantity": 1,
+        "format": "a4",
+        "ink": "bw"
+      },
+      "price": 24000
+    },
+    {
+      "id": "fa_a4_1_color",
+      "kind": "sale",
+      "label": "1 talonario A4 color",
+      "attributes": {
+        "quantity": 1,
+        "format": "a4",
+        "ink": "color"
+      },
+      "price": 39000
+    },
+    {
+      "id": "fa_a4_2_bw",
+      "kind": "sale",
+      "label": "2 talonarios A4 B/N",
+      "attributes": {
+        "quantity": 2,
+        "format": "a4",
+        "ink": "bw"
+      },
+      "price": 35000
+    },
+    {
+      "id": "fa_a4_2_color",
+      "kind": "sale",
+      "label": "2 talonarios A4 color",
+      "attributes": {
+        "quantity": 2,
+        "format": "a4",
+        "ink": "color"
+      },
+      "price": 70500
+    },
+    {
+      "id": "fa_a4_4_bw",
+      "kind": "sale",
+      "label": "4 talonarios A4 B/N",
+      "attributes": {
+        "quantity": 4,
+        "format": "a4",
+        "ink": "bw"
+      },
+      "price": 57000
+    },
+    {
+      "id": "fa_a4_4_color",
+      "kind": "sale",
+      "label": "4 talonarios A4 color",
+      "attributes": {
+        "quantity": 4,
+        "format": "a4",
+        "ink": "color"
+      },
+      "price": 110000
+    },
+    {
+      "id": "fa_a4_6_bw",
+      "kind": "sale",
+      "label": "6 talonarios A4 B/N",
+      "attributes": {
+        "quantity": 6,
+        "format": "a4",
+        "ink": "bw"
+      },
+      "price": 71500
+    },
+    {
+      "id": "fa_a4_6_color",
+      "kind": "sale",
+      "label": "6 talonarios A4 color",
+      "attributes": {
+        "quantity": 6,
+        "format": "a4",
+        "ink": "color"
+      },
+      "price": 136500
+    },
+    {
+      "id": "fa_a4_8_bw",
+      "kind": "sale",
+      "label": "8 talonarios A4 B/N",
+      "attributes": {
+        "quantity": 8,
+        "format": "a4",
+        "ink": "bw"
+      },
+      "price": 91000
+    },
+    {
+      "id": "fa_a4_8_color",
+      "kind": "sale",
+      "label": "8 talonarios A4 color",
+      "attributes": {
+        "quantity": 8,
+        "format": "a4",
+        "ink": "color"
+      },
+      "price": 158500
+    },
+    {
+      "id": "fa_a4_10_bw",
+      "kind": "sale",
+      "label": "10 talonarios A4 B/N",
+      "attributes": {
+        "quantity": 10,
+        "format": "a4",
+        "ink": "bw"
+      },
+      "price": 105500
+    },
+    {
+      "id": "fa_a4_10_color",
+      "kind": "sale",
+      "label": "10 talonarios A4 color",
+      "attributes": {
+        "quantity": 10,
+        "format": "a4",
+        "ink": "color"
+      },
+      "price": 178000
+    },
+    {
+      "id": "fa_a4_20_bw",
+      "kind": "sale",
+      "label": "20 talonarios A4 B/N",
+      "attributes": {
+        "quantity": 20,
+        "format": "a4",
+        "ink": "bw"
+      },
+      "price": 195000
+    },
+    {
+      "id": "fa_a4_20_color",
+      "kind": "sale",
+      "label": "20 talonarios A4 color",
+      "attributes": {
+        "quantity": 20,
+        "format": "a4",
+        "ink": "color"
+      },
+      "price": 325500
+    },
+    {
+      "id": "fa_addon_triplicate",
+      "kind": "add_on",
+      "group": "facturas:triplicate",
+      "label": "Por triplicado",
+      "applies_to_family": true,
+      "rate": 0.4
+    },
+    {
+      "id": "fa_addon_quadruplicate",
+      "kind": "add_on",
+      "group": "facturas:quadruplicate",
+      "label": "Por cuadruplicado",
+      "applies_to_family": true,
+      "rate": 0.8
+    },
+    {
+      "id": "fa_addon_carbonless_half_legal",
+      "kind": "add_on",
+      "group": "facturas:carbonless",
+      "label": "Con papel químico, 1/2 oficio",
+      "applies_to_family": true,
+      "attributes": {
+        "format": "half_legal"
+      },
+      "rate": 0.6
+    },
+    {
+      "id": "fa_addon_carbonless_a4",
+      "kind": "add_on",
+      "group": "facturas:carbonless",
+      "label": "Con papel químico, A4",
+      "applies_to_family": true,
+      "attributes": {
+        "format": "a4"
+      },
+      "rate": 0.7
+    }
+  ],
+  "module_discounts": [],
+  "rules": [
+    "The list is net. The engine grosses up once, at the end, and Dante says that one final number. ADR 0020.",
+    "Quantities are the ones in the tables: 1, 2, 4, 6, 8, 10 and 20 talonarios. Nothing between them is quoted.",
+    "A complete 7 x 2 x 2. Every one of the twenty eight amounts is one the owner typed.",
+    "The three surcharges are percentages of the chosen row, and papel quimico differs by format. When more than one applies they compound, one on the other, never summed.",
+    "No module. A size the customer gives escalates rather than being priced by area.",
+    "A quote is valid 15 days, and after that while the list has not changed."
+  ]
+}

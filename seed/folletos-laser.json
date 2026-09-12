@@ -1,0 +1,94 @@
+{
+  "source": {
+    "file": "lista-precios.html",
+    "family": "Folletos full color, láser",
+    "client": "Multimpresos",
+    "closed_on": "2026-09-10",
+    "note": "Amounts are copied from the list exactly as the owner typed them, and the list is net."
+  },
+  "currency": "ARS",
+  "vat_included": false,
+  "vat_rate": 0.21,
+  "quote_validity_days": 15,
+  "family": {
+    "slug": "folletos_laser",
+    "label": "Folletos full color láser",
+    "unit": "unit",
+    "module": null,
+    "attributes": ["quantity", "coverage", "sides"],
+    "ask_order": ["quantity", "coverage", "sides"]
+  },
+  "reading": {
+    "paper": "The list heads the family with 'Papel ilustración 150g, en 24 horas.' Paper is fixed for the whole family, so it is not an attribute: there is nothing for a customer to choose.",
+    "size": "Every row is 10 x 15 cm, a quarter of A4. One size, so it is not an attribute either.",
+    "coverage": "The four subheadings are semi pleno and pleno, which is how much of the sheet the ink covers. It is the axis that is not quantity and not sides.",
+    "label": "The family label drops the comma the list uses. namesFamily matches whole words, and 'láser' is the word that tells this family from the offset one."
+  },
+  "items": [
+    {
+      "id": "fl_500_semi_front",
+      "kind": "sale",
+      "label": "500 folletos 10 x 15 semi pleno, sólo frente",
+      "attributes": { "quantity": 500, "coverage": "semi_pleno", "sides": "front" },
+      "price": 69500
+    },
+    {
+      "id": "fl_1000_semi_front",
+      "kind": "sale",
+      "label": "1000 folletos 10 x 15 semi pleno, sólo frente",
+      "attributes": { "quantity": 1000, "coverage": "semi_pleno", "sides": "front" },
+      "price": 128500
+    },
+    {
+      "id": "fl_500_full_front",
+      "kind": "sale",
+      "label": "500 folletos 10 x 15 pleno, sólo frente",
+      "attributes": { "quantity": 500, "coverage": "pleno", "sides": "front" },
+      "price": 74000
+    },
+    {
+      "id": "fl_1000_full_front",
+      "kind": "sale",
+      "label": "1000 folletos 10 x 15 pleno, sólo frente",
+      "attributes": { "quantity": 1000, "coverage": "pleno", "sides": "front" },
+      "price": 134000
+    },
+    {
+      "id": "fl_500_semi_both",
+      "kind": "sale",
+      "label": "500 folletos 10 x 15 semi pleno, frente y dorso",
+      "attributes": { "quantity": 500, "coverage": "semi_pleno", "sides": "front_and_back" },
+      "price": 123000
+    },
+    {
+      "id": "fl_1000_semi_both",
+      "kind": "sale",
+      "label": "1000 folletos 10 x 15 semi pleno, frente y dorso",
+      "attributes": { "quantity": 1000, "coverage": "semi_pleno", "sides": "front_and_back" },
+      "price": 220000
+    },
+    {
+      "id": "fl_500_full_both",
+      "kind": "sale",
+      "label": "500 folletos 10 x 15 pleno, frente y dorso",
+      "attributes": { "quantity": 500, "coverage": "pleno", "sides": "front_and_back" },
+      "price": 132000
+    },
+    {
+      "id": "fl_1000_full_both",
+      "kind": "sale",
+      "label": "1000 folletos 10 x 15 pleno, frente y dorso",
+      "attributes": { "quantity": 1000, "coverage": "pleno", "sides": "front_and_back" },
+      "price": 246500
+    }
+  ],
+  "module_discounts": [],
+  "rules": [
+    "The list is net. The engine grosses up once, at the end, and Dante says that one final number. ADR 0020.",
+    "Quantities are the ones in the tables, 500 and 1000. The customer picks among them. No intermediate quantity is quoted.",
+    "A complete 2 x 2 x 2: every combination of quantity, coverage and sides is a row the owner typed. Nothing is derived.",
+    "No add-ons and no discounts. The list states none for this family, so asking for one escalates.",
+    "No module. A size the customer gives escalates rather than being priced by area.",
+    "A quote is valid 15 days, and after that while the list has not changed."
+  ]
+}
