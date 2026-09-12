@@ -33,3 +33,27 @@ branch. Four lanes each shipped a correct pure function and nobody owns the wire
 them.
 
 Nothing in a ticket asked anyone to check. Writing the runbook is what asked.
+
+## Run the paste text, do not reason about it
+
+The runbook's step 1 had the customer answer the ask with the three attributes Dante asked
+for. That reads correct and it is wrong: `TurnState` carries `asked`, not the answers, so
+the second message has no quantity and Dante asks for the cantidad instead of quoting. A
+verification pass that ran every paste text through `priceFor` found it in one command. I
+had read the same code an hour earlier and not seen it.
+
+Reading a code path tells you what it does with the input you imagine. Running it tells you
+what it does with the input you wrote down. For a document whose whole value is that
+somebody else can execute it, execute it first.
+
+## Re-verify citations against origin/main just before pushing
+
+`main` moved four commits during this ticket. A8 and C7 merged, and a catalog cleanup
+deleted `test/catalog/prices.test.ts`, which the runbook's first line cited as the thing
+pinning its amounts. The citation was true when written and false ninety minutes later.
+
+Two PR labels went stale the same way: rows tagged `(PR #16)` and `(PR #18)` were pointing
+at branches that had already landed.
+
+In a four lane hackathon, a file-and-line citation has a shelf life. Fetch and re-check
+immediately before the push, not when the sentence is written.
