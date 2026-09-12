@@ -27,7 +27,7 @@ describe('loadCatalog', () => {
   it('carries the fields the engine reads off a row', () => {
     const { rows } = loadCatalog(seed)
 
-    expect(rows.find((row) => row.slug === 'bc_special_100_front')).toEqual({
+    expect(rows.find((row) => row.slug === 'bc_special_100_front')).toStrictEqual({
       slug: 'bc_special_100_front',
       kind: 'sale',
       label: '100 tarjetas color sólo frente',
