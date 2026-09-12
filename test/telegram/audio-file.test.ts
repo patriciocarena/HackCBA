@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { telegramAudio } from '@/telegram/admin-audio'
+import { telegramAudio } from '@/telegram/audio-file'
 
 const TOKEN = 'bot-token'
 
