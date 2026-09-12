@@ -8,10 +8,23 @@ import type { Receipt, ReceiptStore } from '@/domain/deposit'
 import { conversationId } from '@/domain/types'
 import { adminAllowlist } from '@/security/allowlist'
 import type { Send } from '@/telegram/send'
+import { liveCatalog } from '@/catalog/live-catalog'
+import { telegramWebhookRoute } from '@/telegram/route'
+import type { FetchLike } from '@/voice/transcription'
 import { telegramWebhook } from '@/telegram/webhook'
 import { OFFSET_1000 } from '@test/support/fixtures'
 
 const SECRET = 'a-long-random-string'
+const OWNER_CHAT = '77'
+
+// The composition root reads every key at boot, which is the point of it. These are the
+// ones it needs to be built at all.
+process.env.TELEGRAM_WEBHOOK_SECRET = SECRET
+process.env.TELEGRAM_BOT_TOKEN = 'a-bot-token'
+process.env.OPENROUTER_API_KEY = 'a-key'
+process.env.OPENROUTER_MODEL = 'a-model'
+process.env.DEPOSIT_ALIAS = 'dante.imprenta.mp'
+process.env.OWNER_CHAT_ID = OWNER_CHAT
 const NOW = '2026-09-12T18:00:00.000Z'
 const ADMIN = '77'
 const CUSTOMER_CHAT = '-100'
@@ -139,5 +152,67 @@ describe('the receipt attaches to the order the confirmation moves', () => {
     expect(written).toHaveLength(1)
     expect(notices).toHaveLength(1)
     expect(sale.orderFor(conversation)?.state).toBe('deposit_confirmed')
+  })
+})
+
+/**
+ * The same walk through `telegramWebhookRoute` itself. The test above wires `findOrder` with
+ * its own hand, so it proves the module and says nothing about what the composition root
+ * passes it: a route that built a store of its own would keep that test green. Here nothing
+ * is wired by the test, so a receipt path that cannot find the sale's order sends the owner
+ * no notice and this fails.
+ */
+function routed() {
+  const answers: unknown[] = [QUOTE, ACCEPT]
+  const sends: { chatId: string; text: string }[] = []
+
+  const fetchImpl: FetchLike = async (url, init) => {
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>
+
+    if (new URL(url).host === 'api.telegram.org') {
+      sends.push({ chatId: String(body.chat_id), text: String(body.text) })
+
+      return Response.json({ ok: true })
+    }
+
+    const content =
+      'response_format' in body
+        ? JSON.stringify(answers.shift() ?? { kind: 'other', family: null, attributes: {}, size: null, addOns: [], factKey: null, reason: null })
+        : passThrough(lastUserMessage(body))
+
+    return Response.json({ choices: [{ message: { content } }] })
+  }
+
+  const route = telegramWebhookRoute({ onCallback: async () => {} }, liveCatalog(catalogRows), fetchImpl)
+  const { handler } = route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }
+
+  return { deliver: (request: Request) => handler({ req: { raw: request } }), sends }
+}
+
+function lastUserMessage(body: Record<string, unknown>): string {
+  const messages = body.messages as { role: string; content: string }[]
+
+  return messages[messages.length - 1]!.content
+}
+
+describe('through the composition root, with nothing wired by the test', () => {
+  test('the owner is told a receipt arrived for the order the sale port is holding', async () => {
+    const { deliver, sends } = routed()
+
+    await deliver(says(11, 'hola, cuánto 1000 tarjetas'))
+    await deliver(says(12, 'dale, la quiero'))
+    await deliver(sendsAPhoto(13, 'AgACtransfer'))
+
+    const toOwner = sends.filter((sent) => sent.chatId === OWNER_CHAT)
+    const toCustomer = sends.filter((sent) => sent.chatId === CUSTOMER_CHAT)
+
+    // One notice, and it found an order: a receipt path handed a store of its own instead of
+    // sale.orderFor finds nothing and says nothing.
+    expect(toOwner).toHaveLength(1)
+    expect(toOwner[0]!.text).toContain('banco')
+    expect(toOwner[0]!.text).not.toContain('AgACtransfer')
+
+    // The quote and the deposit request. The photo never reached the turn, so it added none.
+    expect(toCustomer).toHaveLength(2)
   })
 })
