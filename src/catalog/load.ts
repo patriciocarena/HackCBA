@@ -22,7 +22,7 @@ export type CatalogSeed = {
     slug: string
     label: string
     unit: string
-    module: { width_cm: number; height_cm: number } | null
+    module: { width_cm: number; height_cm: number }
     attributes: readonly string[]
     ask_order: readonly string[]
   }
@@ -47,10 +47,7 @@ export function loadCatalog(seed: CatalogSeed): Catalog {
     unit: unitSchema.parse(seed.family.unit),
     vatRate: seed.vat_rate,
     vatIncluded: seed.vat_included,
-    module:
-      seed.family.module === null
-        ? null
-        : { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
+    module: { widthCm: seed.family.module.width_cm, heightCm: seed.family.module.height_cm },
     attributes: seed.family.attributes.map((name) => attributeContract(name, sales)),
     askOrder: [...seed.family.ask_order],
     addOns: [
