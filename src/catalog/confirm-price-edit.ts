@@ -26,7 +26,8 @@ export type ConfirmInput = {
 export type ConfirmRefusal = 'not_an_admin' | 'unknown_proposal' | ApplyRefusal
 
 export type ConfirmOutcome =
-  | { ok: true; applied: Applied }
+  | { ok: true; decision: 'applied'; applied: Applied }
+  | { ok: true; decision: 'rejected'; rejected: PriceEditProposal }
   | { ok: false; reason: ConfirmRefusal }
 
 export async function confirmPriceEdit(
@@ -42,10 +43,23 @@ export async function confirmPriceEdit(
   const proposal = await load(input.proposalId)
   if (proposal === null) return { ok: false, reason: 'unknown_proposal' }
 
+  if (!input.accepted) {
+    const rejected: PriceEditProposal = {
+      ...proposal,
+      state: 'rejected',
+      resolvedBy: by.id,
+      resolvedAt: input.now,
+    }
+
+    await save(rejected)
+
+    return { ok: true, decision: 'rejected', rejected }
+  }
+
   const applied = applyPriceEdit(proposal, rows, { id: input.versionId, by, now: input.now })
   if (!applied.ok) return applied
 
   await save(applied.applied.proposal)
 
-  return applied
+  return { ok: true, decision: 'applied', applied: applied.applied }
 }

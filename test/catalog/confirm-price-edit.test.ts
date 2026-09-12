@@ -86,6 +86,7 @@ describe('confirmPriceEdit', () => {
     )
 
     if (!outcome.ok) throw new Error(`expected an applied edit, got ${outcome.reason}`)
+    if (outcome.decision !== 'applied') throw new Error('expected an applied edit, got a rejection')
     expect(outcome.applied.version).toEqual({
       id: 'ver_1',
       proposalId: 'edit_1',
@@ -95,5 +96,28 @@ describe('confirmPriceEdit', () => {
     })
     expect(outcome.applied.rows[0]?.price).toEqual(ars(14520))
     expect(store.saved).toEqual([outcome.applied.proposal])
+  })
+
+  it('leaves a refused edit rejected and moves no price, because being asked is not being applied', async () => {
+    const store = aStore()
+
+    const outcome = await confirmPriceEdit(
+      {
+        proposalId: 'edit_1',
+        versionId: 'ver_1',
+        senderId: ADMIN,
+        accepted: false,
+        now: '2026-09-12T10:05:00.000Z',
+      },
+      { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+    )
+
+    if (!outcome.ok) throw new Error(`expected a rejection, got ${outcome.reason}`)
+    if (outcome.decision !== 'rejected') throw new Error('expected a rejection, got an applied edit')
+    expect(outcome.rejected.state).toBe('rejected')
+    expect(outcome.rejected.resolvedBy).toBe(ADMIN)
+    expect(outcome.rejected.resolvedAt).toBe('2026-09-12T10:05:00.000Z')
+    expect(store.saved).toEqual([outcome.rejected])
+    expect(ROWS[0]?.price).toEqual(ars(12100))
   })
 })
