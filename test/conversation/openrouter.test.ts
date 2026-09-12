@@ -83,3 +83,29 @@ describe('writing', () => {
     expect(openRouterModel({ ...CONFIG, fetchImpl }).write({ system: 's', user: 'u' })).rejects.toThrow()
   })
 })
+
+describe('looking at an image', () => {
+  test('sends the parts as the user content and names its own schema', async () => {
+    const { sent, fetchImpl } = answering('{"looksLikeReceipt":true,"amount":45000,"destination":"a.b.c","confidence":0.9}')
+    const schema = { type: 'object', properties: {}, additionalProperties: false }
+    const parts = [{ type: 'text', text: 'read it' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AQID' } }]
+
+    const raw = await openRouterModel({ ...CONFIG, fetchImpl }).look({ system: 'you look', parts, schema })
+
+    expect(raw).toEqual({ looksLikeReceipt: true, amount: 45000, destination: 'a.b.c', confidence: 0.9 })
+    expect(sent[0].body).toMatchObject({
+      temperature: 0,
+      messages: [
+        { role: 'system', content: 'you look' },
+        { role: 'user', content: parts },
+      ],
+      response_format: { type: 'json_schema', json_schema: { name: 'receipt', strict: true, schema } },
+    })
+  })
+
+  test('prose throws, so a dropped schema never reads as a reading', async () => {
+    const { fetchImpl } = answering('Parece un comprobante de $45.000')
+
+    expect(openRouterModel({ ...CONFIG, fetchImpl }).look({ system: 's', parts: [], schema: {} })).rejects.toThrow()
+  })
+})

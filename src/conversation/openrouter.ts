@@ -1,5 +1,6 @@
 import { structuredJson } from './structured-output'
 import type { FetchLike } from '../voice/transcription'
+import type { Look } from './receipt-reading'
 import type { Extract, Write } from './turn'
 
 export type OpenRouterConfig = {
@@ -11,6 +12,7 @@ export type OpenRouterConfig = {
 export type Model = {
   extract: Extract
   write: Write
+  look: Look
 }
 
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
@@ -19,7 +21,9 @@ const TIMEOUT_MS = 30_000
 export function openRouterModel(config: OpenRouterConfig): Model {
   const { apiKey, model, fetchImpl = fetch } = config
 
-  async function complete(system: string, user: string, format?: object): Promise<string> {
+  // `user` is a string for text and an array of content parts for an image. One client, so
+  // the timeout, the status check and the empty answer check are not written twice.
+  async function complete(system: string, user: string | unknown[], format?: object): Promise<string> {
     const response = await fetchImpl(ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -61,6 +65,14 @@ export function openRouterModel(config: OpenRouterConfig): Model {
 
     async write({ system, user }) {
       return await complete(system, user)
+    },
+
+    async look({ system, parts, schema }) {
+      const format = {
+        response_format: { type: 'json_schema', json_schema: { name: 'receipt', strict: true, schema } },
+      }
+
+      return JSON.parse(await complete(system, parts, format))
     },
   }
 }
