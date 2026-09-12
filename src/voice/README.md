@@ -58,19 +58,30 @@ from the text, and flag the `PriceEdit` for review.
 **`Transcription` is not in `src/domain/types.ts`.** It is a detail of the voice seam, not
 business vocabulary like `Intent` or `PriceEdit`. Import it from here.
 
-## The one thing that was not verified
+## Verified against the live API
 
-Tested against a macOS-generated `.m4a` (AAC). Both paths confirmed against the live API:
-a real transcript, and a 401 that fails closed.
+Three ways, all on Friday night:
 
-**Telegram voice notes arrive as `.oga` with the Opus codec, which was never tested.** If
-Scribe rejects Opus, that is where it breaks, and it will break inside C4. Test it with a
-real Telegram voice note before you build on top of this. The port takes a filename
-argument precisely so the provider sees the right extension:
+| Input | Result |
+|---|---|
+| `fixtures/raise-cards.opus`, a real WhatsApp voice note, Ogg/Opus 48 kHz mono | `Subí las tarjetas un 20 %` |
+| `fixtures/raise-cards.m4a`, macOS speech synthesis, AAC | `Subí las tarjetas personales 20%` |
+| A bogus key | `elevenlabs 401: ...`, fails closed, writes nothing |
+
+The Opus case is the one that matters: Telegram and WhatsApp both send voice notes as Opus
+in an Ogg container, so that codec path is confirmed working, with a real Argentine voice.
+
+Pass the real filename so the provider sees the right extension:
 
 ```ts
 await port.transcribe(bytes, "voice.oga");
 ```
+
+**Do not regex the percent sign.** The two transcripts above normalise the same dictated
+"veinte por ciento" differently: `20%` in one, `20 %` in the other. The spacing is not
+stable across inputs, and neither is the wording around it. Let `structuredOutput` read the
+amount out of the sentence; anything that pattern-matches a literal will pass Friday's
+fixture and fail on the owner's next audio.
 
 ## Not done
 
