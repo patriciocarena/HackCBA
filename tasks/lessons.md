@@ -132,3 +132,32 @@ commit, and say what the check actually proves" above.
 
 Cite the sha and the path. It is the cheaper check whoever turns out to be stale,
 and it costs nothing when everyone is current.
+## Two branches each doing the right thing can still be wrong together
+
+2026-09-12, E1. A5's turn fenced the customer message. While it sat in review,
+#15 landed on main and moved fencing to the webhook call site. Each branch was
+green and each was correct alone. Merged, a customer message reached the writer
+wrapped in two nonces, and no test on either branch could see it, because
+neither ran both.
+
+The integration ticket is the first place a pair like that is observable, so it
+owns the decision about which side keeps the behaviour. Look for duplicated
+responsibility at every seam the merge joins, not only for conflicts git
+reports. Git had nothing to say about this one.
+
+## Order the write after the effect it is supposed to record
+
+Same lane. `customerTurn` stored the next conversation state and then sent the
+reply. A Telegram refusal threw, so the reply was lost and the state had already
+advanced: an escalation left `escalated: true` with the customer never told, and
+the update id was claimed before the turn ran, so the retry was deduped and
+dropped. Sending first costs nothing and leaves a refused reply recoverable on
+the customer's next message.
+
+## A wrong default is invisible in exactly the place it matters
+
+Same lane, from the brief. `route.ts` defaulted `turn` to `silentTurn`, so
+production acknowledged every customer and answered none. The repo had already
+shipped this shape once, an identity-cast fence defaulting to a no-op. Tests
+pass because tests always inject the real thing. Assert the default itself:
+build the production seam with no arguments and prove it calls out.
