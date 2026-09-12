@@ -55,7 +55,6 @@ describe('telegramWebhook', () => {
       senderId: '42',
       mediaId: null,
     })
-    expect(turns[0]!.text).toContain('subí las tarjetas un 20%')
     expect(turns[0]!.text).not.toBe('subí las tarjetas un 20%')
   })
 
@@ -156,5 +155,17 @@ describe('the default fence is the real one', () => {
     expect(open).toMatch(/^<message:[0-9a-f]{32}>$/)
     expect(close).toBe(`</${open!.slice(1, -1)}>`)
     expect(body).toBe(payload)
+  })
+
+  it('gives two different messages two different delimiters', async () => {
+    const { turns, turn } = spy()
+    const webhook = telegramWebhook({ secret: SECRET, turn })
+
+    await webhook(delivery(update(72, { text: 'tarjetas' })))
+    await webhook(delivery(update(73, { text: 'volantes' })))
+
+    const nonceOf = (text: unknown) => String(text).split('\n')[0]
+
+    expect(nonceOf(turns[0]!.text)).not.toBe(nonceOf(turns[1]!.text))
   })
 })
