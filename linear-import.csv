@@ -1,0 +1,286 @@
+Title,Description,Assignee,Estimate,Labels,Priority,Status
+A1 Service chassis,"Repo with bun and Mastra, a bun Dockerfile, fly.toml with a volume and min_machines_running at 1, healthcheck. Seeded from the sergio-mastra precedent, which is already single tenant with one webhook channel and LibSQL on a volume.
+
+Done when:
+- fly deploy finishes and GET /health returns 200
+- bun test and bun run typecheck run and pass with zero tests
+- The volume keeps a file across two consecutive deploys
+
+Blocked by: nothing
+Blocks: A4, D4
+Window: Fri 21:00 to Fri 23:00",Fede,2,"lane-a,critical-chain",1,Todo
+B3 Seed the business cards family,"Load cards into families and items. The family declares key, name, unit, module size, and the ordered list of attributes a quote needs before it can resolve.
+
+Done when:
+- Card rows are in items with their unit and tier
+- The seed is idempotent: running it twice does not duplicate rows
+- The required attributes for cards are declared and ordered
+
+Blocked by: nothing
+Blocks: B8
+Window: Fri 21:00 to Fri 22:30",Juan Bautista,1.5,lane-b,2,Todo
+C2 Transcription behind a seam,"A transcription port with one implementation. Swapping providers touches one file. Provider cost and runway alerts come later, today just the seam.
+
+Done when:
+- A test audio transcribes and the text is stored next to the media
+- Swapping providers touches a single file
+- A failing audio records the reason and writes nothing else
+
+Blocked by: nothing
+Blocks: C4
+Window: Fri 21:00 to Fri 23:00",Pato,2,lane-c,2,Todo
+D7 One page threat model,"Who attacks, what they gain, and what stops them. Known actors: a customer chasing a price that does not exist, someone impersonating an admin, someone who planted text in an email to the shop ten years ago.
+
+Done when:
+- One page, no more
+- Every threat names the ticket that mitigates it
+- Unmitigated threats are listed as accepted risk, not omitted
+
+Blocked by: nothing
+Blocks: nobody
+Window: Fri 21:00 to Fri 22:00",Talisman,1,lane-d,2,Todo
+A2 Domain contracts,"src/domain/types.ts with Intent, Resolution, PriceEdit, Unit, OrderState and EscalationReason. Every enum is an as const array that generates both the union type and the SQLite CHECK from one source. Critical path: blocks lanes B, C and D.
+
+Done when:
+- All four lanes import from this file and compile
+- A helper generates the SQLite CHECK from the as const array, with a test
+- Zero client constants in the file
+- Delivered before H+2
+
+Blocked by: nothing
+Blocks: A3, A5, B4, D1
+Window: Fri 23:00 to Sat 00:00",Fede,1,"lane-a,critical-chain",1,Todo
+D4 Secrets and gitleaks,"Every secret in fly secrets. gitleaks on pre-commit and in CI. No .env in git. The Mercado Pago alias is a secret too when it arrives.
+
+Done when:
+- The hook stops a commit carrying a key
+- gitleaks runs in CI and fails the build
+- .env and .env.* are in .gitignore
+- The repo history is scanned once and comes back clean
+
+Blocked by: A1
+Blocks: nobody
+Window: Fri 23:00 to Sat 00:00",Talisman,1,lane-d,2,Todo
+A3 Schema and storage seam,"Idempotent inline DDL over LibSQL for families, items, facts, orders, price_edits and price_versions. Litestream replicating to a bucket from the first deploy, not when there is data worth losing.
+
+Done when:
+- The DDL runs twice in a row without error
+- items has a unique constraint over family plus attribute bag plus tier
+- unit exists on families as a default and on items as an override
+- Litestream replicates and a test restore brings the database back
+
+Blocked by: A2
+Blocks: A7, B7, D2
+Window: Sat 08:00 to Sat 09:30",Fede,1.5,"lane-a,critical-chain",1,Todo
+"B4 priceFor, a pure function","Resolution without a model. Exact match or escalate: zero rows, more than one, or a missing attribute we already asked for returns escalate. No interpolation, no nearest neighbor, no roughly.
+
+Done when:
+- It is a pure function with no network and no clock access
+- Each of the three escalation cases has its own test
+- It returns the itemId the amount came from and an explanation a human can read
+- The square meter versus linear meter rule is covered
+
+Blocked by: A2
+Blocks: A5, B5, B6, D5, E1
+Window: Sat 08:00 to Sat 10:00",Juan Bautista,2,lane-b,2,Todo
+D1 Deterministic fencing of untrusted text,"Copied file by file from the Pretor precedent. Every outside text enters fenced and is never an instruction: customer messages, transcripts, facts, and later the email archive.
+
+Done when:
+- A message containing the fence delimiters does not break the fence, with a test
+- The fence is deterministic: same input, same output
+- No path through the turn passes outside text unfenced, verified by a test that walks the call sites
+
+Blocked by: A2
+Blocks: A5, B7, E1
+Window: Sat 08:00 to Sat 09:30",Talisman,1.5,lane-d,2,Todo
+A4 Telegram bot with two roles,"One bot, two roles. The admin role is for the four of us and the customer role simulates the prospect. Update dedupe copied from the precedent.
+
+Done when:
+- A repeated Telegram update does not fire two replies
+- The role comes from the sender, not from a command the user picks
+- An incoming message is recorded with its conversation id
+
+Blocked by: A1
+Blocks: C4
+Window: Sat 09:30 to Sat 11:30",Fede,2,"lane-a,critical-chain",1,Todo
+"D2 Admin allowlist, fail closed","Admin status is decided by sender identity against a closed list. An unknown sender saying raise cards 20% is a customer, not a command. Blocks C4, so it ships before D7.
+
+Done when:
+- An empty or misconfigured list denies everyone, never allows everyone
+- An unknown sender asking for a raise gets a customer reply
+- The list changes through an environment variable, with no code deploy
+- Every rejected edit attempt is recorded
+
+Blocked by: A3
+Blocks: C4
+Window: Sat 09:30 to Sat 10:30",Talisman,1,lane-d,2,Todo
+B5 Module math,"A size that is not in the list does not escalate, it gets computed. Formula pending client confirmation: modules equals ceil of piece area over module area. It deliberately loosens the rule that the bot only repeats a number the owner typed.
+
+Done when:
+- Card 15x5 gives 2 modules, large card 10x15 gives 4, A4 flyer gives 5
+- The message says how it got the number, so a human can catch the error by reading
+- Every input to the formula is data the owner typed
+- The no module discount assumption is flagged in docs/assumptions.md
+
+Blocked by: B4
+Blocks: B8
+Window: Sat 10:00 to Sat 11:30",Juan Bautista,1.5,lane-b,2,Todo
+A5 Three phase conversation turn,"Orchestration: extraction with structuredOutput and no tools over already fenced text, resolution with SQL plus priceFor, writing with the amount injected as data. The agent has no tools.
+
+Done when:
+- The writing model receives the computed amount and cannot alter it
+- The resolution phase calls no model
+- Every missing attribute is asked in one message, and anything still missing is asked one at a time
+- A test covers the full turn with a model double
+
+Blocked by: A2, B4, D1
+Blocks: A6, A9, D5, D6, E1
+Window: Sat 11:30 to Sat 13:30",Fede,2,lane-a,2,Todo
+A7 Orders with a copied amount,"orders with the states quoted, deposit_pending, deposit_confirmed, files_ok and in_production. The order copies the price instead of pointing at it: the one place in the system where copying data is correct.
+
+Done when:
+- A test edits the list after quoting and the order keeps the old amount
+- A person moves the state from Telegram, never the agent alone
+- A quote is valid for 15 days and the expiry is stored, not computed from today at read time
+
+Blocked by: A3
+Blocks: A8
+Window: Sat 11:30 to Sat 13:00",Juan Bautista,1.5,lane-a,2,Todo
+A8 Deposit by alias with human confirmation,"Dante asks for the deposit by Mercado Pago alias, half the total at minimum. The receipt the customer sends is attached to the order. Any of the four can confirm, and the record says who did.
+
+Done when:
+- The receipt is stored and never shown to whoever confirms
+- Who confirmed and when is on the record
+- An unconfirmed deposit never advances to in_production, with a test
+- If nobody confirms within two business hours the order enters the team inbox
+
+Blocked by: A7
+Blocks: nobody
+Window: Sat 13:00 to Sat 14:00",Talisman,1.0,lane-a,2,Todo
+B7 Facts and their fenced injection,"A facts table with addresses, hours, phones, delivery times per family, payment methods, what the shop does and does not do. Injected into the turn as fenced data. One cap: what is not in that block, you do not know.
+
+Done when:
+- A question about an unloaded fact returns escalate, not a plausible answer
+- The facts block enters fenced as untrusted
+- Hours and payment methods confirmed on 2026-09-10 are loaded
+- Missing facts sit as pending data and that escalates
+
+Blocked by: A3, D1
+Blocks: nobody
+Window: Sat 13:00 to Sat 14:30",Juan Bautista,1.5,lane-b,2,Todo
+C4 Admin audio into a typed PriceEdit,"Audio never writes. It transcribes, then structuredOutput returns a typed PriceEdit, which is a proposal and is stored unapplied in price_edits.
+
+Done when:
+- Raise cards 20% lands in price_edits and no price changed
+- The PriceEdit stores old price, new price, source, media id and who proposed it
+- An audio from a sender outside the allowlist produces no PriceEdit and is treated as a customer
+- An ambiguous dictated amount is not filled in: the PriceEdit is flagged for review
+
+Blocked by: C2, D2, A4
+Blocks: C7, E1
+Window: Sat 13:30 to Sat 15:30",Fede,2,"lane-c,critical-chain",1,Todo
+D5 Adversarial suite,"Twenty attacks running in CI: prompt injection in a customer message, injection inside a transcript, a price request outside the catalog, a discount request, an attempt to reveal the prompt, an attempt to make it deny being automated.
+
+Done when:
+- All twenty attacks run in CI
+- Zero prices outside the catalog, which is the governing metric
+- No attack makes Dante deny being automated
+- No attack makes it apply a price edit
+- A new attack is added as a case, without touching the runner
+
+Blocked by: A5, B4
+Blocks: nobody
+Window: Sat 14:00 to Sat 15:30",Talisman,1.5,lane-d,2,Todo
+B8 Ten business card pricing cases,"Ten cases per loaded family, not ten in total. They come from real conversations, with what the human answered. A family without tests does not ship.
+
+Done when:
+- bun test green
+- Zero prices outside the catalog, which is the governing metric
+- Includes module math and the linear meter versus square meter rule
+- Each case names the real conversation it came from
+
+Blocked by: B3, B5
+Blocks: nobody
+Window: Sat 14:30 to Sat 16:00",Juan Bautista,1.5,lane-b,2,Todo
+E5 Ask the client for the missing data,"Six data points open since 2026-09-11 at 13:14: query volume per family, the module formula, the Mercado Pago alias, the missing facts, the phone numbers of the four users, and which number sits on which channel. None of them blocks hackathon code.
+
+Done when:
+- Asked in a single message, not one at a time
+- Whatever arrives loads with no code change, only data or config
+- Whatever does not arrive stays a flagged assumption in docs/assumptions.md
+
+Blocked by: nothing
+Blocks: nobody
+Window: Sat 15:30 to Sat 16:00",Fede,0.5,lane-e,2,Todo
+E1 Wire the full vertical,"The four lanes meet for the first time. Starts at H+8 and has to be walking by H+14.
+
+Done when:
+- A text message crosses extraction, resolution and writing and comes back with a VAT inclusive price
+- An admin audio proposes an edit and the diff page opens
+- A wrong contract is fixed by adding an optional field, never by renaming
+
+Blocked by: A5, B4, C4, D1
+Blocks: E4
+Window: Sat 16:00 to Sat 18:00",All four,2,"lane-e,critical-chain",1,Todo
+A6 Dante persona and caps,"A third PersonaKind, agent, which requires disclosure instead of forbidding it. Neutral rioplatense voseo. Persona first, caps second, never the other way around.
+
+Done when:
+- Introduces itself as automated in one line in the first message of every new conversation and never again in that conversation
+- Caps compose after the persona, verified by a test over the assembled prompt
+- Only states amounts that arrived as data in the turn
+- Never names the C invoice
+
+Blocked by: A5
+Blocks: nobody
+Window: Sat 18:00 to Sat 19:00",Fede,1.0,lane-a,2,Todo
+A9 Escalation to a person,"When resolution returns escalate, the conversation moves to a human with a context note and Dante stops writing in that thread for good.
+
+Done when:
+- After escalating, a new customer message produces no agent reply
+- The context note carries the escalation reason and what the customer asked for
+- All six EscalationReason values trigger escalation, each with its own test
+
+Blocked by: A5
+Blocks: nobody
+Window: Sat 18:00 to Sat 19:00",Talisman,1,lane-a,2,Todo
+"B6 VAT included, one final number","Dante quotes list plus 21%, as one final number. Never plus VAT, never the bare price. Rate in config, not in the code.
+
+Done when:
+- No amount leaves the engine without VAT, with a test
+- The rate is read from config
+- A question about whether VAT is mandatory returns escalate with reason vat_question
+
+Blocked by: B4
+Blocks: nobody
+Window: Sat 18:00 to Sat 18:30",Juan Bautista,0.5,lane-b,2,Todo
+C7 Apply the edit and version it,"Every applied edit is a version: who, when, and the audio or photo that caused it.
+
+Done when:
+- price_versions stores who, when and the media id that caused it
+- From a version you can replay the original audio
+- Applying the same PriceEdit twice does not change the price twice
+- An already quoted order does not change amount when the edit applies
+
+Blocked by: C4
+Blocks: nobody
+Window: Sat 19:00 to Sat 20:00",Talisman,1.0,lane-c,2,Todo
+E4 Demo script and video,"Three minutes, six steps: VAT inclusive quote, large card by modules, honest escalation, an injection that fails, a price edit by audio with diff and version, an order with a deposit confirmed by a person.
+
+Done when:
+- Three minutes recorded
+- The six steps appear in that order
+- The assumptions in docs/assumptions.md are named in the video, not hidden
+
+Blocked by: E1
+Blocks: nobody
+Window: Sat 19:00 to Sat 21:00",All four,2,"lane-e,critical-chain",1,Todo
+D6 Telegram memory isolation,"Dante is one agent for the team and for customers, with one shared observational memory across the four of them. That memory lives on Telegram and a customer turn never reads it. Without this barrier, anything the team tells Dante can reach a customer.
+
+Done when:
+- Something told on Telegram never appears in a customer reply, with a test
+- A customer turn builds its context only from the catalog and facts
+- The test fails if anyone adds a new context source to the customer turn
+
+Blocked by: A5
+Blocks: nobody
+Window: Sat 20:00 to Sat 21:00",Talisman,1.0,lane-d,2,Todo
