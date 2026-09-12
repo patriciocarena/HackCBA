@@ -19,6 +19,7 @@ process.env.ELEVENLABS_API_KEY = 'a-transcription-key'
 process.env.ELEVENLABS_MODEL_ID = 'scribe_v2'
 process.env.TRANSCRIPTION_LANGUAGE = 'es'
 process.env.DEPOSIT_ALIAS = 'dante.imprenta.mp'
+process.env.OWNER_CHAT_ID = '77'
 
 function handle(route: ReturnType<typeof telegramWebhookRoute>, request: Request): Promise<Response> {
   const { handler } = route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }
@@ -148,7 +149,7 @@ describe('the default turn', () => {
 })
 
 describe('every key is read at boot', () => {
-  for (const key of ['OPENROUTER_MODEL', 'OPENROUTER_API_KEY', 'TELEGRAM_BOT_TOKEN', 'DEPOSIT_ALIAS']) {
+  for (const key of ['OPENROUTER_MODEL', 'OPENROUTER_API_KEY', 'TELEGRAM_BOT_TOKEN', 'DEPOSIT_ALIAS', 'OWNER_CHAT_ID']) {
     it(`throws when ${key} is missing, at construction and not at the first customer`, () => {
       const held = process.env[key]
       delete process.env[key]

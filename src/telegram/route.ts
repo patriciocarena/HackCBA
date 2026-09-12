@@ -5,7 +5,9 @@ import { requireEnv } from '../config/env'
 import { adminTurn } from '../conversation/admin-turn'
 import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
+import { receiptTurn } from '../conversation/receipt-path'
 import { inMemorySale } from '../conversation/sale'
+import { inMemoryReceipts } from '../domain/deposit'
 import { adminAllowlistFromEnv } from '../security/allowlist'
 import { readAdminAudio } from '../voice/admin-audio'
 import { extractionFromEnv } from '../voice/price-edit-intent'
@@ -87,12 +89,30 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
 
   const token = requireEnv('TELEGRAM_BOT_TOKEN')
   const send = telegramSend(token, fetchImpl)
+  const ownerChat = requireEnv('OWNER_CHAT_ID')
 
-  const customer = customerTurn(
-    // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
-    // half of the rule; the loaded half arrives with the table that holds them.
-    { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write, sale },
-    send,
+  // The receipt is read before the customer's turn and a recorded one stops there, so
+  // "ya transferi" is never handed to extraction, which would read it as `other` and
+  // escalate the conversation the customer had just paid for.
+  //
+  // `sale.orderFor` is the whole wiring, and it is the same argument the Wiring comment
+  // above makes about `edits`: a receipt path with a store of its own records against an
+  // order nobody confirms, every test on both sides stays green, and the owner's press
+  // moves an order no receipt is attached to.
+  const customer = receiptTurn(
+    {
+      findOrder: sale.orderFor,
+      // Built once beside the sale, for the reason above it. Written through and never read;
+      // ADR 0013 says why there is no accessor to add one.
+      store: inMemoryReceipts(),
+      notify: (text) => send(ownerChat, text),
+    },
+    customerTurn(
+      // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
+      // half of the rule; the loaded half arrives with the table that holds them.
+      { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write, sale },
+      send,
+    ),
   )
 
   const owner = adminTurn({
