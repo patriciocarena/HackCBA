@@ -73,7 +73,7 @@ export function quoteFrom(input: QuoteInput): QuoteOutcome {
     quote: {
       id: input.id,
       conversationId: input.conversationId,
-      breakdown: input.resolution.breakdown,
+      breakdown: structuredClone(input.resolution.breakdown),
       quotedAt: input.now,
       // The window the customer was told, from the resolution that told them. A caller that
       // could pass its own number could expire an order on a date nobody ever said.
@@ -100,7 +100,7 @@ export function acceptQuote(quote: Quote, input: AcceptInput): OrderOutcome {
       id: input.id,
       quoteId: quote.id,
       conversationId: quote.conversationId,
-      breakdown: quote.breakdown,
+      breakdown: structuredClone(quote.breakdown),
       state: 'quoted',
       depositAlias: null,
       depositConfirmedBy: null,
