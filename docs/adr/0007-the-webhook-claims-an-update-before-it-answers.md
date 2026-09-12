@@ -65,7 +65,8 @@ nothing from `src/domain/` except the `UntrustedText` and `ConversationId` types
 
 A restart empties the in-memory claim set, so an update delivered before the restart and
 retried after it replies twice. A3's table closes that, and the seam is already the shape
-the table fills.
+the table fills. The in-memory log is not bounded: an audit record that silently drops its
+oldest entries is worse than one that grows, and A3 replaces it first.
 
 The claim set is bounded by age, not by count. Telegram retries for up to twenty four
 hours, so a count bound drops a claim while its retry is still coming and replies twice.

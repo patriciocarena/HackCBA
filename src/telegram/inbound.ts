@@ -27,14 +27,14 @@ export const localFence: Fence = (text) => text as UntrustedText
 
 export const silentTurn: Turn = async () => {}
 
-export function inMemoryInboundLog(capacity = 1000): InboundLog & { messages: InboundMessage[] } {
+// ponytail: in memory, A3's table when a record has to outlive the process
+export function inMemoryInboundLog(): InboundLog & { messages: InboundMessage[] } {
   const messages: InboundMessage[] = []
 
   return {
     messages,
     async record(message) {
       messages.push(message)
-      if (messages.length > capacity) messages.shift()
     },
   }
 }
