@@ -41,7 +41,7 @@ export function readAdminAudio(
       intent: extracted.intent,
       rows,
       family,
-      mediaId: message.media.id,
+      media: message.media,
       proposedBy: message.senderId,
       proposedAt: message.receivedAt,
     })

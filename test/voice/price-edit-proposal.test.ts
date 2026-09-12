@@ -4,7 +4,11 @@ import type { PriceEditIntent } from '@/voice/price-edit-intent'
 import { businessCards, catalogRows } from '@/catalog/business-cards'
 import type { CatalogRow } from '@/domain/price-for'
 
-const CONTEXT = { mediaId: 'voice-1', proposedBy: '7', proposedAt: '2026-09-12T13:40:00.000Z' }
+const CONTEXT = {
+  media: { kind: 'voice', id: 'voice-1' } as const,
+  proposedBy: '7',
+  proposedAt: '2026-09-12T13:40:00.000Z',
+}
 
 function raise(percent: number, target = 'las tarjetas'): PriceEditIntent {
   return { kind: 'edit', target, change: { kind: 'percent', direction: 'raise', value: percent } }
@@ -106,5 +110,35 @@ describe('proposePriceEdit, against the list it reads', () => {
 
     expect(lower.ok && lower.proposal.lines[0]).toMatchObject({ oldPrice: 12100, newPrice: 10890 })
     expect(absolute.ok && absolute.proposal.lines[0]).toMatchObject({ oldPrice: 12100, newPrice: 15000 })
+  })
+})
+
+describe('proposePriceEdit, on where the edit came from', () => {
+  it('reads the source off the media rather than assuming the only one built so far', () => {
+    const audio = propose(raise(20))
+    const photo = proposePriceEdit({
+      intent: raise(20),
+      rows: catalogRows,
+      family: businessCards,
+      ...CONTEXT,
+      media: { kind: 'photo', id: 'photo-1' },
+    })
+
+    expect(audio.ok && audio.proposal).toMatchObject({ source: 'audio', mediaId: 'voice-1' })
+    expect(photo.ok && photo.proposal).toMatchObject({ source: 'photo', mediaId: 'photo-1' })
+  })
+
+  it('refuses a proposedAt C7 would refuse at apply time', () => {
+    for (const proposedAt of ['', 'ayer', '2026-13-45T99:00:00Z']) {
+      const result = proposePriceEdit({
+        intent: raise(20),
+        rows: catalogRows,
+        family: businessCards,
+        ...CONTEXT,
+        proposedAt,
+      })
+
+      expect(result).toMatchObject({ ok: false, review: { reason: 'ambiguous' } })
+    }
   })
 })

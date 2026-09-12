@@ -1,11 +1,13 @@
 import { ars, isArs, scaleArs, type Ars } from '../domain/money'
 import { namesFamily, saleRows, type CatalogRow } from '../domain/price-for'
+import type { Media } from '../telegram/update'
 import type {
   EscalationReason,
   FamilyContract,
   PriceEditLine,
   PriceEditOperation,
   PriceEditProposal,
+  PriceEditSource,
 } from '../domain/types'
 import { isActionable, type PriceChange, type PriceEditIntent } from './price-edit-intent'
 
@@ -22,19 +24,25 @@ export type Review = Extract<PriceEditIntent, { kind: 'review' }>
 
 export type Proposal = { ok: true; proposal: PriceEditProposal } | { ok: false; review: Review }
 
-export type ProposeInput = {
+type ProposeInput = {
   intent: PriceEditIntent
   rows: CatalogRow[]
   family: FamilyContract
-  mediaId: string | null
+  media: Media | null
   proposedBy: string
   proposedAt: string
 }
 
 export function proposePriceEdit(input: ProposeInput): Proposal {
-  const { intent, rows, family, mediaId, proposedBy, proposedAt } = input
+  const { intent, rows, family, media, proposedBy, proposedAt } = input
 
   if (!isActionable(intent)) return { ok: false, review: intent }
+
+  // C7 refuses not_a_time at apply time. Accepting here what it refuses there would store a
+  // proposal nobody can ever apply.
+  if (!Number.isFinite(new Date(proposedAt).getTime())) {
+    return reviewed('ambiguous', `${proposedAt} is not a time`)
+  }
 
   if (!namesFamily(intent.target, family)) {
     return reviewed('no_match', `${intent.target} is not a family in the list`)
@@ -53,14 +61,22 @@ export function proposePriceEdit(input: ProposeInput): Proposal {
       operation,
       lines,
       state: 'proposed',
-      source: 'audio',
-      mediaId,
+      source: sourceOf(media),
+      mediaId: media?.id ?? null,
       proposedBy,
       proposedAt,
       resolvedBy: null,
       resolvedAt: null,
     },
   }
+}
+
+// Media says how it arrived, PriceEditSource says what it is. A voice note is audio; the two
+// vocabularies meet here and nowhere else.
+function sourceOf(media: Media | null): PriceEditSource {
+  if (media === null) return 'text'
+
+  return media.kind === 'voice' ? 'audio' : 'photo'
 }
 
 function reviewed(reason: EscalationReason, detail: string): Proposal {
