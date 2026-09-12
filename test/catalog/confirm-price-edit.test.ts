@@ -117,6 +117,20 @@ describe('confirmPriceEdit', () => {
     }
   })
 
+  it('refuses a resolution stamped with something that is not a time, whichever way the owner answers', async () => {
+    for (const accepted of [true, false]) {
+      const store = aStore()
+
+      const outcome = await confirmPriceEdit(
+        { proposalId: 'edit_1', versionId: 'ver_1', senderId: ADMIN, accepted, now: 'ayer' },
+        { load: store.load, save: store.save, rows: ROWS, isAdmin: onlyTheOwner },
+      )
+
+      expect(outcome).toEqual({ ok: false, reason: 'not_a_time' })
+      expect(store.saved).toEqual([])
+    }
+  })
+
   it('refuses an edit whose row moved since it was proposed, so a stale diff is never applied', async () => {
     const store = aStore()
     const moved = [{ ...ROWS[0]!, price: ars(13000) }]
