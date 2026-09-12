@@ -7,6 +7,7 @@ import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
 import { receiptTurn } from '../conversation/receipt-path'
 import { inMemorySale } from '../conversation/sale'
+import { printingSale, workOrders } from '../conversation/work-order'
 import { inMemoryReceipts } from '../domain/deposit'
 import { adminAllowlistFromEnv } from '../security/allowlist'
 import { readAdminAudio } from '../voice/admin-audio'
@@ -84,7 +85,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
   // Built once, beside the states Map customerTurn holds, and for the same reason: a store
   // built per message loses the quote between the message that gave it and the one that
   // accepts it, and every unit test stays green while it does.
-  const sale = inMemorySale({
+  const held = inMemorySale({
     alias: requireEnv('DEPOSIT_ALIAS'),
     now: () => new Date().toISOString(),
     id: () => crypto.randomUUID(),
@@ -93,6 +94,23 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
   const token = requireEnv('TELEGRAM_BOT_TOKEN')
   const send = telegramSend(token, fetchImpl)
   const ownerChat = requireEnv('OWNER_CHAT_ID')
+
+  // Confirming a deposit is what prints the job, so the sale everything else holds is the one
+  // that prints. Hanging it off the state rather than off the receipt is what makes the vision
+  // path and a person typing the confirmation produce the same single work order.
+  //
+  // Nothing in src/ confirms a deposit yet, so no test drives this line through the route.
+  // The wrapper is covered where it is defined; what is uncovered is that the route uses it,
+  // and that closes when the vision path lands a caller for sale.confirmDeposit.
+  const sale = printingSale(
+    held,
+    workOrders({
+      rows: wiring.catalog.rows,
+      family: businessCards,
+      send,
+      ownerChatId: () => ownerChat,
+    }),
+  )
 
   // The receipt is read before the customer's turn and a recorded one stops there, so
   // "ya transferi" is never handed to extraction, which would read it as `other` and
