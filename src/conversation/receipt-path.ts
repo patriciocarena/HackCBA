@@ -14,6 +14,13 @@ export type ReceiptPathDeps = {
 
 export type Recorded = { orderId: string }
 
+/**
+ * A non-null result means this message was the transfer and the turn must not run on it.
+ * That is the contract the wiring owes: extraction would read "ya transferí" as `other`,
+ * `other` escalates, and the conversation would end on the customer telling the shop they
+ * had paid. Skipping the turn is also what keeps the receipt out of a model prompt, which
+ * is the second half of the untrusted rule the fence covers on the way in.
+ */
 export function readReceipt(deps: ReceiptPathDeps): (message: InboundMessage) => Promise<Recorded | null> {
   const { findOrder, store, notify } = deps
 
