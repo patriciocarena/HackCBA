@@ -52,10 +52,24 @@ describe('telegramAudio', () => {
     }
   })
 
-  it('returns nothing when Telegram will not say where the file is', async () => {
-    const stub = responses(Response.json({ ok: false, description: 'file not found' }, { status: 400 }))
+  it('does not download when getFile answers with an error status, even if a path came with it', async () => {
+    const stub = responses(
+      Response.json({ ok: true, result: { file_path: 'voice/file_1.oga' } }, { status: 500 }),
+      new Response(new Uint8Array([1])),
+    )
 
     expect(await telegramAudio(TOKEN, stub.fetch)('voice-1')).toBeNull()
+    expect(stub.urls).toHaveLength(1)
+  })
+
+  it('does not download when Telegram says ok false, even at status 200 and with a path', async () => {
+    const stub = responses(
+      Response.json({ ok: false, description: 'file is temporarily unavailable', result: { file_path: 'voice/f.oga' } }),
+      new Response(new Uint8Array([1])),
+    )
+
+    expect(await telegramAudio(TOKEN, stub.fetch)('voice-1')).toBeNull()
+    expect(stub.urls).toHaveLength(1)
   })
 
   it('returns nothing when the download fails, rather than an empty recording', async () => {
