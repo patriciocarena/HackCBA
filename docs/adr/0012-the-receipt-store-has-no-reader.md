@@ -51,17 +51,28 @@ guarantee.
 Recording a receipt changes no state. Evidence is not a transition. The order waits in
 `deposit_pending` until a person moves it, which is `advanceOrder`'s decision and stays there.
 
-`confirmDeposit` refuses an order whose `depositAlias` is null. `advanceOrder` is public, so an
-order can reach `deposit_pending` without passing through `requestDeposit` and without ever
-naming where the money was meant to go; confirming that is confirming a transfer to nothing.
-Checking the admin and the edge but not the destination was the hole a staff review found.
+`confirmDeposit` refuses an order whose `depositAlias` is null or blank. `advanceOrder` is
+public, so an order can reach `deposit_pending` without passing through `requestDeposit` and
+without ever naming where the money was meant to go; confirming that is confirming a transfer
+to nothing. Checking the admin and the edge but not the destination was the hole a staff
+review found. Blank is the same hole one step to the right: `requestDeposit` already refuses a
+blank alias, and A3 is the producer that makes one, because an order round-tripping through a
+TEXT column comes back `''` rather than null.
 
 ## Consequences
 
 Nobody can build a confirmation screen that previews the receipt without first widening
 `ReceiptStore`, which is a visible change to a type whose comment says why it is narrow. A
-test asserts the absence with `@ts-expect-error`, so adding any reader fails `bun run
-typecheck` rather than passing review quietly.
+test asserts the shape rather than a name:
+
+```ts
+const writeOnly: keyof ReceiptStore extends 'record' ? true : never = true
+```
+
+so adding any reader fails `bun run typecheck` rather than passing review quietly. The first
+version of this guard was a `@ts-expect-error` on `store.find`, which guarded that one name: a
+reader called `get` compiled and ran green, and the claim in this paragraph was false for as
+long as it stood.
 
 A receipt for an order that is not awaiting a deposit is refused and not written. Nothing is
 lost: A4's inbound log already keeps every message with its media id, so the evidence survives
@@ -75,4 +86,14 @@ the screen used to confirm.
 would be a rule invented at a trust boundary; a wiring mistake that denies everyone fails in
 the direction we want.
 
-The store is in memory behind the port, which A3's table replaces without touching any caller.
+There is no default store. An in-memory one existed and was deleted: nothing in `src/`
+imports this module yet, so its only caller was the test that has since gone. A3 supplies the
+implementation, and the port is what every caller is typed against.
+
+The order handed to `confirmDeposit` is trusted as given, and both the amount and the alias
+can move between `requestDeposit` and `confirmDeposit`: mutating `breakdown.base.amount`
+between the two calls takes the total from 45000 to 1 and the confirmation still succeeds, and
+`depositAlias` can be swapped for an attacker's. That is the caller's problem by construction
+and this module does not claim otherwise. Whoever wires A8 to a Telegram callback must re-read
+the order from storage by its id, and must not trust an amount or an alias carried in callback
+data. Callback data is attacker-controlled: it round-trips through the client.
