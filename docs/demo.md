@@ -9,47 +9,48 @@ breaks a test first. The one amount in this file that nothing pins is step 5's
 
 ## What can be recorded tonight
 
-E1 is not merged. Until it is, nothing replies on Telegram and step 1 gets silence.
+E1 merged, so Telegram replies. Steps 1 to 4 are recordable, using the paste texts below
+and not others.
 
-With E1 in, steps 1 to 4 are recordable, using the paste texts below and not others.
-
-Step 5 needs two things nobody owns: a message that renders the diff, and something that
-turns the owner's reply into a call to `confirmPriceEdit`, which landed in #22 and has no
-caller. The allowlist it also needs is wired on main today, and PR #23 drops it again, so
-re-read row 4 after E1 merges.
+Step 5 has no path at all. `customerTurn` is the only turn the route wires, and the turn
+answers customers only, so the owner's voice note is dropped before anything transcribes
+it. `readAdminAudio`, `confirmPriceEdit` and a message that renders the diff are three
+separate gaps, and none of them has an owner.
 
 Step 6 needs an intent for a customer accepting a quote. There is none, so `dale, la
-quiero` escalates and ends the conversation. That is row 10, now a ticket on another lane
-and being fixed. Rows 2, 3, 4 and 10 give the files.
+quiero` escalates and ends the conversation. That is row 9, now a ticket on another lane
+and being fixed. Rows 1, 2, 3 and 9 give the files.
 
 Whoever owns the demo decides what to do about that. This runbook does not work around it.
 
 ## What does not work yet
 
-Checked against `main` at `c1137cf`. A3, A5, A8, C4, C7, D5 and the price edit
-confirmation have all merged, so no row below cites an unmerged branch. PR #23 is E1 and
-is the only thing step 1 still waits on.
+Checked against `main` at `94b3203`. Every lane this demo touches has merged, E1
+included, so no row below cites an unmerged branch and nothing here is waiting on a PR.
 
 | # | What | Where |
 |---|---|---|
-| 1 | Nothing replies on Telegram. The webhook logs the message and calls a turn that does nothing. No `sendMessage` exists on any branch. | `src/telegram/webhook.ts:34` |
-| 2 | No conversation creates an order. The turn returns a `Resolution` and never calls `quoteFrom`. `quoteFrom`, `acceptQuote`, `requestDeposit` and `confirmDeposit` have no caller in `src/`. | `src/conversation/turn.ts:71`, `src/domain/order.ts:60,85`, `src/domain/deposit.ts:20,112` |
-| 3 | A price edit has a confirm function and no way to reach it. `confirmPriceEdit` landed in #22 and wants a proposal id and an `accepted` flag; nothing in `src/telegram/` turns an owner's reply into either, and it has no caller in `src/`. Nor does anything render the proposal's `oldPrice` and `newPrice` into a message, so there is no diff to confirm. | `src/catalog/confirm-price-edit.ts:33`, `src/voice/price-edit-proposal.ts:100` |
-| 4 | E1 removes the allowlist wiring. It is wired on main, so `TELEGRAM_ADMIN_IDS` takes effect today, but PR #23 rewrites that file and drops the line, leaving the `denyEveryone` default. Merge E1 as it stands and every private chat is `customer` again, account A included, which is exactly what step 5 needs not to happen. | wired at `src/telegram/route.ts:9`, dropped by PR #23's rewrite of the same file, default at `src/telegram/webhook.ts:31` |
-| 5 | Nothing supplies any fact. `answerFromFacts` has a caller, A3 has a `facts` table, and nothing fills `deps.facts` from it, so every fact question escalates, including the hours `docs/assumptions.md` section 4 says are confirmed. E1 passes `facts: []` and says so in a comment beside it. | `src/conversation/turn.ts:102`, `src/domain/facts.ts:25`, `src/storage/schema.ts:82`, `src/telegram/route.ts:39` on PR #23 |
-| 6 | `DEPOSIT_ALIAS` is read by no code. `docs/assumptions.md` section 3 names it; nothing calls `requireEnv` for it. | `docs/assumptions.md:44` |
-| 7 | An escalation is terminal and nothing clears it. Steps 3, 4 and 6 each end their conversation, so the six steps cannot share one chat. | `src/conversation/turn.ts:47,177`, ADR 0011 |
-| 8 | Nothing remembers what the customer already said. `TurnState` carries `asked`, not the answers, so a reply that does not restate the whole job gets asked for the missing half again. Every paste text below carries all four attributes. | `src/domain/types.ts:209`, `src/conversation/turn.ts:80` |
-| 9 | A file attachment is not read. The update reader takes `voice` and `photo` only, so an `.opus` dragged in as a document never reaches the turn. | `src/telegram/update.ts:52` |
-| 10 | A customer accepting a quote has no intent. `INTENT_KINDS` is quote, fact, admin_edit and other, and `other` escalates, so the acceptance message itself ends the conversation. Now a ticket on another lane; being fixed, not merged. | `src/domain/types.ts:41`, `src/conversation/turn.ts:104` |
-| 11 | The extraction schema shows the model attribute slugs, never the Spanish labels or the `4/1` shorthand the seed carries. | `src/conversation/prompt.ts:74` |
-| 12 | A photo is not a price edit. PLAN.md section 1 says audio or photo; the admin path returns null for anything but `voice`. Section 10 step 5 needs only audio. | `src/voice/admin-audio.ts:29` |
+| 1 | The admin path is not wired. `customerTurn` is the only turn the route builds, and the turn returns silence for anything that is not a customer, so the owner's voice note is recorded in the in-memory log and dropped. `readAdminAudio` has no caller in `src/`, and since it is the only thing that would read a photo either, PLAN.md section 1's photo path is moot as well. | `src/telegram/route.ts:17,38`, `src/conversation/turn.ts:48`, `src/voice/admin-audio.ts:23` |
+| 2 | No conversation creates an order. The turn returns a `Resolution` and never calls `quoteFrom`. `quoteFrom`, `acceptQuote`, `requestDeposit`, `recordReceipt` and `confirmDeposit` have no caller in `src/`. | `src/conversation/turn.ts:71`, `src/domain/order.ts:60,85`, `src/domain/deposit.ts:20,64,112` |
+| 3 | A price edit has a confirm function and no way to reach it. `confirmPriceEdit` landed in #22 and wants a proposal id and an `accepted` flag; nothing turns an owner's reply into either, and it has no caller in `src/`. Nor does anything render the proposal's `oldPrice` and `newPrice` into a message, so there is no diff to confirm. | `src/catalog/confirm-price-edit.ts:33`, `src/voice/price-edit-proposal.ts:100` |
+| 4 | Nothing supplies any fact. E1 passes `facts: []` and says so in a comment beside it, A3 has a `facts` table, and nothing fills one from the other. Every fact question escalates, including the hours `docs/assumptions.md` section 4 says are confirmed. | `src/telegram/route.ts:41`, `src/conversation/turn.ts:102`, `src/storage/schema.ts:82` |
+| 5 | `DEPOSIT_ALIAS` is read by no code. `docs/assumptions.md` section 3 names it; nothing calls `requireEnv` for it. | `docs/assumptions.md:44` |
+| 6 | An escalation is terminal and nothing clears it. Steps 3, 4 and 6 each end their conversation, so the six steps cannot share one chat. | `src/conversation/turn.ts:47,177`, ADR 0011 |
+| 7 | Nothing remembers what the customer already said. `TurnState` carries `asked`, not the answers, so a reply that does not restate the whole job gets asked for the missing half again. Every paste text below carries all four attributes. | `src/domain/types.ts:209`, `src/conversation/turn.ts:80` |
+| 8 | A file attachment is not read. The update reader takes `voice` and `photo` only, so an `.opus` dragged in as a document never reaches the turn. | `src/telegram/update.ts:52` |
+| 9 | A customer accepting a quote has no intent. `INTENT_KINDS` is quote, fact, admin_edit and other, and `other` escalates, so the acceptance message itself ends the conversation. Now a ticket on another lane; being fixed, not merged. | `src/domain/types.ts:41`, `src/conversation/turn.ts:104` |
+| 10 | The extraction schema shows the model attribute slugs, never the Spanish labels or the `4/1` shorthand the seed carries. | `src/conversation/prompt.ts:74` |
+
+Two things the earlier revisions of this file got wrong and are now right. The allowlist is
+wired (`src/telegram/route.ts:15`), so `TELEGRAM_ADMIN_IDS` takes effect; E1 carried the
+line across rather than dropping it. And `sendMessage` exists
+(`src/telegram/send.ts:7`), so a customer gets an answer.
 
 ## Before you record
 
 ### Chats
 
-Row 7 is why there are four. An escalated conversation never speaks again, and steps 3, 4
+Row 6 is why there are four. An escalated conversation never speaks again, and steps 3, 4
 and 6 all escalate.
 
 | Chat | Who | Steps |
@@ -72,8 +73,8 @@ private chat it opens, so the owner can never play the customer
 3. Set `TELEGRAM_ADMIN_IDS` to A's id. Comma separated numeric ids, no `@`, no prefix. C1
    does not go in it. Unset or blank denies everyone; a malformed entry throws at boot
    (`src/security/allowlist.ts:23`), and the route is built at module load
-   (`src/mastra/index.ts:11`), so a typo is a service that will not start. This takes effect
-   on main today. Row 4 says what E1 does to it.
+   (`src/mastra/index.ts:11`), so a typo is a service that will not start. This is wired and
+   takes effect (`src/telegram/route.ts:15`).
 4. Read the six narration lines below against a stopwatch. They were counted at 150 words
    per minute, not timed.
 
@@ -106,8 +107,8 @@ The fourth returns a beat counter. If it does not climb, the deploy is not live.
 fly apps restart -a dante-multimpresos
 ```
 
-Conversation state is in memory, so this clears every conversation and every proposal. Do
-it once before step 1 and never again: a restart between steps loses C1, and step 6 needs
+Conversation state is a `Map` inside `customerTurn` (`src/conversation/customer-turn.ts:14`),
+so this clears every conversation. Do it once before step 1 and never again: a restart between steps loses C1, and step 6 needs
 C1 alive.
 
 ### The audio for step 5
@@ -116,12 +117,12 @@ C1 alive.
 against the live ElevenLabs API on Friday, transcribing to `Subí las tarjetas un 20 %`.
 
 Play it from the laptop and hold the Telegram voice button on account A while it plays. Do
-not attach the file: row 9 says a document never reaches the turn. If the phone is out of
+not attach the file: row 8 says a document never reaches the turn. If the phone is out of
 reach, hold the button and read the line aloud: `Subí las tarjetas un 20 por ciento`.
 
 ## The six steps
 
-Every paste text carries all four attributes. Row 8 is why: an answer that leaves one out
+Every paste text carries all four attributes. Row 7 is why: an answer that leaves one out
 is asked for that one again, and the step spends a turn it does not have.
 
 ### 1. A quote with VAT
@@ -221,14 +222,14 @@ this is a recording of him saying it.
 Narration: `El dueño manda un audio. Dante propone, muestra el diff, y no cambia un peso
 hasta que una persona confirma. La versión queda con el audio que la causó.`
 
-Rows 3, 4 and 9 apply here. The transcription, the proposal and `confirmPriceEdit` all
-exist. What does not: a message that renders the diff, and anything that turns the owner's
-reply into a call to `confirmPriceEdit`.
+Rows 1, 3 and 8 apply here, and row 1 is the one that bites first. The transcription port,
+the proposal and `confirmPriceEdit` all exist and are tested. What does not exist is
+anything that calls them: the route builds `customerTurn` and nothing else, and the turn
+answers customers only (`src/conversation/turn.ts:48`), so A's voice note is dropped with
+no reply. Nothing escalates and on camera it looks like the bot is down.
 
-The allowlist is wired on main, so A reads as `admin` today. If E1 merges first it does
-not, and a voice note from A is then dropped with no reply and no log entry
-(`src/conversation/turn.ts:48`). Nothing escalates and it looks like the bot is down. Check
-row 4 before recording.
+A reads as `admin` correctly, so the allowlist is not the problem here. The missing piece
+is an admin turn.
 
 ### 6. An order, and a person confirms the money
 
@@ -255,10 +256,10 @@ Narration: `El cliente acepta. Nace el pedido, Dante pide la seña por alias, y 
 la confirma. El pedido sigue en cuarenta y cinco mil, aunque la lista subió veinte por
 ciento hace treinta segundos.`
 
-Rows 2, 6 and 10 apply here, and row 10 is the one that bites first: `dale, la quiero`
-reads as `other`, `other` escalates, and the acceptance ends C1 before the receipt is
-sent. An image with no caption is then dropped as well. No branch parses `confirmar`.
-Row 10 is a ticket on another lane and is being fixed. Rows 2 and 6 are not.
+Rows 2, 5 and 9 apply here, and row 9 is the one that bites first: `dale, la quiero` reads
+as `other`, `other` escalates, and the acceptance ends C1 before the receipt is sent. An
+image with no caption is then dropped as well. Nothing parses `confirmar`. Row 9 is a
+ticket on another lane and is being fixed. Rows 2 and 5 are not.
 
 ## The timing budget
 
