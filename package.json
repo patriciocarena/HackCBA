@@ -12,7 +12,8 @@
     "dev": "bun --bun ./node_modules/.bin/mastra dev",
     "build": "bun --bun ./node_modules/.bin/mastra build",
     "start": "bun --bun ./node_modules/.bin/mastra start",
-    "set-webhook": "bun src/telegram/set-webhook.ts"
+    "set-webhook": "bun src/telegram/set-webhook.ts",
+    "check:schemas": "bun scripts/check-structured-output.ts"
   },
   "dependencies": {
     "@libsql/client": "0.18.0",
