@@ -107,7 +107,7 @@ describe('what the customer reads about modules', () => {
 })
 
 describe('a piece that is no longer a business card', () => {
-  test('a 500 x 300 cm piece is refused, not quoted', () => {
+  test('case 20: a 500 x 300 cm piece is refused, not quoted', () => {
     // 3530 modules is a billboard. Quoting it confidently is the failure this project prevents.
     expect(quote({ size: { widthCm: 500, heightCm: 300 } }).kind).toBe('escalate')
   })

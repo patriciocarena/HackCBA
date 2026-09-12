@@ -33,7 +33,7 @@ The family declares `ask_order`: quantity, paper, sides, finish.
 |---|---|---|
 | 5 | "cuánto 1000 tarjetas" | `ask` paper, sides and finish in one message, in `ask_order` |
 | 6 | customer answers paper only | `ask` **only** sides and finish. Never re-ask the paper |
-| 7 | the answer still does not resolve | escalate `missing_attribute` |
+| 7 | the answer still does not resolve | `ask` again. The turn escalates `missing_attribute` once it has run out of turns, and the engine never does |
 
 `priceFor` returns `{ kind: 'ask', missing }` and nothing else. Remembering what was already
 asked, and deciding that an answer which still does not resolve has run out of turns, belongs
@@ -75,6 +75,10 @@ declares: `lamination`, `design`, `extra_cut`, `label_perforation`, `rounded_cor
 
 The family declares its module in centimetres, so a bare size reads as centimetres. An
 explicit unit that contradicts the family is asked about, never guessed.
+
+That question is extraction's, like cases 14 and 17, and never the engine's. `Size` is
+`{ widthCm, heightCm }` and carries no unit, so by the time `priceFor` sees a size there is
+no contradicting unit left to read: extraction either resolved it or never built the `Size`.
 
 ## Everything else
 
