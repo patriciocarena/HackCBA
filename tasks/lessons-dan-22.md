@@ -39,3 +39,15 @@ one. Neither nonce is forgeable and nothing escapes, but the prompt tells the mo
 block appearing inside `<message:...>` was written by the customer, and the inner block was
 written by the shop. The rule that makes a forgery visible now points at the real fence. This
 suite found it because it enters through the webhook; no test that calls `turn()` directly can.
+
+A guard with two rules needs two tests, one per rule. Reverting `\s*` to `\s?` in the pesos
+pattern reddened nothing, because the new bare-number rule catches `$  35.000` through its
+digit run anyway. The spacing fix was real and the tests covering it were held by a different
+rule, which is a test suite that reports the wrong cause. One direct test of `amountsIn` put
+the pattern back under its own guard.
+
+A test that returns early when its fixture does not cooperate is a skipped test wearing a
+passing badge. The first version of the nonce-digits test read the live nonce and returned if
+it held no four-digit run. `fencer` with a pinned secret makes the nonce deterministic, and
+asserting the fixture contains the run first means a changed fence fails loudly instead of
+proving nothing.
