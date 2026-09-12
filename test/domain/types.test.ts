@@ -85,6 +85,19 @@ describe('conversationId', () => {
 })
 
 describe('the contract the four lanes switch on', () => {
+  test('IntentKind and the Intent union name the same set, in both directions', () => {
+    // Compile time. INTENT_KINDS feeds the Zod enum and the extraction schema on its own, but
+    // the Intent union is a second list kept by hand. This is what makes the second edit
+    // compulsory instead of optional.
+    const agree: IntentKind extends Intent['kind']
+      ? Intent['kind'] extends IntentKind
+        ? true
+        : never
+      : never = true
+
+    expect(agree).toBe(true)
+  })
+
   function nameIntent(intent: Intent): IntentKind {
     switch (intent.kind) {
       case 'quote':
@@ -92,6 +105,8 @@ describe('the contract the four lanes switch on', () => {
       case 'fact':
         return intent.kind
       case 'admin_edit':
+        return intent.kind
+      case 'accept':
         return intent.kind
       case 'other':
         return intent.kind

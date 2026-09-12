@@ -38,7 +38,7 @@ export const ESCALATION_REASONS = [
 export const escalationReasonSchema = z.enum(ESCALATION_REASONS)
 export type EscalationReason = z.infer<typeof escalationReasonSchema>
 
-export const INTENT_KINDS = ['quote', 'fact', 'admin_edit', 'other'] as const
+export const INTENT_KINDS = ['quote', 'fact', 'admin_edit', 'accept', 'other'] as const
 export const intentKindSchema = z.enum(INTENT_KINDS)
 export type IntentKind = z.infer<typeof intentKindSchema>
 
@@ -114,11 +114,16 @@ export type AdminEditIntent = {
   operation: PriceEditOperation
 }
 
+/** No payload: the quote being accepted is the one the conversation was last shown. */
+export type AcceptIntent = {
+  kind: 'accept'
+}
+
 export type OtherIntent = {
   kind: 'other'
 }
 
-export type Intent = QuoteIntent | FactIntent | AdminEditIntent | OtherIntent
+export type Intent = QuoteIntent | FactIntent | AdminEditIntent | AcceptIntent | OtherIntent
 
 const sizeSchema = z.object({
   widthCm: z.number().positive(),
