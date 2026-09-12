@@ -38,10 +38,17 @@ export const DEFAULT_LIST_DISCOUNT_POLICY: ListDiscountPolicy = {
   applyProvisionalIllustrationPlainDiscounts: false,
 }
 
+export type ModuleDiscount = {
+  fromModules: number
+  toModules: number | null
+  rate: number
+}
+
 export type PriceForConfig = {
   family: PriceForFamily
   vatRate: number
   quoteValidityDays: number
+  moduleDiscounts?: ModuleDiscount[]
   listDiscountPolicy?: ListDiscountPolicy
 }
 
@@ -164,7 +171,63 @@ function moduleMathPlaceholderStrategy(context: PriceContext): Resolution | null
     return null
   }
 
-  return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  const dimensions = requestedModuleDimensions(context.intent)
+  const module = context.config.family.module
+  const moduleDiscounts = context.config.moduleDiscounts
+  if (dimensions === null || module === undefined || moduleDiscounts === undefined) {
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  }
+
+  const directMatches = saleRows(context.rows).filter((row) =>
+    declaredAttributesMatch(row, context.intent, context.config.family.attributes),
+  )
+
+  if (directMatches.length > 1) {
+    return { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE_DETAIL }
+  }
+
+  if (directMatches.length === 0) {
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  }
+
+  const saleRow = directMatches[0]
+  const pieceArea = dimensions.widthCm * dimensions.heightCm
+  const moduleArea = module.widthCm * module.heightCm
+  if (pieceArea <= 0 || moduleArea <= 0) {
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  }
+
+  const moduleCount = Math.ceil(pieceArea / moduleArea)
+  // Provisional owner-facing assumption: the module price is the matching
+  // standard row price for the same quantity, paper, sides and finish.
+  const moduleSubtotal = saleRow.price * moduleCount
+  const appliedDiscounts = moduleDiscounts.filter((discount) => moduleDiscountApplies(discount, moduleCount))
+  const discountedNetTotal = appliedDiscounts.reduce(
+    (total, discount) => total * (1 - discount.rate),
+    moduleSubtotal,
+  )
+  const grossTotal = grossAmount(discountedNetTotal, context.config.vatRate)
+
+  return {
+    kind: 'price',
+    amount: grossTotal,
+    itemId: saleRow.id,
+    explanation: modulePriceExplanation({
+      grossTotal,
+      saleRow,
+      widthCm: dimensions.widthCm,
+      heightCm: dimensions.heightCm,
+      moduleWidthCm: module.widthCm,
+      moduleHeightCm: module.heightCm,
+      pieceArea,
+      moduleArea,
+      moduleCount,
+      moduleSubtotal,
+      discountedNetTotal,
+      appliedDiscounts,
+      config: context.config,
+    }),
+  }
 }
 
 function priceMatchedSaleRow(
@@ -267,6 +330,30 @@ function grossAmount(netAmount: number, vatRate: number): number {
   return Math.round(netAmount * (1 + vatRate))
 }
 
+function requestedModuleDimensions(intent: Intent): { widthCm: number; heightCm: number } | null {
+  const widthCm = numericAttribute(intent.attributes.width_cm)
+  const heightCm = numericAttribute(intent.attributes.height_cm)
+
+  if (widthCm === null || heightCm === null) {
+    return null
+  }
+
+  return { widthCm, heightCm }
+}
+
+function numericAttribute(value: string | number | undefined): number | null {
+  if (value === undefined || value === '') {
+    return null
+  }
+
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function moduleDiscountApplies(discount: ModuleDiscount, moduleCount: number): boolean {
+  return moduleCount >= discount.fromModules && (discount.toModules === null || moduleCount <= discount.toModules)
+}
+
 function requiredMissingAttributes(intent: Intent, family: PriceForFamily): string[] {
   const declaredRequiredAttributes = new Set(family.attributes)
   const candidates = [...family.askOrder, ...intent.missing]
@@ -300,6 +387,31 @@ function priceExplanation(grossTotal: number, parts: PricedPart[], config: Price
   const vatPercent = Math.round(config.vatRate * 100)
 
   return `Te cotizo ${formatPesos(grossTotal)} final con IVA incluido. Sale de: ${derivation}; IVA ${vatPercent}% y redondeo al peso al final. La cotización es válida por ${config.quoteValidityDays} días.`
+}
+
+function modulePriceExplanation(input: {
+  grossTotal: number
+  saleRow: PriceForCatalogRow
+  widthCm: number
+  heightCm: number
+  moduleWidthCm: number
+  moduleHeightCm: number
+  pieceArea: number
+  moduleArea: number
+  moduleCount: number
+  moduleSubtotal: number
+  discountedNetTotal: number
+  appliedDiscounts: ModuleDiscount[]
+  config: PriceForConfig
+}): string {
+  const vatPercent = Math.round(input.config.vatRate * 100)
+  const quotient = input.pieceArea / input.moduleArea
+  const discountText =
+    input.appliedDiscounts.length === 0
+      ? 'sin descuento por módulos'
+      : `descuento por módulos ${input.appliedDiscounts.map((discount) => formatPercent(discount.rate)).join(' compuesto con ')}`
+
+  return `Te cotizo ${formatPesos(input.grossTotal)} final con IVA incluido. Sale de: ${formatDecimal(input.widthCm)} x ${formatDecimal(input.heightCm)} cm = ${formatDecimal(input.pieceArea)} cm²; módulo ${formatDecimal(input.moduleWidthCm)} x ${formatDecimal(input.moduleHeightCm)} cm = ${formatDecimal(input.moduleArea)} cm²; ${formatDecimal(input.pieceArea)} / ${formatDecimal(input.moduleArea)} = ${formatDecimal(quotient)}, redondeado hacia arriba son ${input.moduleCount} ${pluralizeModule(input.moduleCount)}; ${formatPesos(input.saleRow.price)} por módulo según ${input.saleRow.label} x ${input.moduleCount} = ${formatPesos(input.moduleSubtotal)} neto; ${discountText}, queda ${formatPesos(input.discountedNetTotal)} neto; más IVA ${vatPercent}% y redondeo al peso al final. La cotización es válida por ${input.config.quoteValidityDays} días.`
 }
 
 function requestedExplicitAddOn(intent: Intent): string | null {
@@ -359,6 +471,18 @@ function formatPesos(amount: number): string {
   return `$${Math.round(amount)
     .toString()
     .replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`
+}
+
+function formatDecimal(amount: number): string {
+  return Number.isInteger(amount) ? amount.toString() : amount.toFixed(2).replace(/\.?0+$/, '')
+}
+
+function formatPercent(rate: number): string {
+  return `${formatDecimal(rate * 100)}%`
+}
+
+function pluralizeModule(moduleCount: number): string {
+  return moduleCount === 1 ? 'módulo' : 'módulos'
 }
 
 function joinSpanishList(items: string[]): string {
