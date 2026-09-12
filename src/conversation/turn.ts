@@ -4,6 +4,7 @@ import { priceFor, type CatalogRow, type PriceForConfig } from '../domain/price-
 import { askText, pesos, quoteText } from '../domain/quote-text'
 import {
   quoteIntentSchema,
+  type EscalationReason,
   type FactIntent,
   type FamilyContract,
   type OtherIntent,
@@ -13,7 +14,7 @@ import {
 } from '../domain/types'
 import { fence } from '../security/fence'
 import type { InboundMessage } from '../telegram/inbound'
-import { extractionSchema, EXTRACTION_SYSTEM, WRITING_SYSTEM, INTRODUCTION } from './prompt'
+import { extractionSchema, EXTRACTION_REASONS, EXTRACTION_SYSTEM, WRITING_SYSTEM, INTRODUCTION } from './prompt'
 
 export type Extract = (request: { system: string; user: string; schema: object }) => Promise<unknown>
 
@@ -48,9 +49,7 @@ export async function turn(
 
   const fenced = fence(message.text, 'message')
 
-  const resolution = await resolve(deps, fenced).catch(
-    (): Resolution => ({ kind: 'escalate', reason: 'ambiguous', detail: DELEGATE }),
-  )
+  const resolution = await resolve(deps, fenced).catch((): Resolution => escalate('ambiguous'))
   const settled = settle(resolution, state)
   const answer = answerOf(settled)
 
@@ -79,11 +78,15 @@ async function resolve(deps: TurnDeps, fenced: string): Promise<Resolution> {
     schema: extractionSchema(family),
   })
 
-  if (answerKind(raw) === 'admin_edit') {
-    return { kind: 'escalate', reason: 'not_authorized', detail: DELEGATE }
-  }
+  // A reason outranks the kind. Extraction naming one means it recognised something the
+  // engine must not answer, and a quote filled in beside it is a quote nobody may be given.
+  const stated = statedReason(raw)
+  if (stated !== null) return escalate(stated)
+
+  if (answerKind(raw) === 'admin_edit') return escalate('not_authorized')
 
   const intent = readIntent(raw, family)
+  if (intent === null) return escalate('unsupported_option')
 
   switch (intent.kind) {
     case 'quote':
@@ -91,18 +94,31 @@ async function resolve(deps: TurnDeps, fenced: string): Promise<Resolution> {
     case 'fact':
       return answerFromFacts(intent.key, deps.facts)
     case 'other':
-      return { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE }
+      return escalate('ambiguous')
   }
+}
+
+function escalate(reason: EscalationReason): Resolution {
+  return { kind: 'escalate', reason, detail: DELEGATE }
+}
+
+function statedReason(raw: unknown): EscalationReason | null {
+  const stated = (raw as Record<string, unknown>)?.reason
+
+  return EXTRACTION_REASONS.some((reason) => reason === stated)
+    ? (stated as EscalationReason)
+    : null
 }
 
 function answerKind(raw: unknown): unknown {
   return (raw as Record<string, unknown>)?.kind
 }
 
+/** Null is a quote the loaded catalog cannot express, which is not the same as no quote. */
 function readIntent(
   raw: unknown,
   family: FamilyContract,
-): QuoteIntent | FactIntent | OtherIntent {
+): QuoteIntent | FactIntent | OtherIntent | null {
   const answered = raw as Record<string, unknown>
 
   if (answerKind(raw) === 'fact') return { kind: 'fact', key: String(answered.factKey ?? '') }
@@ -116,7 +132,7 @@ function readIntent(
     addOns: answered.addOns,
   })
 
-  return parsed.success ? parsed.data : { kind: 'other' }
+  return parsed.success ? parsed.data : null
 }
 
 function stated(attributes: unknown): Record<string, string | number> {
@@ -131,7 +147,7 @@ function settle(resolution: Resolution, state: TurnState): Resolution {
   if (resolution.kind !== 'ask') return resolution
   if (!resolution.missing.some((name) => state.asked.includes(name))) return resolution
 
-  return { kind: 'escalate', reason: 'missing_attribute', detail: DELEGATE }
+  return escalate('missing_attribute')
 }
 
 function answerOf(resolution: Resolution): string {
@@ -169,7 +185,7 @@ function writingUser(deps: TurnDeps, fenced: string, answer: string): string {
 // every fixture produces.
 const AMOUNT = /\$\s?[\d.,]*\d/g
 
-function amountsIn(text: string): string[] {
+export function amountsIn(text: string): string[] {
   return text.match(AMOUNT) ?? []
 }
 

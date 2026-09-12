@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { turn, type TurnDeps } from '@/conversation/turn'
+import { amountsIn, turn, type TurnDeps } from '@/conversation/turn'
 import { conversationId, type Role, type TurnState, type UntrustedText } from '@/domain/types'
 import type { InboundMessage } from '@/telegram/inbound'
 import { baseConfig, catalogRows, OFFSET_1000, priceOf } from '@test/support/catalog'
@@ -399,5 +399,54 @@ describe('what the turn hands back to whoever wired it', () => {
     expect(result.reply).toBeNull()
     expect(result.resolution).toBeNull()
     expect(result.state.escalated).toBe(true)
+  })
+})
+
+describe('the reasons only extraction can raise', () => {
+  async function escalationFor(answer: Record<string, unknown>) {
+    let written = ''
+    const result = await turn(
+      deps({ extract: async () => answer, write: async (request) => { written = request.user; return 'te delego con un humano' } }),
+      message('what the customer wrote'),
+      state(),
+    )
+
+    return { ...result, written }
+  }
+
+  test('case 14, a question about a discount for buying more never reaches the engine', async () => {
+    const result = await escalationFor({ kind: 'other', reason: 'commercial_discount' })
+
+    expect(result.resolution).toEqual({ kind: 'escalate', reason: 'commercial_discount', detail: 'te delego con un humano' })
+    expect(amountsIn(result.written)).toBeEmpty()
+    expect(result.state.escalated).toBe(true)
+  })
+
+  test('case 17, a question about whether VAT is mandatory goes to a person', async () => {
+    const result = await escalationFor({ kind: 'other', reason: 'vat_question' })
+
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'vat_question' })
+    expect(result.state.escalated).toBe(true)
+  })
+
+  test('a reason extraction stated outranks a quote it also filled in', async () => {
+    const result = await escalationFor({
+      kind: 'quote',
+      family: 'business_cards',
+      attributes: OFFSET_1000,
+      size: null,
+      addOns: [],
+      factKey: null,
+      reason: 'commercial_discount',
+    })
+
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'commercial_discount' })
+    expect(amountsIn(result.written)).toBeEmpty()
+  })
+
+  test('a reason the schema does not offer extraction is not one extraction can raise', async () => {
+    const result = await escalationFor({ kind: 'other', reason: 'unsupported_quantity' })
+
+    expect(result.resolution).toMatchObject({ kind: 'escalate', reason: 'ambiguous' })
   })
 })
