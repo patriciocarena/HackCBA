@@ -1,6 +1,8 @@
+import type { Actor } from '../domain/order'
 import type { CatalogRow } from '../domain/price-for'
 import type { PriceEditProposal } from '../domain/types'
 import type { IsAdmin } from '../security/allowlist'
+import { applyPriceEdit, type Applied, type ApplyRefusal } from './apply-edit'
 
 export type LoadProposal = (id: string) => Promise<PriceEditProposal | null>
 
@@ -21,20 +23,29 @@ export type ConfirmInput = {
   now: string
 }
 
-export type ConfirmRefusal = 'not_an_admin' | 'unknown_proposal'
+export type ConfirmRefusal = 'not_an_admin' | 'unknown_proposal' | ApplyRefusal
 
-export type ConfirmOutcome = { ok: false; reason: ConfirmRefusal }
+export type ConfirmOutcome =
+  | { ok: true; applied: Applied }
+  | { ok: false; reason: ConfirmRefusal }
 
 export async function confirmPriceEdit(
   input: ConfirmInput,
   deps: ConfirmDeps,
 ): Promise<ConfirmOutcome> {
-  const { load, isAdmin = () => false } = deps
+  const { load, save, rows, isAdmin = () => false } = deps
 
   if (!isAdmin(input.senderId)) return { ok: false, reason: 'not_an_admin' }
+
+  const by: Actor = { kind: 'person', id: input.senderId }
 
   const proposal = await load(input.proposalId)
   if (proposal === null) return { ok: false, reason: 'unknown_proposal' }
 
-  return { ok: false, reason: 'unknown_proposal' }
+  const applied = applyPriceEdit(proposal, rows, { id: input.versionId, by, now: input.now })
+  if (!applied.ok) return applied
+
+  await save(applied.applied.proposal)
+
+  return applied
 }

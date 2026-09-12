@@ -70,4 +70,30 @@ describe('confirmPriceEdit', () => {
     expect(outcome).toEqual({ ok: false, reason: 'unknown_proposal' })
     expect(store.saved).toEqual([])
   })
+
+  it('records the version with the audio that caused it when the owner accepts', async () => {
+    const store = aStore()
+
+    const outcome = await confirmPriceEdit(
+      {
+        proposalId: 'edit_1',
+        versionId: 'ver_1',
+        senderId: ADMIN,
+        accepted: true,
+        now: '2026-09-12T10:05:00.000Z',
+      },
+      { load: store.load, save: store.save, rows: ROWS, isAdmin: (id) => id === ADMIN },
+    )
+
+    if (!outcome.ok) throw new Error(`expected an applied edit, got ${outcome.reason}`)
+    expect(outcome.applied.version).toEqual({
+      id: 'ver_1',
+      proposalId: 'edit_1',
+      appliedBy: ADMIN,
+      appliedAt: '2026-09-12T10:05:00.000Z',
+      mediaId: 'voice_abc',
+    })
+    expect(outcome.applied.rows[0]?.price).toEqual(ars(14520))
+    expect(store.saved).toEqual([outcome.applied.proposal])
+  })
 })
