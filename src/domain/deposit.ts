@@ -1,3 +1,4 @@
+import type { IsAdmin } from '../security/allowlist'
 import { advanceOrder, type Actor, type OrderRefusal } from './order'
 import type { Order, UntrustedText } from './types'
 
@@ -6,7 +7,7 @@ import type { Order, UntrustedText } from './types'
  * step here is attributed to a person and none of them is taken by the agent.
  */
 
-export type DepositRefusal = OrderRefusal | 'no_alias'
+export type DepositRefusal = OrderRefusal | 'no_alias' | 'not_an_admin'
 
 export type DepositOutcome = { ok: true; order: Order } | { ok: false; reason: DepositRefusal }
 
@@ -90,4 +91,32 @@ export async function recordReceipt(
  */
 function noticeFor(order: Order): string {
   return `Llegó un comprobante para el pedido ${order.id}. Verificá el banco antes de confirmar.`
+}
+
+export type ConfirmInput = {
+  by: Actor
+  now: string
+}
+
+/**
+ * Takes no `ReceiptStore`, on purpose, and that omission is the ticket. See `ReceiptStore`.
+ *
+ * The allowlist arrives injected and defaults to denying everyone, so a caller that forgets to
+ * wire it confirms nothing rather than confirming for anybody.
+ *
+ * `by.id` is handed to the allowlist unchanged. The allowlist holds what `TELEGRAM_ADMIN_IDS`
+ * holds, so the caller passes the Telegram user id and nothing else. Normalising a prefix here
+ * would be a rule invented inside a security check, and the cost of not having it is a wiring
+ * mistake that denies everyone, which is the direction a mistake should fail.
+ */
+export function confirmDeposit(
+  order: Order,
+  input: ConfirmInput,
+  isAdmin: IsAdmin = () => false,
+): DepositOutcome {
+  if (input.by.kind !== 'person' || !isAdmin(input.by.id)) {
+    return { ok: false, reason: 'not_an_admin' }
+  }
+
+  return advanceOrder(order, { to: 'deposit_confirmed', by: input.by, now: input.now })
 }

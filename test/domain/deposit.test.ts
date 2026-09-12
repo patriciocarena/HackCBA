@@ -1,7 +1,14 @@
 import { describe, expect, test } from 'bun:test'
-import { recordReceipt, requestDeposit, type Receipt, type ReceiptStore } from '../../src/domain/deposit'
+import {
+  confirmDeposit,
+  recordReceipt,
+  requestDeposit,
+  type Receipt,
+  type ReceiptStore,
+} from '../../src/domain/deposit'
 import { acceptQuote, advanceOrder, quoteFrom, type Actor } from '../../src/domain/order'
 import { priceFor } from '../../src/domain/price-for'
+import type { IsAdmin } from '../../src/security/allowlist'
 import { conversationId, type Order, type Resolution, type UntrustedText } from '../../src/domain/types'
 import { baseConfig, catalogRows, intent, OFFSET_1000 } from '../support/catalog'
 
@@ -125,5 +132,71 @@ describe('a receipt is evidence, not a transition', () => {
     if (!got.ok) throw new Error(`expected a receipt, got ${got.reason}`)
     expect(got.notice).toContain('ord_1')
     expect(got.notice).toContain('banco')
+  })
+})
+
+const admin = { kind: 'person', id: '99900011' } as const
+const onlyAdmin: IsAdmin = (id) => id === admin.id
+
+describe('only an admin confirms, and confirming never shows the receipt', () => {
+  test('it records who confirmed and when', () => {
+    const confirmed = confirmDeposit(awaitingDeposit(), { by: admin, now }, onlyAdmin)
+
+    if (!confirmed.ok) throw new Error(`expected a confirmation, got ${confirmed.reason}`)
+    expect(confirmed.order.state).toBe('deposit_confirmed')
+    expect(confirmed.order.depositConfirmedBy).toBe('99900011')
+    expect(confirmed.order.depositConfirmedAt).toBe(now)
+  })
+
+  test('a sender who is not on the allowlist confirms nothing', () => {
+    const confirmed = confirmDeposit(awaitingDeposit(), { by: customer, now }, onlyAdmin)
+
+    expect(confirmed).toEqual({ ok: false, reason: 'not_an_admin' })
+  })
+
+  test('an unwired caller confirms nobody, because the default denies everyone', () => {
+    const confirmed = confirmDeposit(awaitingDeposit(), { by: admin, now })
+
+    expect(confirmed).toEqual({ ok: false, reason: 'not_an_admin' })
+  })
+
+  test('the confirmation path cannot reach the receipt it is confirming', async () => {
+    const FORGED = 'AgACforged-receipt-that-looks-right'
+    const store = aStore()
+    const order = awaitingDeposit()
+
+    const got = await recordReceipt(order, { mediaId: FORGED, text: fenced(FORGED), receivedAt: now }, store)
+    if (!got.ok) throw new Error(`expected a receipt, got ${got.reason}`)
+
+    const confirmed = confirmDeposit(order, { by: admin, now }, onlyAdmin)
+    if (!confirmed.ok) throw new Error(`expected a confirmation, got ${confirmed.reason}`)
+
+    // The receipt reached the store and nothing else. Not the notice the admin reads, not the
+    // order they act on, and there is no third thing: confirmDeposit takes no store.
+    expect(store.written[0]?.mediaId).toBe(FORGED)
+    expect(got.notice).not.toContain(FORGED)
+    expect(JSON.stringify(confirmed.order)).not.toContain(FORGED)
+  })
+
+  test('the store has no reader, so a later lane cannot add one by accident', () => {
+    const store: ReceiptStore = aStore()
+
+    // @ts-expect-error a ReceiptStore writes and never reads. Adding any reader fails typecheck
+    // here, which is what keeps a confirmation screen from ever being able to show a receipt.
+    expect(store.find).toBeUndefined()
+  })
+})
+
+describe('the id the caller hands in is the id the allowlist sees', () => {
+  test('nothing is stripped or rewritten on the way to the predicate', () => {
+    const seen: string[] = []
+    const spy: IsAdmin = (id) => {
+      seen.push(id)
+      return false
+    }
+
+    confirmDeposit(awaitingDeposit(), { by: { kind: 'person', id: 'telegram:99900011' }, now }, spy)
+
+    expect(seen).toEqual(['telegram:99900011'])
   })
 })
