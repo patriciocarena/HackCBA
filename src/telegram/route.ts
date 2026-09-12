@@ -5,8 +5,8 @@ import { telegramWebhook, type WebhookDeps } from './webhook'
 
 export function telegramWebhookRoute(deps: Omit<WebhookDeps, 'secret'> = {}) {
   const handle = telegramWebhook({
-    isAdmin: adminAllowlistFromEnv(),
     ...deps,
+    isAdmin: deps.isAdmin ?? adminAllowlistFromEnv(),
     secret: requireEnv('TELEGRAM_WEBHOOK_SECRET'),
   })
 

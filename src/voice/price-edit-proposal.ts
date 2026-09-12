@@ -7,7 +7,7 @@ import type {
   PriceEditOperation,
   PriceEditProposal,
 } from '../domain/types'
-import type { PriceChange, PriceEditIntent } from './price-edit-intent'
+import { isActionable, type PriceChange, type PriceEditIntent } from './price-edit-intent'
 
 export type SavePriceEdit = (proposal: PriceEditProposal) => Promise<void>
 
@@ -18,7 +18,7 @@ export function inMemoryPriceEdits(): { proposals: PriceEditProposal[]; save: Sa
   return { proposals, save: async (proposal) => void proposals.push(proposal) }
 }
 
-export type Review = { reason: EscalationReason; detail: string }
+export type Review = Extract<PriceEditIntent, { kind: 'review' }>
 
 export type Proposal = { ok: true; proposal: PriceEditProposal } | { ok: false; review: Review }
 
@@ -34,21 +34,17 @@ export type ProposeInput = {
 export function proposePriceEdit(input: ProposeInput): Proposal {
   const { intent, rows, family, mediaId, proposedBy, proposedAt } = input
 
-  if (intent.kind === 'review') return { ok: false, review: { reason: intent.reason, detail: intent.detail } }
+  if (!isActionable(intent)) return { ok: false, review: intent }
 
   if (!namesFamily(intent.target, family)) {
-    return { ok: false, review: { reason: 'no_match', detail: `${intent.target} is not a family in the list` } }
+    return reviewed('no_match', `${intent.target} is not a family in the list`)
   }
 
   const operation = operationOf(intent.change)
-  if (operation === null) {
-    return { ok: false, review: { reason: 'ambiguous', detail: 'the amount is not a whole number of pesos' } }
-  }
+  if (operation === null) return reviewed('ambiguous', 'the amount is not a whole number of pesos')
 
   const lines = saleRows(rows).map((row) => lineOf(row, operation))
-  if (lines.length === 0) {
-    return { ok: false, review: { reason: 'no_match', detail: `${intent.target} has no price to change` } }
-  }
+  if (lines.length === 0) return reviewed('no_match', `${intent.target} has no price to change`)
 
   return {
     ok: true,
@@ -65,6 +61,10 @@ export function proposePriceEdit(input: ProposeInput): Proposal {
       resolvedAt: null,
     },
   }
+}
+
+function reviewed(reason: EscalationReason, detail: string): Proposal {
+  return { ok: false, review: { kind: 'review', reason, detail } }
 }
 
 function operationOf(change: PriceChange): PriceEditOperation | null {

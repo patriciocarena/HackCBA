@@ -42,6 +42,7 @@ describe('proposePriceEdit, when the target names nothing loaded', () => {
     const result = propose(raise(20, 'los folletos'))
 
     expect(result).toMatchObject({ ok: false, review: { reason: 'no_match' } })
+    expect(result.ok || result.review.detail).toContain('is not a family in the list')
   })
 
   it('refuses when the family it named carries no sale row, because that edit changes nothing', () => {
@@ -53,6 +54,7 @@ describe('proposePriceEdit, when the target names nothing loaded', () => {
     })
 
     expect(result).toMatchObject({ ok: false, review: { reason: 'no_match' } })
+    expect(result.ok || result.review.detail).toContain('has no price to change')
   })
 
   it('reads past accents and articles, because speech to text spells the family loosely', () => {
