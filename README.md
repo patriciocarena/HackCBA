@@ -60,7 +60,7 @@ the honest signal of catalog coverage, not a failure.
 One thin vertical, end to end, over a single catalog family: business cards. All of it on
 Telegram.
 
-- Catalog parsed from the price list already versioned as HTML.
+- Catalog parsed from the price list already versioned as HTML. Cards are loaded, in `seed/`.
 - Pricing engine with module math: a size that is not in the list does not escalate, it
   gets computed.
 - Conversation with extraction, resolution and writing.
@@ -96,6 +96,7 @@ constraint.
 | `linear-import.csv` | CSV import for Linear, no credentials needed |
 | `scripts/create-linear-issues.ts` | Creates the issues and their blocking links over the Linear API |
 | `docs/assumptions.md` | What we take as true because the client has not answered yet |
+| `seed/business-cards.json` | The cards catalog: items, add-ons, discounts and the module table |
 
 The long product plan, the domain glossary and the ADRs live in the client repo, not here.
 

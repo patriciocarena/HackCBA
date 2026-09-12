@@ -25,9 +25,12 @@ It fits the three examples the owner gave:
 | Large card 10x15 | 150 cm² | 42.5 | 3.53 | 4 |
 | A4 flyer | 623.7 cm² | 150 | 4.16 | 5 |
 
-Missing: his confirmation. Also missing, the module discount, which the plan names but does
-not quantify. Provisional assumption: no discount, so module price times module count. It is
-the conservative one, because it quotes high.
+Missing: his confirmation.
+
+The module discount is no longer missing. The list quantifies it, and `seed/business-cards.json`
+carries it: 3 to 5 modules -10%, 6 to 8 -15%, 9 to 12 -20%, 13 or more -25%. The list also
+fixes the order: multiply the module price by the module count, then apply the discount. When
+more than one percentage applies they compound, they are not summed.
 
 ## 3. Mercado Pago alias
 
@@ -76,3 +79,20 @@ picked the name on 2026-09-09 and it is his brand.
 
 Everything Dante says to a customer is in Spanish. Everything else in this repo is in
 English.
+
+## 9. Business card rows that the list leaves open
+
+The cards family is loaded in `seed/business-cards.json`, off `lista-precios.html`. Two rows
+in it are a reading, not something the owner said.
+
+Papel ilustración común 300g. The list gives it as two discount rows, 1.800 for 100 cards and
+3.400 for 200, under a heading of its own. The legend says a discount row subtracts from the
+product above it, and the product above is the two column table. The seed subtracts from the
+ilustración 300g column, not from the special paper one, because común reads as the plain
+version of that same paper. If that is backwards, four prices are wrong and nothing else moves.
+
+350g against 300g. The offset heading says ilustración 350g, and the two 4/1 rows under it say
+300g. The seed takes the paper from the heading and keeps the discrepancy in `source_note`. It
+changes no amount.
+
+Both go to Javier with the next batch of questions.

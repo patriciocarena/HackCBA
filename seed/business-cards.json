@@ -1,0 +1,251 @@
+{
+  "source": {
+    "file": "lista-precios.html",
+    "family": "Tarjetas personales",
+    "client": "Multimpresos",
+    "closed_on": "2026-09-10",
+    "note": "Amounts are copied from the list exactly as the owner typed them."
+  },
+  "currency": "ARS",
+  "vat_included": false,
+  "vat_rate": 0.21,
+  "family": {
+    "slug": "business_cards",
+    "label": "Tarjetas personales",
+    "unit": "unit",
+    "module": { "width_cm": 8.5, "height_cm": 5 },
+    "attributes": ["quantity", "paper", "sides", "finish"],
+    "ask_order": ["quantity", "paper", "sides", "finish"]
+  },
+  "papers": [
+    { "slug": "special", "label": "Papel especial, tramado o perlado" },
+    { "slug": "illustration_300", "label": "Papel ilustración 300g" },
+    { "slug": "illustration_300_plain", "label": "Papel ilustración común 300g" },
+    { "slug": "illustration_350", "label": "Papel ilustración 350g, offset" }
+  ],
+  "sides": [
+    { "slug": "front", "label": "Sólo frente", "shorthand": "4/0" },
+    { "slug": "front_and_back", "label": "Frente y dorso", "shorthand": "4/4" },
+    { "slug": "front_color_back_grayscale", "label": "Frente full color, dorso escala de grises", "shorthand": "4/1" }
+  ],
+  "items": [
+    {
+      "id": "bc_special_100_front",
+      "kind": "sale",
+      "label": "100 tarjetas color sólo frente",
+      "attributes": { "quantity": 100, "paper": "special", "sides": "front", "finish": "none" },
+      "price": 12100
+    },
+    {
+      "id": "bc_special_100_front_and_back",
+      "kind": "sale",
+      "label": "100 tarjetas color frente y dorso",
+      "attributes": { "quantity": 100, "paper": "special", "sides": "front_and_back", "finish": "none" },
+      "price": 20200
+    },
+    {
+      "id": "bc_special_200_front",
+      "kind": "sale",
+      "label": "200 tarjetas color sólo frente",
+      "attributes": { "quantity": 200, "paper": "special", "sides": "front", "finish": "none" },
+      "price": 21600
+    },
+    {
+      "id": "bc_special_200_front_and_back",
+      "kind": "sale",
+      "label": "200 tarjetas color frente y dorso",
+      "attributes": { "quantity": 200, "paper": "special", "sides": "front_and_back", "finish": "none" },
+      "price": 32200
+    },
+    {
+      "id": "bc_illustration300_100_front",
+      "kind": "sale",
+      "label": "100 tarjetas color sólo frente",
+      "attributes": { "quantity": 100, "paper": "illustration_300", "sides": "front", "finish": "none" },
+      "price": 10300
+    },
+    {
+      "id": "bc_illustration300_100_front_and_back",
+      "kind": "sale",
+      "label": "100 tarjetas color frente y dorso",
+      "attributes": { "quantity": 100, "paper": "illustration_300", "sides": "front_and_back", "finish": "none" },
+      "price": 18400
+    },
+    {
+      "id": "bc_illustration300_200_front",
+      "kind": "sale",
+      "label": "200 tarjetas color sólo frente",
+      "attributes": { "quantity": 200, "paper": "illustration_300", "sides": "front", "finish": "none" },
+      "price": 19800
+    },
+    {
+      "id": "bc_illustration300_200_front_and_back",
+      "kind": "sale",
+      "label": "200 tarjetas color frente y dorso",
+      "attributes": { "quantity": 200, "paper": "illustration_300", "sides": "front_and_back", "finish": "none" },
+      "price": 28800
+    },
+
+    {
+      "id": "bc_offset_1000_4_1",
+      "kind": "sale",
+      "label": "Tarjetas full color, frente full color y dorso escala de grises",
+      "attributes": { "quantity": 1000, "paper": "illustration_350", "sides": "front_color_back_grayscale", "finish": "none" },
+      "price": 45000,
+      "source_note": "The row reads 300g inside a section headed 350g. Paper taken from the section header."
+    },
+    {
+      "id": "bc_offset_500_4_1",
+      "kind": "sale",
+      "label": "Tarjetas full color, 500 unidades, frente full color y dorso escala de grises",
+      "attributes": { "quantity": 500, "paper": "illustration_350", "sides": "front_color_back_grayscale", "finish": "none" },
+      "price": 34000,
+      "source_note": "The row reads 300g inside a section headed 350g. Paper taken from the section header."
+    },
+    {
+      "id": "bc_offset_1000_4_4_uv_front",
+      "kind": "sale",
+      "label": "Tarjetas frente y dorso full color, con UV sólo en el frente",
+      "attributes": { "quantity": 1000, "paper": "illustration_350", "sides": "front_and_back", "finish": "uv_front" },
+      "price": 49000
+    },
+    {
+      "id": "bc_offset_1000_4_4_opp",
+      "kind": "sale",
+      "label": "Tarjetas frente y dorso full color con OPP frente y dorso",
+      "attributes": { "quantity": 1000, "paper": "illustration_350", "sides": "front_and_back", "finish": "opp_both_sides" },
+      "price": 58000
+    },
+    {
+      "id": "bc_offset_1000_4_4_opp_uv_one",
+      "kind": "sale",
+      "label": "Tarjeta full color con OPP frente y dorso más sectorizado UV en una cara",
+      "attributes": { "quantity": 1000, "paper": "illustration_350", "sides": "front_and_back", "finish": "opp_both_sides_uv_one_side" },
+      "price": 63000
+    },
+    {
+      "id": "bc_offset_1000_4_4_opp_uv_both",
+      "kind": "sale",
+      "label": "Tarjeta full color con OPP frente y dorso más sectorizado UV en ambas caras",
+      "attributes": { "quantity": 1000, "paper": "illustration_350", "sides": "front_and_back", "finish": "opp_both_sides_uv_both_sides" },
+      "price": 95000
+    },
+
+    {
+      "id": "bc_addon_lamination_special_100_front",
+      "kind": "add_on",
+      "label": "Laminado",
+      "applies_to": ["bc_special_100_front"],
+      "price": 5100
+    },
+    {
+      "id": "bc_addon_lamination_special_100_front_and_back",
+      "kind": "add_on",
+      "label": "Laminado",
+      "applies_to": ["bc_special_100_front_and_back"],
+      "price": 6800
+    },
+    {
+      "id": "bc_addon_lamination_special_200_front",
+      "kind": "add_on",
+      "label": "Laminado",
+      "applies_to": ["bc_special_200_front"],
+      "price": 6800
+    },
+    {
+      "id": "bc_addon_lamination_special_200_front_and_back",
+      "kind": "add_on",
+      "label": "Laminado",
+      "applies_to": ["bc_special_200_front_and_back"],
+      "price": 11000
+    },
+    {
+      "id": "bc_addon_design",
+      "kind": "add_on",
+      "label": "Diseño, mínimo",
+      "applies_to_family": true,
+      "price": 20000,
+      "note": "A minimum, not a closed price. It covers a job without much complexity and without many changes. A logo from scratch is quoted apart by the designers, so it escalates."
+    },
+    {
+      "id": "bc_addon_extra_cut",
+      "kind": "add_on",
+      "label": "Corte extra",
+      "applies_to_family": true,
+      "price": 1600
+    },
+    {
+      "id": "bc_addon_label_perforation_1000",
+      "kind": "add_on",
+      "label": "Perforación etiqueta, por millar",
+      "applies_to_family": true,
+      "attributes": { "quantity": 1000 },
+      "price": 13300,
+      "extra_business_days": 2
+    },
+    {
+      "id": "bc_addon_rounded_corners_100",
+      "kind": "add_on",
+      "label": "Puntas redondeadas, 100",
+      "applies_to_family": true,
+      "attributes": { "quantity": 100 },
+      "price": 2200,
+      "extra_business_days": 2
+    },
+    {
+      "id": "bc_addon_rounded_corners_200",
+      "kind": "add_on",
+      "label": "Puntas redondeadas, 200",
+      "applies_to_family": true,
+      "attributes": { "quantity": 200 },
+      "price": 3100,
+      "extra_business_days": 2
+    },
+    {
+      "id": "bc_addon_rounded_corners_1000",
+      "kind": "add_on",
+      "label": "Puntas redondeadas, 1000",
+      "applies_to_family": true,
+      "attributes": { "quantity": 1000 },
+      "price": 8800,
+      "extra_business_days": 2
+    },
+    {
+      "id": "bc_addon_circular_cut_1000",
+      "kind": "add_on",
+      "label": "Corte circular de 4 a 12 cm de diámetro, por millar",
+      "applies_to_family": true,
+      "attributes": { "quantity": 1000 },
+      "price": 52800
+    },
+
+    {
+      "id": "bc_discount_illustration_plain_100",
+      "kind": "discount",
+      "label": "Papel ilustración común 300g, 100 tarjetas 4/0 o 4/4",
+      "applies_to": ["bc_illustration300_100_front", "bc_illustration300_100_front_and_back"],
+      "price": 1800
+    },
+    {
+      "id": "bc_discount_illustration_plain_200",
+      "kind": "discount",
+      "label": "Papel ilustración común 300g, 200 tarjetas 4/0 o 4/4",
+      "applies_to": ["bc_illustration300_200_front", "bc_illustration300_200_front_and_back"],
+      "price": 3400
+    }
+  ],
+  "module_discounts": [
+    { "from_modules": 3, "to_modules": 5, "rate": 0.10 },
+    { "from_modules": 6, "to_modules": 8, "rate": 0.15 },
+    { "from_modules": 9, "to_modules": 12, "rate": 0.20 },
+    { "from_modules": 13, "to_modules": null, "rate": 0.25 }
+  ],
+  "rules": [
+    "Prices are net. VAT is added by the engine, and Dante says one final gross number.",
+    "Quantities are the ones in the tables. The customer picks among them. No intermediate quantity is quoted.",
+    "A piece larger than the module uses several modules and the excess is cut. Multiply the module price by the module count, then apply the module discount.",
+    "When more than one percentage applies, they compound. They are not summed.",
+    "A dash in the list means the finish is not offered in that column. There is no row, so it escalates.",
+    "A quote is valid 15 days, and after that while the list has not changed."
+  ]
+}
