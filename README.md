@@ -64,12 +64,12 @@ Telegram.
 - Pricing engine with module math: a size that is not in the list does not escalate, it
   gets computed.
 - Conversation with extraction, resolution and writing.
-- Voice: the customer asks by audio, and the owner changes a price by audio or photo.
-- Signed diff to confirm a bulk edit, and versioning that keeps the audio that caused it.
+- Voice: the owner changes a price by audio, and the audio never writes on its own.
+- Versioning that keeps the audio that caused each price change.
 - Order with a deposit by alias and human confirmation, on the record.
 - Adversarial suite against prompt injection and invented prices.
 
-The full plan, with the timeline and the frozen contracts, is in `PLAN.md`.
+The full plan is in `PLAN.md`, the flowcharts and the run sheet in `SCHEDULE.md`.
 
 ## What we leave out, on purpose
 
@@ -90,26 +90,29 @@ constraint.
 | File | What it holds |
 |---|---|
 | `PLAN.md` | Scope, frozen contracts, timeline, risks and their cutoff |
-| `TICKETS.md` | The 39 tickets as tables, by lane |
-| `tasks.json` | The same tickets, ready to import into a tracker |
+| `SCHEDULE.md` | The flowcharts: the turn, who blocks whom, and the run sheet |
+| `TICKETS.md` | The 27 tickets as tables, by lane, with their window |
+| `tasks.json` | The same tickets, scheduled, ready to import into a tracker |
+| `linear-import.csv` | CSV import for Linear, no credentials needed |
+| `scripts/create-linear-issues.ts` | Creates the issues and their blocking links over the Linear API |
 | `docs/assumptions.md` | What we take as true because the client has not answered yet |
 
 The long product plan, the domain glossary and the ADRs live in the client repo, not here.
 
 ## The four of us
 
-| Who | Lane | What they own |
-|---|---|---|
-| Fede | A | Chassis, Telegram channel, turn, orders and deposit |
-| Juan Bautista | B | Catalog, pricing engine, facts |
-| Pato | C | Voice, end to end |
-| Talismán | D | Security and adversarial evals |
+| Who | Lane | Booked | Available |
+|---|---|---|---|
+| Fede | A, then C | 16 h | 16 h |
+| Juan Bautista | B | 14 h | 16 h |
+| Talisman | D | 12 h | 16 h |
+| Pato | C | 2 h | 3 h |
 
-Critical path: A2 and A3, the type contracts and the schema. They block the other three
-lanes and ship before H+2.
+Pato has three hours, Friday 21:00 to midnight, and hands the voice lane to Fede there. Fede
+is booked to the limit with no slack because he absorbs it. Everyone else has room. If
+anything slips, Fede is the one who falls.
 
-The dependency that is easy to miss: D2, the admin allowlist, blocks C4, price editing by
-audio. It is the only one crossing security and voice. D2 ships first in its lane.
+Critical chain: A1, A2, A3, A4, C4, E1, E4. Everything else has slack.
 
 ## Rules for the day
 
@@ -121,7 +124,7 @@ audio. It is the only one crossing security and voice. D2 ships first in its lan
 5. Every loaded family ships with its pricing cases. A family without tests does not ship.
 6. No skipped or pending tests. Fix them or delete them.
 7. If a lane is stuck for over an hour, say so and cut scope.
-8. Feature freeze at H+18. After that, bugs and the demo only.
+8. Feature freeze when integration starts, Saturday 16:00. After that, bugs and the demo only.
 
 ## Getting started
 

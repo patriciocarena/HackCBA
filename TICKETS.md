@@ -1,82 +1,90 @@
 # Tickets
 
-Four parallel lanes plus a shared one. Each row is the ticket as is: id, title, what blocks
-it, how many hours, and when it is done.
+Twenty seven tickets, scheduled. The window is Friday 2026-09-11 21:00 to Saturday 21:00, and
+nobody works between 00:00 and 08:00, so there are sixteen working hours, not twenty four.
 
-Critical path: A2 and A3 block the other three lanes. They ship first, before H+2.
+`blocked_by` is what you wait for. `blocks` is who you leave stranded if you stall.
+The critical chain is A1 → A2 → A3 → A4 → C4 → E1 → E4. Everything else has slack.
 
-## Lane A. Chassis and channel. Fede
+## Lane A. Chassis & channel. Fede
 
-| ID | Title | Blocked by | h | Done when |
-|---|---|---|---|---|
-| A1 | Chassis: bun, Mastra, Dockerfile, `fly.toml` with a volume, healthcheck | - | 2 | `fly deploy` returns 200 on `/health` |
-| A2 | Contracts in `src/domain/types.ts` plus the helper that builds a CHECK from an `as const` array | - | 1 | All four lanes import from here and compile |
-| A3 | Idempotent schema and the LibSQL storage seam | A2 | 1.5 | The six tables create twice without error |
-| A4 | Telegram bot with two roles, customer and admin, with update dedupe | A1 | 2 | A repeated update does not fire two replies |
-| A5 | Turn: extraction, resolution, writing, in that order | A2 B4 D1 | 2 | The model gets the amount as data and cannot alter it |
-| A6 | Dante persona, inverted caps, disclosure once per conversation | A5 | 1.5 | Introduces itself as automated in the first message and never again |
-| A7 | `orders` with states and a copied amount | A3 | 1.5 | Editing the list does not change an order already quoted. Test proves it |
-| A8 | Deposit by alias, receipt attached, confirmation on the record | A7 | 2 | The receipt is stored and never shown to whoever confirms |
-| A9 | Escalation: the conversation belongs to a human and the bot stops writing | A5 | 1 | After escalating, Dante never writes in that thread again |
+| ID | Title | Who | Blocked by | Blocks | h | Window | Done when |
+|---|---|---|---|---|---|---|---|
+| A1 | Service chassis | Fede | - | A4, D4 | 2 | Fri 21:00 → 23:00 | fly deploy finishes and GET /health returns 200 |
+| A2 | Domain contracts | Fede | - | A3, A5, B4, D1 | 1 | Fri 23:00 → 00:00 | All four lanes import from this file and compile |
+| A3 | Schema and storage seam | Fede | A2 | A7, B7, D2 | 1.5 | Sat 08:00 → 09:30 | The DDL runs twice in a row without error |
+| A4 | Telegram bot with two roles | Fede | A1 | C4 | 2 | Sat 09:30 → 11:30 | A repeated Telegram update does not fire two replies |
+| A5 | Three phase conversation turn | Fede | A2, B4, D1 | A6, A9, D5, D6, E1 | 2 | Sat 11:30 → 13:30 | The writing model receives the computed amount and cannot alter it |
+| A7 | Orders with a copied amount | Juan Bautista | A3 | A8 | 1.5 | Sat 11:30 → 13:00 | A test edits the list after quoting and the order keeps the old amount |
+| A8 | Deposit by alias with human confirmation | Talisman | A7 | - | 1.0 | Sat 13:00 → 14:00 | The receipt is stored and never shown to whoever confirms |
+| A6 | Dante persona and caps | Fede | A5 | - | 1.0 | Sat 18:00 → 19:00 | Introduces itself as automated in one line in the first message of every new conversation and never again in that conversation |
+| A9 | Escalation to a person | Talisman | A5 | - | 1 | Sat 18:00 → 19:00 | After escalating, a new customer message produces no agent reply |
 
-## Lane B. Catalog and engine. Juan Bautista
+## Lane B. Catalog & engine. Juan Bautista
 
-| ID | Title | Blocked by | h | Done when |
-|---|---|---|---|---|
-| B1 | Parser from `lista-precios.html` to families and items, using `td.p` and `tr.mod` | A2 | 2 | Deterministic run, typed JSON out |
-| B2 | Diff the parse against the list before loading | B1 | 1 | A person reads it row by row and signs off |
-| B3 | Seed the business cards family | B2 A3 | 1 | Card rows are in `items` with their unit and tier |
-| B4 | `priceFor(intent)`, pure: exact match or escalate | A2 | 2 | Zero, more than one, or a missing attribute returns escalate |
-| B5 | Module math: `ceil(piece area / module area)` and the module discount | B4 | 1.5 | The owner's three examples give 2, 4 and 5, with tests |
-| B6 | VAT: list plus 21%, one final number, rate in config | B4 | 0.5 | No amount leaves the engine without VAT. Test |
-| B7 | `facts` and its fenced injection into the turn | A3 D1 | 1.5 | What is not in `facts` escalates |
-| B8 | Ten card pricing cases, taken from real conversations | B3 B5 | 1.5 | `bun test` green and zero prices outside the catalog |
-| B9 | Escalation rate by family | B4 | 1 | A command prints it. It will be high, and that is fine |
+| ID | Title | Who | Blocked by | Blocks | h | Window | Done when |
+|---|---|---|---|---|---|---|---|
+| B3 | Seed the business cards family | Juan Bautista | - | B8 | 1.5 | Fri 21:00 → 22:30 | Card rows are in items with their unit and tier |
+| B4 | priceFor, a pure function | Juan Bautista | A2 | A5, B5, B6, D5, E1 | 2 | Sat 08:00 → 10:00 | It is a pure function with no network and no clock access |
+| B5 | Module math | Juan Bautista | B4 | B8 | 1.5 | Sat 10:00 → 11:30 | Card 15x5 gives 2 modules, large card 10x15 gives 4, A4 flyer gives 5 |
+| B7 | Facts and their fenced injection | Juan Bautista | A3, D1 | - | 1.5 | Sat 13:00 → 14:30 | A question about an unloaded fact returns escalate, not a plausible answer |
+| B8 | Ten business card pricing cases | Juan Bautista | B3, B5 | - | 1.5 | Sat 14:30 → 16:00 | bun test green |
+| B6 | VAT included, one final number | Juan Bautista | B4 | - | 0.5 | Sat 18:00 → 18:30 | No amount leaves the engine without VAT, with a test |
 
-## Lane C. Voice. Pato
+## Lane C. Voice. Pato, then Fede
 
-| ID | Title | Blocked by | h | Done when |
-|---|---|---|---|---|
-| C1 | Receive a Telegram voice note and store the media | A4 | 1 | The audio lands on disk with its own id and can be replayed |
-| C2 | Transcription behind a provider seam | C1 | 2 | Swapping providers touches one file. A test audio transcribes |
-| C3 | Customer audio into the same extraction pipeline as text | C2 A5 | 1 | An audio asking for a price quotes the same as the text |
-| C4 | Admin audio into a typed `PriceEdit`, stored without applying | C2 D2 | 2 | "Raise cards 20%" lands in `price_edits` and nothing changed |
-| C5 | Photo of the list into `PriceEdit`s by vision, several rows at once | C4 | 2 | One sheet yields N proposals, none applied |
-| C6 | Read only diff page served by `apiRoutes` | C4 D3 | 2 | Old and new side by side. No signed link, no page |
-| C7 | Apply the edit and version it with the media that caused it | C6 | 1.5 | `price_versions` stores who, when, and the audio or photo |
-| C8 | Stretch: Dante answers by voice | C3 | 1 | Only if there is time left after H+18 |
+| ID | Title | Who | Blocked by | Blocks | h | Window | Done when |
+|---|---|---|---|---|---|---|---|
+| C2 | Transcription behind a seam | Pato | - | C4 | 2 | Fri 21:00 → 23:00 | A test audio transcribes and the text is stored next to the media |
+| C4 | Admin audio into a typed PriceEdit | Fede | C2, D2, A4 | C7, E1 | 2 | Sat 13:30 → 15:30 | Raise cards 20% lands in price_edits and no price changed |
+| C7 | Apply the edit and version it | Talisman | C4 | - | 1.0 | Sat 19:00 → 20:00 | price_versions stores who, when and the media id that caused it |
 
-## Lane D. Security. Talismán
+## Lane D. Security. Talisman
 
-| ID | Title | Blocked by | h | Done when |
-|---|---|---|---|---|
-| D1 | `untrusted.ts`: deterministic fencing of every outside text | A2 | 1.5 | A message carrying the delimiters does not break the fence. Test |
-| D2 | Admin allowlist, fail closed | A3 | 1 | An unknown sender asking for a raise is treated as a customer |
-| D3 | HMAC signed link with expiry and single use | A1 | 1.5 | Expired, reused or tampered links return 403 |
-| D4 | Secrets: `fly secrets`, `gitleaks` on pre-commit, no `.env` in git | A1 | 1 | The hook stops a commit carrying a key |
-| D5 | Adversarial suite: injection, invented price, exfiltration | A5 B4 | 2.5 | 20 attacks run in CI. Zero prices outside the catalog |
-| D6 | Memory isolation: Telegram context never reaches a customer turn | A5 | 1.5 | Something told on Telegram never shows up in a customer reply. Test |
-| D7 | One page threat model | - | 1 | Who attacks, what they gain, what stops them |
-| D8 | Webhook hardening: header secret, dedupe, rate limit | A1 | 1.5 | A request without a valid secret never reaches the logic |
+| ID | Title | Who | Blocked by | Blocks | h | Window | Done when |
+|---|---|---|---|---|---|---|---|
+| D7 | One page threat model | Talisman | - | - | 1 | Fri 21:00 → 22:00 | One page, no more |
+| D4 | Secrets and gitleaks | Talisman | A1 | - | 1 | Fri 23:00 → 00:00 | The hook stops a commit carrying a key |
+| D1 | Deterministic fencing of untrusted text | Talisman | A2 | A5, B7, E1 | 1.5 | Sat 08:00 → 09:30 | A message containing the fence delimiters does not break the fence, with a test |
+| D2 | Admin allowlist, fail closed | Talisman | A3 | C4 | 1 | Sat 09:30 → 10:30 | An empty or misconfigured list denies everyone, never allows everyone |
+| D5 | Adversarial suite | Talisman | A5, B4 | - | 1.5 | Sat 14:00 → 15:30 | All twenty attacks run in CI |
+| D6 | Telegram memory isolation | Talisman | A5 | - | 1.0 | Sat 20:00 → 21:00 | Something told on Telegram never appears in a customer reply, with a test |
 
-## Lane E. Shared
+## Lane E. Shared. All four
 
-| ID | Title | Blocked by | h | Done when |
-|---|---|---|---|---|
-| E1 | Wire the full vertical, all four together | A5 B4 C4 D1 | 2 | A text message crosses everything and comes back with a price |
-| E2 | Ten card evals against what the human answered | B8 | 1.5 | They run in CI |
-| E3 | Shadow mode: Dante proposes on Telegram and sends nothing | A5 | 1.5 | A flag turns it on and off |
-| E4 | Demo script and video, the six steps in `PLAN.md` section 10 | everything | 2 | Three minutes recorded |
-| E5 | Ask the client for the six missing data points | - | 0.5 | Fede. As early as possible, does not block code |
+| ID | Title | Who | Blocked by | Blocks | h | Window | Done when |
+|---|---|---|---|---|---|---|---|
+| E5 | Ask the client for the missing data | Fede | - | - | 0.5 | Sat 15:30 → 16:00 | Asked in a single message, not one at a time |
+| E1 | Wire the full vertical | Fede+Juan Bautista+Talisman | A5, B4, C4, D1 | E4 | 2 | Sat 16:00 → 18:00 | A text message crosses extraction, resolution and writing and comes back with a VAT inclusive price |
+| E4 | Demo script and video | Fede+Juan Bautista | E1 | - | 2 | Sat 19:00 → 21:00 | Three minutes recorded |
 
-## Hours per lane
+## Cut
 
-| Lane | Hours |
+Twelve tickets removed to fit sixteen hours. Each one buys back time somewhere else.
+
+| ID | Why it went |
 |---|---|
-| A. Fede | 14.5 |
-| B. Juan Bautista | 12 |
-| C. Pato | 12.5 |
-| D. Talismán | 11.5 |
-| E. Shared | 7.5 |
+| B1 | Price list parser. For one family you hand-type 20 rows. The parser pays off at family five. |
+| B2 | Parse diff. Nothing to diff once the parser is gone. |
+| B9 | Escalation rate by family. One family, one rate. Read it off the logs. |
+| C1 | Voice note storage. Folded into C4, which needs the media anyway. |
+| C3 | Customer audio. The admin audio path proves the same pipeline. |
+| C5 | Photo of the list by vision. Audio already shows that media never writes. |
+| C6 | Diff page. Falls back to Telegram buttons, the plan’s own cutoff. |
+| C8 | Dante answering by voice. It was a stretch before the night gap existed. |
+| D3 | HMAC signed link. It only existed to protect the diff page. |
+| D8 | Webhook hardening. Telegram authenticates by bot token; the proxy contract is phase two. |
+| E2 | Separate evals. Merged into B8, same ten conversations. |
+| E3 | Shadow mode. With no real customers, the demo is the shadow. |
 
-Hours are left over on purpose. Integration always costs more than the table says.
+## Load
+
+| Who | Booked | Available |
+|---|---|---|
+| Fede | 16.0 h | 16 h |
+| Juan Bautista | 14.0 h | 16 h |
+| Talisman | 12.0 h | 16 h |
+| Pato | 2 h | 3 h |
+
+Fede is at the limit with no slack, because he absorbs the voice lane at midnight.
+If anything slips, he is the one who falls.

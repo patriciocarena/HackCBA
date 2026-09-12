@@ -106,41 +106,44 @@ One source. The helper that builds the CHECK ships with the chassis.
 
 | Lane | Owner | Delivers |
 |---|---|---|
-| A. Chassis and channel | Fede | Repo, types, schema, Telegram, turn, orders and deposit |
-| B. Catalog and engine | Juan Bautista | List parser, `priceFor`, modules, VAT, facts |
-| C. Voice | Pato | Transcription, price edit by audio, customer audio, diff |
-| D. Security | Talismán | Fencing, allowlist, signed link, secrets, red team evals |
+| A. Chassis and channel | Fede | Repo, types, schema, Telegram, turn, persona, escalation |
+| B. Catalog and engine | Juan Bautista | Seed rows, `priceFor`, modules, VAT, facts, pricing cases, orders |
+| C. Voice | Pato, then Fede | Transcription seam, price edit by audio, versioning |
+| D. Security | Talisman | Fencing, allowlist, secrets, red team, memory isolation, deposit |
 
-Lanes B, C and D do not touch each other. They all touch A, and A is stable at H+2.
+Pato has three hours, Friday 21:00 to midnight, and hands the lane to Fede there. That single
+constraint reshapes the lane: the transcription seam comes first, because it needs an audio
+file and not the Telegram bot, and it is the only piece of lane C that can start at hour zero.
+
+Ownership crosses lanes where capacity demands it. Juan Bautista takes orders, Talisman takes
+the deposit and escalation. Lane letters mark the subject, not the person.
 
 ## 7. Timeline
 
-H+0 to H+2. Start. Fede stands up the chassis and the contracts. The other three read the
-client plan, sections 4, 6, 7 and 9, plus the whole glossary, and set up their environment.
-Nobody writes logic yet.
+Friday 2026-09-11 21:00 to Saturday 21:00. Nobody works between 00:00 and 08:00, so the window
+holds sixteen working hours, not twenty four. The full run sheet is in `SCHEDULE.md`.
 
-H+2. Milestone: contracts frozen. All four compile against the same types.
+Friday 21:00 to 00:00. Three hours, and almost every ticket is blocked at hour zero. The four
+that are not: the chassis, the type contracts, the seed rows typed off the price list, and the
+threat model. Anything else scheduled on Friday is someone watching a branch compile.
 
-H+2 to H+8. Closed parallel work. Each lane works against fixtures, not against the others.
-Juan Bautista delivers the business cards catalog loaded. Pato delivers an audio that turns
-into a `PriceEdit`. Talismán delivers fencing and the allowlist.
+Saturday 00:00. Milestone: contracts frozen. Everyone sleeps on the same types. After this you
+add optional fields, you do not rename.
 
-H+8. Milestone: every lane green in isolation. `bun test` passes on all four branches.
+Saturday 08:00 to 16:00. Closed parallel work. The pricing engine, the Telegram bot, the turn,
+the allowlist, the fencing, the module math, the facts, the ten pricing cases, the adversarial
+suite, and the price edit by audio.
 
-H+8 to H+14. Integration. The full turn gets wired. The first real end to end message.
+Saturday 16:00 to 18:00. Milestone: integration, pinned. Three people, one vertical. This is a
+fixed block, not a queue: left to the dependency graph it started at 20:00 and the demo never
+got recorded.
 
-H+14. Milestone: the demo walks. A customer asks, Dante quotes, an order is born, the owner
-edits a price by audio.
+Saturday 18:00 to 19:00. Edges. Persona and disclosure, escalation, VAT.
 
-H+14 to H+18. Edges. Escalation, facts, deposit confirmation, modules, versioning.
+Saturday 19:00 to 21:00. Milestone: demo cut. Fede and Juan Bautista record the six steps while
+Talisman closes versioning and memory isolation.
 
-H+18. Milestone: feature freeze.
-
-H+18 to H+21. Evals. Ten business card cases plus Talismán's adversarial suite. The governing
-metric is zero prices outside the catalog, not a hit rate.
-
-H+21 to H+24. Shadow mode and demo. Dante proposes answers without sending them, the four of
-us read them. We write the demo script and record it.
+Saturday 21:00. Ship.
 
 ## 8. Risks, with their cutoff
 

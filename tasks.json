@@ -1,66 +1,118 @@
 {
   "project": "Dante, a sales agent for a print shop",
   "event": "HackCBA",
-  "date": "2026-09-11",
-  "duration_hours": 24,
-  "scope": "One thin vertical, end to end, over the business cards family. All on Telegram. WhatsApp, email and billing are out of scope.",
-  "critical_path": [
+  "window": {
+    "start": "2026-09-11T21:00",
+    "end": "2026-09-12T21:00",
+    "night_gap": "00:00-08:00, nobody works",
+    "working_hours": 16
+  },
+  "critical_chain": [
+    "A1",
     "A2",
-    "A3"
+    "A3",
+    "A4",
+    "C4",
+    "E1",
+    "E4"
   ],
   "language_rule": "Everything in English: code, identifiers, docs, commits, tickets. The only Spanish is what a customer reads.",
   "team": [
     {
       "name": "Fede",
       "lane": "A",
-      "focus": "Chassis, channel, turn, orders and deposit",
-      "hours": 14.5
+      "focus": "Chassis, channel, turn. Takes the voice lane at midnight.",
+      "booked": 16.0,
+      "available": 16
     },
     {
       "name": "Juan Bautista",
       "lane": "B",
-      "focus": "Catalog, pricing engine, facts",
-      "hours": 12
-    },
-    {
-      "name": "Pato",
-      "lane": "C",
-      "focus": "Voice, end to end",
-      "hours": 12.5
+      "focus": "Catalog, pricing engine, facts, orders.",
+      "booked": 14.0,
+      "available": 16
     },
     {
       "name": "Talisman",
       "lane": "D",
-      "focus": "Security and adversarial evals",
-      "hours": 11.5
+      "focus": "Fencing, allowlist, red team, deposit, escalation.",
+      "booked": 12.0,
+      "available": 16
     },
     {
-      "name": "All four",
-      "lane": "E",
-      "focus": "Integration, evals, shadow mode and demo",
-      "hours": 7.5
+      "name": "Pato",
+      "lane": "C",
+      "focus": "Transcription seam, then hands off at 00:00.",
+      "booked": 2,
+      "available": 3
     }
   ],
   "milestones": [
     {
-      "hour": "H+2",
-      "milestone": "Contracts frozen. All four compile against the same types."
+      "at": "Sat 00:00",
+      "milestone": "Contracts frozen. Everyone sleeps on the same types."
     },
     {
-      "hour": "H+8",
-      "milestone": "Every lane green in isolation."
+      "at": "Sat 16:00",
+      "milestone": "Integration, pinned. All three wire the vertical."
     },
     {
-      "hour": "H+14",
-      "milestone": "The demo walks end to end."
+      "at": "Sat 19:00",
+      "milestone": "Demo cut. Fede and Juan Bautista record."
     },
     {
-      "hour": "H+18",
-      "milestone": "Feature freeze. Bugs only."
+      "at": "Sat 21:00",
+      "milestone": "Ship."
+    }
+  ],
+  "cut": [
+    {
+      "id": "B1",
+      "reason": "Price list parser. For one family you hand-type 20 rows. The parser pays off at family five."
     },
     {
-      "hour": "H+24",
-      "milestone": "Three minute video recorded."
+      "id": "B2",
+      "reason": "Parse diff. Nothing to diff once the parser is gone."
+    },
+    {
+      "id": "B9",
+      "reason": "Escalation rate by family. One family, one rate. Read it off the logs."
+    },
+    {
+      "id": "C1",
+      "reason": "Voice note storage. Folded into C4, which needs the media anyway."
+    },
+    {
+      "id": "C3",
+      "reason": "Customer audio. The admin audio path proves the same pipeline."
+    },
+    {
+      "id": "C5",
+      "reason": "Photo of the list by vision. Audio already shows that media never writes."
+    },
+    {
+      "id": "C6",
+      "reason": "Diff page. Falls back to Telegram buttons, the plan’s own cutoff."
+    },
+    {
+      "id": "C8",
+      "reason": "Dante answering by voice. It was a stretch before the night gap existed."
+    },
+    {
+      "id": "D3",
+      "reason": "HMAC signed link. It only existed to protect the diff page."
+    },
+    {
+      "id": "D8",
+      "reason": "Webhook hardening. Telegram authenticates by bot token; the proxy contract is phase two."
+    },
+    {
+      "id": "E2",
+      "reason": "Separate evals. Merged into B8, same ten conversations."
+    },
+    {
+      "id": "E3",
+      "reason": "Shadow mode. With no real customers, the demo is the shadow."
     }
   ],
   "tasks": [
@@ -68,14 +120,19 @@
       "id": "A1",
       "title": "Service chassis",
       "owner": "Fede",
+      "crew": [
+        "Fede"
+      ],
+      "lane": "A",
       "blocked_by": [],
       "blocks": [
         "A4",
-        "D3",
-        "D4",
-        "D8"
+        "D4"
       ],
       "hours": 2,
+      "starts": "Fri 21:00",
+      "ends": "Fri 23:00",
+      "critical_chain": true,
       "description": "Repo with bun and Mastra, a bun Dockerfile, fly.toml with a volume and min_machines_running at 1, healthcheck. Seeded from the sergio-mastra precedent, which is already single tenant with one webhook channel and LibSQL on a volume.",
       "acceptance_criteria": [
         "fly deploy finishes and GET /health returns 200",
@@ -84,18 +141,91 @@
       ]
     },
     {
+      "id": "B3",
+      "title": "Seed the business cards family",
+      "owner": "Juan Bautista",
+      "crew": [
+        "Juan Bautista"
+      ],
+      "lane": "B",
+      "blocked_by": [],
+      "blocks": [
+        "B8"
+      ],
+      "hours": 1.5,
+      "starts": "Fri 21:00",
+      "ends": "Fri 22:30",
+      "critical_chain": false,
+      "description": "Load cards into families and items. The family declares key, name, unit, module size, and the ordered list of attributes a quote needs before it can resolve.",
+      "acceptance_criteria": [
+        "Card rows are in items with their unit and tier",
+        "The seed is idempotent: running it twice does not duplicate rows",
+        "The required attributes for cards are declared and ordered"
+      ]
+    },
+    {
+      "id": "C2",
+      "title": "Transcription behind a seam",
+      "owner": "Pato",
+      "crew": [
+        "Pato"
+      ],
+      "lane": "C",
+      "blocked_by": [],
+      "blocks": [
+        "C4"
+      ],
+      "hours": 2,
+      "starts": "Fri 21:00",
+      "ends": "Fri 23:00",
+      "critical_chain": false,
+      "description": "A transcription port with one implementation. Swapping providers touches one file. Provider cost and runway alerts come later, today just the seam.",
+      "acceptance_criteria": [
+        "A test audio transcribes and the text is stored next to the media",
+        "Swapping providers touches a single file",
+        "A failing audio records the reason and writes nothing else"
+      ]
+    },
+    {
+      "id": "D7",
+      "title": "One page threat model",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "D",
+      "blocked_by": [],
+      "blocks": [],
+      "hours": 1,
+      "starts": "Fri 21:00",
+      "ends": "Fri 22:00",
+      "critical_chain": false,
+      "description": "Who attacks, what they gain, and what stops them. Known actors: a customer chasing a price that does not exist, someone impersonating an admin, someone who planted text in an email to the shop ten years ago.",
+      "acceptance_criteria": [
+        "One page, no more",
+        "Every threat names the ticket that mitigates it",
+        "Unmitigated threats are listed as accepted risk, not omitted"
+      ]
+    },
+    {
       "id": "A2",
       "title": "Domain contracts",
       "owner": "Fede",
+      "crew": [
+        "Fede"
+      ],
+      "lane": "A",
       "blocked_by": [],
       "blocks": [
         "A3",
         "A5",
-        "B1",
         "B4",
         "D1"
       ],
       "hours": 1,
+      "starts": "Fri 23:00",
+      "ends": "Sat 00:00",
+      "critical_chain": true,
       "description": "src/domain/types.ts with Intent, Resolution, PriceEdit, Unit, OrderState and EscalationReason. Every enum is an as const array that generates both the union type and the SQLite CHECK from one source. Critical path: blocks lanes B, C and D.",
       "acceptance_criteria": [
         "All four lanes import from this file and compile",
@@ -105,19 +235,49 @@
       ]
     },
     {
+      "id": "D4",
+      "title": "Secrets and gitleaks",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "D",
+      "blocked_by": [
+        "A1"
+      ],
+      "blocks": [],
+      "hours": 1,
+      "starts": "Fri 23:00",
+      "ends": "Sat 00:00",
+      "critical_chain": false,
+      "description": "Every secret in fly secrets. gitleaks on pre-commit and in CI. No .env in git. The Mercado Pago alias is a secret too when it arrives.",
+      "acceptance_criteria": [
+        "The hook stops a commit carrying a key",
+        "gitleaks runs in CI and fails the build",
+        ".env and .env.* are in .gitignore",
+        "The repo history is scanned once and comes back clean"
+      ]
+    },
+    {
       "id": "A3",
       "title": "Schema and storage seam",
       "owner": "Fede",
+      "crew": [
+        "Fede"
+      ],
+      "lane": "A",
       "blocked_by": [
         "A2"
       ],
       "blocks": [
         "A7",
-        "B3",
         "B7",
         "D2"
       ],
       "hours": 1.5,
+      "starts": "Sat 08:00",
+      "ends": "Sat 09:30",
+      "critical_chain": true,
       "description": "Idempotent inline DDL over LibSQL for families, items, facts, orders, price_edits and price_versions. Litestream replicating to a bucket from the first deploy, not when there is data worth losing.",
       "acceptance_criteria": [
         "The DDL runs twice in a row without error",
@@ -127,16 +287,80 @@
       ]
     },
     {
+      "id": "B4",
+      "title": "priceFor, a pure function",
+      "owner": "Juan Bautista",
+      "crew": [
+        "Juan Bautista"
+      ],
+      "lane": "B",
+      "blocked_by": [
+        "A2"
+      ],
+      "blocks": [
+        "A5",
+        "B5",
+        "B6",
+        "D5",
+        "E1"
+      ],
+      "hours": 2,
+      "starts": "Sat 08:00",
+      "ends": "Sat 10:00",
+      "critical_chain": false,
+      "description": "Resolution without a model. Exact match or escalate: zero rows, more than one, or a missing attribute we already asked for returns escalate. No interpolation, no nearest neighbor, no roughly.",
+      "acceptance_criteria": [
+        "It is a pure function with no network and no clock access",
+        "Each of the three escalation cases has its own test",
+        "It returns the itemId the amount came from and an explanation a human can read",
+        "The square meter versus linear meter rule is covered"
+      ]
+    },
+    {
+      "id": "D1",
+      "title": "Deterministic fencing of untrusted text",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "D",
+      "blocked_by": [
+        "A2"
+      ],
+      "blocks": [
+        "A5",
+        "B7",
+        "E1"
+      ],
+      "hours": 1.5,
+      "starts": "Sat 08:00",
+      "ends": "Sat 09:30",
+      "critical_chain": false,
+      "description": "Copied file by file from the Pretor precedent. Every outside text enters fenced and is never an instruction: customer messages, transcripts, facts, and later the email archive.",
+      "acceptance_criteria": [
+        "A message containing the fence delimiters does not break the fence, with a test",
+        "The fence is deterministic: same input, same output",
+        "No path through the turn passes outside text unfenced, verified by a test that walks the call sites"
+      ]
+    },
+    {
       "id": "A4",
       "title": "Telegram bot with two roles",
       "owner": "Fede",
+      "crew": [
+        "Fede"
+      ],
+      "lane": "A",
       "blocked_by": [
         "A1"
       ],
       "blocks": [
-        "C1"
+        "C4"
       ],
       "hours": 2,
+      "starts": "Sat 09:30",
+      "ends": "Sat 11:30",
+      "critical_chain": true,
       "description": "One bot, two roles. The admin role is for the four of us and the customer role simulates the prospect. Update dedupe copied from the precedent.",
       "acceptance_criteria": [
         "A repeated Telegram update does not fire two replies",
@@ -145,9 +369,65 @@
       ]
     },
     {
+      "id": "D2",
+      "title": "Admin allowlist, fail closed",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "D",
+      "blocked_by": [
+        "A3"
+      ],
+      "blocks": [
+        "C4"
+      ],
+      "hours": 1,
+      "starts": "Sat 09:30",
+      "ends": "Sat 10:30",
+      "critical_chain": false,
+      "description": "Admin status is decided by sender identity against a closed list. An unknown sender saying raise cards 20% is a customer, not a command. Blocks C4, so it ships before D7.",
+      "acceptance_criteria": [
+        "An empty or misconfigured list denies everyone, never allows everyone",
+        "An unknown sender asking for a raise gets a customer reply",
+        "The list changes through an environment variable, with no code deploy",
+        "Every rejected edit attempt is recorded"
+      ]
+    },
+    {
+      "id": "B5",
+      "title": "Module math",
+      "owner": "Juan Bautista",
+      "crew": [
+        "Juan Bautista"
+      ],
+      "lane": "B",
+      "blocked_by": [
+        "B4"
+      ],
+      "blocks": [
+        "B8"
+      ],
+      "hours": 1.5,
+      "starts": "Sat 10:00",
+      "ends": "Sat 11:30",
+      "critical_chain": false,
+      "description": "A size that is not in the list does not escalate, it gets computed. Formula pending client confirmation: modules equals ceil of piece area over module area. It deliberately loosens the rule that the bot only repeats a number the owner typed.",
+      "acceptance_criteria": [
+        "Card 15x5 gives 2 modules, large card 10x15 gives 4, A4 flyer gives 5",
+        "The message says how it got the number, so a human can catch the error by reading",
+        "Every input to the formula is data the owner typed",
+        "The no module discount assumption is flagged in docs/assumptions.md"
+      ]
+    },
+    {
       "id": "A5",
       "title": "Three phase conversation turn",
       "owner": "Fede",
+      "crew": [
+        "Fede"
+      ],
+      "lane": "A",
       "blocked_by": [
         "A2",
         "B4",
@@ -156,13 +436,14 @@
       "blocks": [
         "A6",
         "A9",
-        "C3",
         "D5",
         "D6",
-        "E1",
-        "E3"
+        "E1"
       ],
       "hours": 2,
+      "starts": "Sat 11:30",
+      "ends": "Sat 13:30",
+      "critical_chain": false,
       "description": "Orchestration: extraction with structuredOutput and no tools over already fenced text, resolution with SQL plus priceFor, writing with the amount injected as data. The agent has no tools.",
       "acceptance_criteria": [
         "The writing model receives the computed amount and cannot alter it",
@@ -172,26 +453,13 @@
       ]
     },
     {
-      "id": "A6",
-      "title": "Dante persona and caps",
-      "owner": "Fede",
-      "blocked_by": [
-        "A5"
-      ],
-      "blocks": [],
-      "hours": 1.5,
-      "description": "A third PersonaKind, agent, which requires disclosure instead of forbidding it. Neutral rioplatense voseo. Persona first, caps second, never the other way around.",
-      "acceptance_criteria": [
-        "Introduces itself as automated in one line in the first message of every new conversation and never again in that conversation",
-        "Caps compose after the persona, verified by a test over the assembled prompt",
-        "Only states amounts that arrived as data in the turn",
-        "Never names the C invoice"
-      ]
-    },
-    {
       "id": "A7",
       "title": "Orders with a copied amount",
-      "owner": "Fede",
+      "owner": "Juan Bautista",
+      "crew": [
+        "Juan Bautista"
+      ],
+      "lane": "A",
       "blocked_by": [
         "A3"
       ],
@@ -199,6 +467,9 @@
         "A8"
       ],
       "hours": 1.5,
+      "starts": "Sat 11:30",
+      "ends": "Sat 13:00",
+      "critical_chain": false,
       "description": "orders with the states quoted, deposit_pending, deposit_confirmed, files_ok and in_production. The order copies the price instead of pointing at it: the one place in the system where copying data is correct.",
       "acceptance_criteria": [
         "A test edits the list after quoting and the order keeps the old amount",
@@ -209,12 +480,19 @@
     {
       "id": "A8",
       "title": "Deposit by alias with human confirmation",
-      "owner": "Fede",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "A",
       "blocked_by": [
         "A7"
       ],
       "blocks": [],
-      "hours": 2,
+      "hours": 1.0,
+      "starts": "Sat 13:00",
+      "ends": "Sat 14:00",
+      "critical_chain": false,
       "description": "Dante asks for the deposit by Mercado Pago alias, half the total at minimum. The receipt the customer sends is attached to the order. Any of the four can confirm, and the record says who did.",
       "acceptance_criteria": [
         "The receipt is stored and never shown to whoever confirms",
@@ -224,145 +502,22 @@
       ]
     },
     {
-      "id": "A9",
-      "title": "Escalation to a person",
-      "owner": "Fede",
-      "blocked_by": [
-        "A5"
-      ],
-      "blocks": [],
-      "hours": 1,
-      "description": "When resolution returns escalate, the conversation moves to a human with a context note and Dante stops writing in that thread for good.",
-      "acceptance_criteria": [
-        "After escalating, a new customer message produces no agent reply",
-        "The context note carries the escalation reason and what the customer asked for",
-        "All six EscalationReason values trigger escalation, each with its own test"
-      ]
-    },
-    {
-      "id": "B1",
-      "title": "Price list parser",
-      "owner": "Juan Bautista",
-      "blocked_by": [
-        "A2"
-      ],
-      "blocks": [
-        "B2"
-      ],
-      "hours": 2,
-      "description": "Deterministic parser over lista-precios.html, which already comes structured as tables with classes: td.p for prices and tr.mod for add-ons and discounts. No vision pipeline for the initial load.",
-      "acceptance_criteria": [
-        "Two runs produce byte identical JSON",
-        "It tells sale price, add-on and discount apart",
-        "A row matching no pattern fails loudly instead of being skipped silently"
-      ]
-    },
-    {
-      "id": "B2",
-      "title": "Diff the parse against the list",
-      "owner": "Juan Bautista",
-      "blocked_by": [
-        "B1"
-      ],
-      "blocks": [
-        "B3"
-      ],
-      "hours": 1,
-      "description": "Before loading, the parser output is diffed against the original list. The HTML becomes the source of truth for the initial catalog and is already versioned in git.",
-      "acceptance_criteria": [
-        "The diff is read row by row and signed off before loading",
-        "Added, removed and changed rows are shown separately",
-        "Zero unexplained differences in the business cards family"
-      ]
-    },
-    {
-      "id": "B3",
-      "title": "Seed the business cards family",
-      "owner": "Juan Bautista",
-      "blocked_by": [
-        "B2",
-        "A3"
-      ],
-      "blocks": [
-        "B8"
-      ],
-      "hours": 1,
-      "description": "Load cards into families and items. The family declares key, name, unit, module size, and the ordered list of attributes a quote needs before it can resolve.",
-      "acceptance_criteria": [
-        "Card rows are in items with their unit and tier",
-        "The seed is idempotent: running it twice does not duplicate rows",
-        "The required attributes for cards are declared and ordered"
-      ]
-    },
-    {
-      "id": "B4",
-      "title": "priceFor, a pure function",
-      "owner": "Juan Bautista",
-      "blocked_by": [
-        "A2"
-      ],
-      "blocks": [
-        "A5",
-        "B5",
-        "B6",
-        "B9",
-        "D5",
-        "E1"
-      ],
-      "hours": 2,
-      "description": "Resolution without a model. Exact match or escalate: zero rows, more than one, or a missing attribute we already asked for returns escalate. No interpolation, no nearest neighbor, no roughly.",
-      "acceptance_criteria": [
-        "It is a pure function with no network and no clock access",
-        "Each of the three escalation cases has its own test",
-        "It returns the itemId the amount came from and an explanation a human can read",
-        "The square meter versus linear meter rule is covered"
-      ]
-    },
-    {
-      "id": "B5",
-      "title": "Module math",
-      "owner": "Juan Bautista",
-      "blocked_by": [
-        "B4"
-      ],
-      "blocks": [
-        "B8"
-      ],
-      "hours": 1.5,
-      "description": "A size that is not in the list does not escalate, it gets computed. Formula pending client confirmation: modules equals ceil of piece area over module area. It deliberately loosens the rule that the bot only repeats a number the owner typed.",
-      "acceptance_criteria": [
-        "Card 15x5 gives 2 modules, large card 10x15 gives 4, A4 flyer gives 5",
-        "The message says how it got the number, so a human can catch the error by reading",
-        "Every input to the formula is data the owner typed",
-        "The no module discount assumption is flagged in docs/assumptions.md"
-      ]
-    },
-    {
-      "id": "B6",
-      "title": "VAT included, one final number",
-      "owner": "Juan Bautista",
-      "blocked_by": [
-        "B4"
-      ],
-      "blocks": [],
-      "hours": 0.5,
-      "description": "Dante quotes list plus 21%, as one final number. Never plus VAT, never the bare price. Rate in config, not in the code.",
-      "acceptance_criteria": [
-        "No amount leaves the engine without VAT, with a test",
-        "The rate is read from config",
-        "A question about whether VAT is mandatory returns escalate with reason vat_question"
-      ]
-    },
-    {
       "id": "B7",
       "title": "Facts and their fenced injection",
       "owner": "Juan Bautista",
+      "crew": [
+        "Juan Bautista"
+      ],
+      "lane": "B",
       "blocked_by": [
         "A3",
         "D1"
       ],
       "blocks": [],
       "hours": 1.5,
+      "starts": "Sat 13:00",
+      "ends": "Sat 14:30",
+      "critical_chain": false,
       "description": "A facts table with addresses, hours, phones, delivery times per family, payment methods, what the shop does and does not do. Injected into the turn as fenced data. One cap: what is not in that block, you do not know.",
       "acceptance_criteria": [
         "A question about an unloaded fact returns escalate, not a plausible answer",
@@ -372,110 +527,26 @@
       ]
     },
     {
-      "id": "B8",
-      "title": "Ten business card pricing cases",
-      "owner": "Juan Bautista",
-      "blocked_by": [
-        "B3",
-        "B5"
+      "id": "C4",
+      "title": "Admin audio into a typed PriceEdit",
+      "owner": "Fede",
+      "crew": [
+        "Fede"
       ],
-      "blocks": [
-        "E2"
-      ],
-      "hours": 1.5,
-      "description": "Ten cases per loaded family, not ten in total. They come from real conversations, with what the human answered. A family without tests does not ship.",
-      "acceptance_criteria": [
-        "bun test green",
-        "Zero prices outside the catalog, which is the governing metric",
-        "Includes module math and the linear meter versus square meter rule",
-        "Each case names the real conversation it came from"
-      ]
-    },
-    {
-      "id": "B9",
-      "title": "Escalation rate by family",
-      "owner": "Juan Bautista",
+      "lane": "C",
       "blocked_by": [
-        "B4"
-      ],
-      "blocks": [],
-      "hours": 1,
-      "description": "Measured from day one. It will be high at the start and it is the honest signal of catalog coverage, not a failure.",
-      "acceptance_criteria": [
-        "A command prints the rate by family and by escalation reason",
-        "It tells catalog gaps apart from missing facts"
-      ]
-    },
-    {
-      "id": "C1",
-      "title": "Receive and store a voice note",
-      "owner": "Pato",
-      "blocked_by": [
+        "C2",
+        "D2",
         "A4"
       ],
       "blocks": [
-        "C2"
-      ],
-      "hours": 1,
-      "description": "Telegram hands over the voice note, we download and store it with its own id. The media is the evidence behind whatever edit follows, so it gets stored before anyone looks at it.",
-      "acceptance_criteria": [
-        "The audio lands on disk with its own id and can be replayed",
-        "The media is stored even when transcription fails",
-        "The media id travels on any PriceEdit that gets proposed"
-      ]
-    },
-    {
-      "id": "C2",
-      "title": "Transcription behind a seam",
-      "owner": "Pato",
-      "blocked_by": [
-        "C1"
-      ],
-      "blocks": [
-        "C3",
-        "C4"
-      ],
-      "hours": 2,
-      "description": "A transcription port with one implementation. Swapping providers touches one file. Provider cost and runway alerts come later, today just the seam.",
-      "acceptance_criteria": [
-        "A test audio transcribes and the text is stored next to the media",
-        "Swapping providers touches a single file",
-        "A failing audio records the reason and writes nothing else"
-      ]
-    },
-    {
-      "id": "C3",
-      "title": "Customer audio into the extraction pipeline",
-      "owner": "Pato",
-      "blocked_by": [
-        "C2",
-        "A5"
-      ],
-      "blocks": [
-        "C8"
-      ],
-      "hours": 1,
-      "description": "A customer sending an audio to ask for a price goes through the same extraction as text. A transcript is outside text and gets fenced the same way.",
-      "acceptance_criteria": [
-        "An audio asking for a price quotes the same as the equivalent typed text",
-        "The transcript enters fenced as untrusted",
-        "An ambiguous transcript escalates instead of guessing"
-      ]
-    },
-    {
-      "id": "C4",
-      "title": "Admin audio into a typed PriceEdit",
-      "owner": "Pato",
-      "blocked_by": [
-        "C2",
-        "D2"
-      ],
-      "blocks": [
-        "C5",
-        "C6",
+        "C7",
         "E1"
       ],
       "hours": 2,
+      "starts": "Sat 13:30",
+      "ends": "Sat 15:30",
+      "critical_chain": true,
       "description": "Audio never writes. It transcribes, then structuredOutput returns a typed PriceEdit, which is a proposal and is stored unapplied in price_edits.",
       "acceptance_criteria": [
         "Raise cards 20% lands in price_edits and no price changed",
@@ -485,159 +556,22 @@
       ]
     },
     {
-      "id": "C5",
-      "title": "Photo of the list into PriceEdits by vision",
-      "owner": "Pato",
-      "blocked_by": [
-        "C4"
-      ],
-      "blocks": [],
-      "hours": 2,
-      "description": "A whole sheet reads as twenty edits. OCR on a price list gets the digit wrong, not the word, so none of them applies on its own.",
-      "acceptance_criteria": [
-        "One photo yields N proposed PriceEdits and none applied",
-        "Each PriceEdit points at an existing itemId or is flagged as unmatched",
-        "The digit risk is covered: the diff shows old and new side by side"
-      ]
-    },
-    {
-      "id": "C6",
-      "title": "Read only diff page",
-      "owner": "Pato",
-      "blocked_by": [
-        "C4",
-        "D3"
-      ],
-      "blocks": [
-        "C7"
-      ],
-      "hours": 2,
-      "description": "Served by the service's own apiRoutes. It is the only thing that makes a bulk edit reviewable, and bulk is what the client is buying. A single row is fine with Telegram buttons.",
-      "acceptance_criteria": [
-        "Old value and new value shown side by side",
-        "No valid signed link, no page",
-        "Read only except for the confirm button",
-        "The single row fallback through Telegram buttons works"
-      ]
-    },
-    {
-      "id": "C7",
-      "title": "Apply the edit and version it",
-      "owner": "Pato",
-      "blocked_by": [
-        "C6"
-      ],
-      "blocks": [],
-      "hours": 1.5,
-      "description": "Every applied edit is a version: who, when, and the audio or photo that caused it.",
-      "acceptance_criteria": [
-        "price_versions stores who, when and the media id that caused it",
-        "From a version you can replay the original audio",
-        "Applying the same PriceEdit twice does not change the price twice",
-        "An already quoted order does not change amount when the edit applies"
-      ]
-    },
-    {
-      "id": "C8",
-      "title": "Stretch: Dante answers by voice",
-      "owner": "Pato",
-      "blocked_by": [
-        "C3"
-      ],
-      "blocks": [],
-      "hours": 1,
-      "description": "TTS over the already written reply. Only if there is time left after H+18.",
-      "acceptance_criteria": [
-        "Not started before H+18",
-        "The audio comes from the exact text that was sent, not from a fresh generation",
-        "A flag turns it off and the fallback is text"
-      ]
-    },
-    {
-      "id": "D1",
-      "title": "Deterministic fencing of untrusted text",
-      "owner": "Talisman",
-      "blocked_by": [
-        "A2"
-      ],
-      "blocks": [
-        "A5",
-        "B7",
-        "E1"
-      ],
-      "hours": 1.5,
-      "description": "Copied file by file from the Pretor precedent. Every outside text enters fenced and is never an instruction: customer messages, transcripts, facts, and later the email archive.",
-      "acceptance_criteria": [
-        "A message containing the fence delimiters does not break the fence, with a test",
-        "The fence is deterministic: same input, same output",
-        "No path through the turn passes outside text unfenced, verified by a test that walks the call sites"
-      ]
-    },
-    {
-      "id": "D2",
-      "title": "Admin allowlist, fail closed",
-      "owner": "Talisman",
-      "blocked_by": [
-        "A3"
-      ],
-      "blocks": [
-        "C4"
-      ],
-      "hours": 1,
-      "description": "Admin status is decided by sender identity against a closed list. An unknown sender saying raise cards 20% is a customer, not a command. Blocks C4, so it ships before D7.",
-      "acceptance_criteria": [
-        "An empty or misconfigured list denies everyone, never allows everyone",
-        "An unknown sender asking for a raise gets a customer reply",
-        "The list changes through an environment variable, with no code deploy",
-        "Every rejected edit attempt is recorded"
-      ]
-    },
-    {
-      "id": "D3",
-      "title": "HMAC signed link",
-      "owner": "Talisman",
-      "blocked_by": [
-        "A1"
-      ],
-      "blocks": [
-        "C6"
-      ],
-      "hours": 1.5,
-      "description": "The link to the diff page is signed, expires and works once. It is the only barrier between a forwarded message and a price change in production.",
-      "acceptance_criteria": [
-        "An expired link returns 403",
-        "An already used link returns 403",
-        "A link with one byte changed returns 403",
-        "The signing secret lives in fly secrets, not in the repo"
-      ]
-    },
-    {
-      "id": "D4",
-      "title": "Secrets and gitleaks",
-      "owner": "Talisman",
-      "blocked_by": [
-        "A1"
-      ],
-      "blocks": [],
-      "hours": 1,
-      "description": "Every secret in fly secrets. gitleaks on pre-commit and in CI. No .env in git. The Mercado Pago alias is a secret too when it arrives.",
-      "acceptance_criteria": [
-        "The hook stops a commit carrying a key",
-        "gitleaks runs in CI and fails the build",
-        ".env and .env.* are in .gitignore",
-        "The repo history is scanned once and comes back clean"
-      ]
-    },
-    {
       "id": "D5",
       "title": "Adversarial suite",
       "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "D",
       "blocked_by": [
         "A5",
         "B4"
       ],
       "blocks": [],
-      "hours": 2.5,
+      "hours": 1.5,
+      "starts": "Sat 14:00",
+      "ends": "Sat 15:30",
+      "critical_chain": false,
       "description": "Twenty attacks running in CI: prompt injection in a customer message, injection inside a transcript, a price request outside the catalog, a discount request, an attempt to reveal the prompt, an attempt to make it deny being automated.",
       "acceptance_criteria": [
         "All twenty attacks run in CI",
@@ -648,56 +582,61 @@
       ]
     },
     {
-      "id": "D6",
-      "title": "Telegram memory isolation",
-      "owner": "Talisman",
+      "id": "B8",
+      "title": "Ten business card pricing cases",
+      "owner": "Juan Bautista",
+      "crew": [
+        "Juan Bautista"
+      ],
+      "lane": "B",
       "blocked_by": [
-        "A5"
+        "B3",
+        "B5"
       ],
       "blocks": [],
       "hours": 1.5,
-      "description": "Dante is one agent for the team and for customers, with one shared observational memory across the four of them. That memory lives on Telegram and a customer turn never reads it. Without this barrier, anything the team tells Dante can reach a customer.",
+      "starts": "Sat 14:30",
+      "ends": "Sat 16:00",
+      "critical_chain": false,
+      "description": "Ten cases per loaded family, not ten in total. They come from real conversations, with what the human answered. A family without tests does not ship.",
       "acceptance_criteria": [
-        "Something told on Telegram never appears in a customer reply, with a test",
-        "A customer turn builds its context only from the catalog and facts",
-        "The test fails if anyone adds a new context source to the customer turn"
+        "bun test green",
+        "Zero prices outside the catalog, which is the governing metric",
+        "Includes module math and the linear meter versus square meter rule",
+        "Each case names the real conversation it came from"
       ]
     },
     {
-      "id": "D7",
-      "title": "One page threat model",
-      "owner": "Talisman",
+      "id": "E5",
+      "title": "Ask the client for the missing data",
+      "owner": "Fede",
+      "crew": [
+        "Fede"
+      ],
+      "lane": "E",
       "blocked_by": [],
       "blocks": [],
-      "hours": 1,
-      "description": "Who attacks, what they gain, and what stops them. Known actors: a customer chasing a price that does not exist, someone impersonating an admin, someone who planted text in an email to the shop ten years ago.",
+      "hours": 0.5,
+      "starts": "Sat 15:30",
+      "ends": "Sat 16:00",
+      "critical_chain": false,
+      "description": "Six data points open since 2026-09-11 at 13:14: query volume per family, the module formula, the Mercado Pago alias, the missing facts, the phone numbers of the four users, and which number sits on which channel. None of them blocks hackathon code.",
       "acceptance_criteria": [
-        "One page, no more",
-        "Every threat names the ticket that mitigates it",
-        "Unmitigated threats are listed as accepted risk, not omitted"
-      ]
-    },
-    {
-      "id": "D8",
-      "title": "Webhook hardening",
-      "owner": "Talisman",
-      "blocked_by": [
-        "A1"
-      ],
-      "blocks": [],
-      "hours": 1.5,
-      "description": "Header secret, update dedupe and rate limiting. Today it applies to Telegram, and it is the same contract the LiveConnect proxy will ask for in phase two.",
-      "acceptance_criteria": [
-        "A request without a valid secret never reaches business logic",
-        "A repeated update is not processed twice",
-        "The rate limit cuts per conversation and leaves a record",
-        "The endpoint does not leak in the error body whether the secret was valid"
+        "Asked in a single message, not one at a time",
+        "Whatever arrives loads with no code change, only data or config",
+        "Whatever does not arrive stays a flagged assumption in docs/assumptions.md"
       ]
     },
     {
       "id": "E1",
       "title": "Wire the full vertical",
       "owner": "All four",
+      "crew": [
+        "Fede",
+        "Juan Bautista",
+        "Talisman"
+      ],
+      "lane": "E",
       "blocked_by": [
         "A5",
         "B4",
@@ -708,6 +647,9 @@
         "E4"
       ],
       "hours": 2,
+      "starts": "Sat 16:00",
+      "ends": "Sat 18:00",
+      "critical_chain": true,
       "description": "The four lanes meet for the first time. Starts at H+8 and has to be walking by H+14.",
       "acceptance_criteria": [
         "A text message crosses extraction, resolution and writing and comes back with a VAT inclusive price",
@@ -716,52 +658,116 @@
       ]
     },
     {
-      "id": "E2",
-      "title": "Ten business card evals",
-      "owner": "All four",
-      "blocked_by": [
-        "B8"
+      "id": "A6",
+      "title": "Dante persona and caps",
+      "owner": "Fede",
+      "crew": [
+        "Fede"
       ],
-      "blocks": [
-        "E4"
-      ],
-      "hours": 1.5,
-      "description": "Ten real conversations, with what the human answered, running against the whole system and not just against the pricing function.",
-      "acceptance_criteria": [
-        "They run in CI",
-        "The governing metric is zero prices outside the catalog, not a hit rate",
-        "Each eval names the real conversation it came from"
-      ]
-    },
-    {
-      "id": "E3",
-      "title": "Shadow mode",
-      "owner": "All four",
+      "lane": "A",
       "blocked_by": [
         "A5"
       ],
-      "blocks": [
-        "E4"
-      ],
-      "hours": 1.5,
-      "description": "Dante reads everything and answers nothing: it proposes the reply on Telegram and the four of us read it. In the product it is the gate into phase two; in the hackathon it is the last hour of testing.",
+      "blocks": [],
+      "hours": 1.0,
+      "starts": "Sat 18:00",
+      "ends": "Sat 19:00",
+      "critical_chain": false,
+      "description": "A third PersonaKind, agent, which requires disclosure instead of forbidding it. Neutral rioplatense voseo. Persona first, caps second, never the other way around.",
       "acceptance_criteria": [
-        "A flag turns it on and off with no deploy",
-        "In shadow mode no reply reaches the customer channel, with a test",
-        "The proposal shown is byte for byte what would have been sent"
+        "Introduces itself as automated in one line in the first message of every new conversation and never again in that conversation",
+        "Caps compose after the persona, verified by a test over the assembled prompt",
+        "Only states amounts that arrived as data in the turn",
+        "Never names the C invoice"
+      ]
+    },
+    {
+      "id": "A9",
+      "title": "Escalation to a person",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "A",
+      "blocked_by": [
+        "A5"
+      ],
+      "blocks": [],
+      "hours": 1,
+      "starts": "Sat 18:00",
+      "ends": "Sat 19:00",
+      "critical_chain": false,
+      "description": "When resolution returns escalate, the conversation moves to a human with a context note and Dante stops writing in that thread for good.",
+      "acceptance_criteria": [
+        "After escalating, a new customer message produces no agent reply",
+        "The context note carries the escalation reason and what the customer asked for",
+        "All six EscalationReason values trigger escalation, each with its own test"
+      ]
+    },
+    {
+      "id": "B6",
+      "title": "VAT included, one final number",
+      "owner": "Juan Bautista",
+      "crew": [
+        "Juan Bautista"
+      ],
+      "lane": "B",
+      "blocked_by": [
+        "B4"
+      ],
+      "blocks": [],
+      "hours": 0.5,
+      "starts": "Sat 18:00",
+      "ends": "Sat 18:30",
+      "critical_chain": false,
+      "description": "Dante quotes list plus 21%, as one final number. Never plus VAT, never the bare price. Rate in config, not in the code.",
+      "acceptance_criteria": [
+        "No amount leaves the engine without VAT, with a test",
+        "The rate is read from config",
+        "A question about whether VAT is mandatory returns escalate with reason vat_question"
+      ]
+    },
+    {
+      "id": "C7",
+      "title": "Apply the edit and version it",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "C",
+      "blocked_by": [
+        "C4"
+      ],
+      "blocks": [],
+      "hours": 1.0,
+      "starts": "Sat 19:00",
+      "ends": "Sat 20:00",
+      "critical_chain": false,
+      "description": "Every applied edit is a version: who, when, and the audio or photo that caused it.",
+      "acceptance_criteria": [
+        "price_versions stores who, when and the media id that caused it",
+        "From a version you can replay the original audio",
+        "Applying the same PriceEdit twice does not change the price twice",
+        "An already quoted order does not change amount when the edit applies"
       ]
     },
     {
       "id": "E4",
       "title": "Demo script and video",
       "owner": "All four",
+      "crew": [
+        "Fede",
+        "Juan Bautista"
+      ],
+      "lane": "E",
       "blocked_by": [
-        "E1",
-        "E2",
-        "E3"
+        "E1"
       ],
       "blocks": [],
       "hours": 2,
+      "starts": "Sat 19:00",
+      "ends": "Sat 21:00",
+      "critical_chain": true,
       "description": "Three minutes, six steps: VAT inclusive quote, large card by modules, honest escalation, an injection that fails, a price edit by audio with diff and version, an order with a deposit confirmed by a person.",
       "acceptance_criteria": [
         "Three minutes recorded",
@@ -770,17 +776,26 @@
       ]
     },
     {
-      "id": "E5",
-      "title": "Ask the client for the missing data",
-      "owner": "Fede",
-      "blocked_by": [],
+      "id": "D6",
+      "title": "Telegram memory isolation",
+      "owner": "Talisman",
+      "crew": [
+        "Talisman"
+      ],
+      "lane": "D",
+      "blocked_by": [
+        "A5"
+      ],
       "blocks": [],
-      "hours": 0.5,
-      "description": "Six data points open since 2026-09-11 at 13:14: query volume per family, the module formula, the Mercado Pago alias, the missing facts, the phone numbers of the four users, and which number sits on which channel. None of them blocks hackathon code.",
+      "hours": 1.0,
+      "starts": "Sat 20:00",
+      "ends": "Sat 21:00",
+      "critical_chain": false,
+      "description": "Dante is one agent for the team and for customers, with one shared observational memory across the four of them. That memory lives on Telegram and a customer turn never reads it. Without this barrier, anything the team tells Dante can reach a customer.",
       "acceptance_criteria": [
-        "Asked in a single message, not one at a time",
-        "Whatever arrives loads with no code change, only data or config",
-        "Whatever does not arrive stays a flagged assumption in docs/assumptions.md"
+        "Something told on Telegram never appears in a customer reply, with a test",
+        "A customer turn builds its context only from the catalog and facts",
+        "The test fails if anyone adds a new context source to the customer turn"
       ]
     }
   ]
