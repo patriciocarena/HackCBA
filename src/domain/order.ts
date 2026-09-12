@@ -101,6 +101,7 @@ export function acceptQuote(quote: Quote, input: AcceptInput): OrderOutcome {
       quoteId: quote.id,
       conversationId: quote.conversationId,
       breakdown: structuredClone(quote.breakdown),
+      quotedAt: quote.quotedAt,
       state: 'quoted',
       depositAlias: null,
       depositConfirmedBy: null,

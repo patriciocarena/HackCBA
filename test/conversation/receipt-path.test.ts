@@ -24,6 +24,7 @@ function anOrder(overrides: Partial<Order> = {}): Order {
     id: 'ord_1',
     quoteId: 'qt_1',
     conversationId: conversation,
+    quotedAt: '2026-09-12T10:00:00.000Z',
     breakdown: {
       base: { slug: 'bc_offset_1000_4_1', label: 'Tarjetas', amount: 45000 as Order['breakdown']['base']['amount'] },
       moduleFactor: 1,

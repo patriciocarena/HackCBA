@@ -186,6 +186,8 @@ export type Order = {
   quoteId: string
   conversationId: ConversationId
   breakdown: PriceBreakdown
+  /** Copied from the quote, like the breakdown, and for the same reason: it is what was agreed. */
+  quotedAt: string
   state: OrderState
   depositAlias: string | null
   depositConfirmedBy: string | null
