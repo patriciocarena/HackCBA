@@ -5,6 +5,9 @@ export type Send = (chatId: string, text: string) => Promise<void>
 
 export type AskToConfirm = (chatId: string, text: string, proposalId: string) => Promise<void>
 
+/** Telegram requires an answer to every callback query, and it is what clears the spinner. */
+export type AnswerCallback = (callbackId: string, text: string) => Promise<void>
+
 export function telegramSend(token: string, fetchImpl: FetchLike = fetch): Send {
   return async (chatId, text) => {
     const response = await fetchImpl(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -48,6 +51,22 @@ export function telegramAsk(token: string, fetchImpl: FetchLike = fetch): AskToC
       const body = await response.text().catch(() => '')
 
       throw new Error(`telegram sendMessage ${response.status}: ${body.slice(0, 200)}`)
+    }
+  }
+}
+
+export function telegramAnswerCallback(token: string, fetchImpl: FetchLike = fetch): AnswerCallback {
+  return async (callbackId, text) => {
+    const response = await fetchImpl(`https://api.telegram.org/bot${token}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackId, text }),
+    })
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '')
+
+      throw new Error(`telegram answerCallbackQuery ${response.status}: ${body.slice(0, 200)}`)
     }
   }
 }
