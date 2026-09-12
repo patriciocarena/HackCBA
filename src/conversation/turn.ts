@@ -46,10 +46,9 @@ export async function turn(
   if (state.escalated) return silence(state)
   if (message.role !== 'customer' || message.text === null) return silence(state)
 
-  const family = deps.config.family
   const fenced = fence(message.text, 'message')
 
-  const resolution = await resolve(deps, family, fenced).catch(
+  const resolution = await resolve(deps, fenced).catch(
     (): Resolution => ({ kind: 'escalate', reason: 'ambiguous', detail: DELEGATE }),
   )
   const settled = settle(resolution, state)
@@ -72,14 +71,15 @@ function silence(state: TurnState): TurnResult {
 
 const DELEGATE = 'te delego con un humano'
 
-async function resolve(deps: TurnDeps, family: FamilyContract, fenced: string): Promise<Resolution> {
+async function resolve(deps: TurnDeps, fenced: string): Promise<Resolution> {
+  const family = deps.config.family
   const raw = await deps.extract({
     system: EXTRACTION_SYSTEM,
     user: fenced,
     schema: extractionSchema(family),
   })
 
-  if ((raw as Record<string, unknown>)?.kind === 'admin_edit') {
+  if (answerKind(raw) === 'admin_edit') {
     return { kind: 'escalate', reason: 'not_authorized', detail: DELEGATE }
   }
 
@@ -95,14 +95,18 @@ async function resolve(deps: TurnDeps, family: FamilyContract, fenced: string): 
   }
 }
 
+function answerKind(raw: unknown): unknown {
+  return (raw as Record<string, unknown>)?.kind
+}
+
 function readIntent(
   raw: unknown,
   family: FamilyContract,
 ): QuoteIntent | FactIntent | OtherIntent {
   const answered = raw as Record<string, unknown>
 
-  if (answered?.kind === 'fact') return { kind: 'fact', key: String(answered.factKey ?? '') }
-  if (answered?.kind !== 'quote') return { kind: 'other' }
+  if (answerKind(raw) === 'fact') return { kind: 'fact', key: String(answered.factKey ?? '') }
+  if (answerKind(raw) !== 'quote') return { kind: 'other' }
 
   const parsed = quoteIntentSchema(family).safeParse({
     kind: 'quote',
