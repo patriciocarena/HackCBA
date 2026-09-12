@@ -18,6 +18,7 @@ export const SCHEMA: readonly string[] = [
     module_width_cm REAL,
     module_height_cm REAL,
     attributes TEXT NOT NULL ${jsonArray('attributes')},
+    ask_order TEXT NOT NULL ${jsonArray('ask_order')},
     module_discounts TEXT NOT NULL DEFAULT '[]' ${jsonArray('module_discounts')},
     ${together('module_width_cm', 'module_height_cm')}
   )`,
@@ -29,6 +30,8 @@ export const SCHEMA: readonly string[] = [
     tier TEXT NOT NULL ${sqliteCheck('tier', ITEM_TIERS)},
     label TEXT NOT NULL,
     unit TEXT ${sqliteCheck('unit', UNITS)},
+    item_group TEXT,
+    provisional INTEGER NOT NULL DEFAULT 0 ${flag('provisional')},
     attributes TEXT NOT NULL DEFAULT '{}' ${jsonObject('attributes')},
     attributes_key TEXT GENERATED ALWAYS AS (json(attributes)) VIRTUAL,
     applies_to_family INTEGER NOT NULL DEFAULT 0 ${flag('applies_to_family')},

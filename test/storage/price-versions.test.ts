@@ -10,8 +10,8 @@ let client: Client
 beforeEach(async () => {
   client = await migratedDb()
   await client.execute(`INSERT INTO families
-    (slug, label, unit, vat_rate, vat_included, attributes)
-    VALUES ('business_cards', 'Tarjetas personales', 'unit', 0.21, 1, '[]')`)
+    (slug, label, unit, vat_rate, vat_included, attributes, ask_order)
+    VALUES ('business_cards', 'Tarjetas personales', 'unit', 0.21, 1, '[]', '[]')`)
   await client.execute(`INSERT INTO items (id, slug, family_slug, tier, label)
     VALUES (1, 'bc_special_100_front', 'business_cards', 'sale', '100 tarjetas')`)
 })

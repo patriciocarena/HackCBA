@@ -139,4 +139,49 @@ describe('a catalog that cannot be trusted', () => {
       'quantity carries both numbers and words',
     )
   })
+
+  it('keeps the group, because an add-on is resolved by its group and not its row', async () => {
+    const lamination = await client.execute(
+      "SELECT slug, item_group FROM items WHERE item_group = 'lamination' ORDER BY slug",
+    )
+    const rounded = await client.execute("SELECT slug FROM items WHERE item_group = 'rounded_corners'")
+
+    expect(lamination.rows).toHaveLength(4)
+    expect(rounded.rows).toHaveLength(3)
+    expect(String(lamination.rows[0].slug)).toBe('bc_addon_lamination_special_100_front')
+  })
+
+  it('keeps every group the list prices, so none of them is unbuyable', async () => {
+    const groups = await client.execute(
+      "SELECT DISTINCT item_group FROM items WHERE tier = 'add_on' ORDER BY item_group",
+    )
+
+    expect(groups.rows.map((row) => String(row.item_group))).toEqual([
+      'circular_cut',
+      'design',
+      'extra_cut',
+      'label_perforation',
+      'lamination',
+      'rounded_corners',
+    ])
+  })
+
+  it('keeps provisional, because a provisional discount is not applied by default', async () => {
+    const provisional = await client.execute(
+      "SELECT slug FROM items WHERE provisional = 1 ORDER BY slug",
+    )
+    const sales = await client.execute("SELECT count(*) AS n FROM items WHERE tier = 'sale' AND provisional = 1")
+
+    expect(provisional.rows.map((row) => String(row.slug))).toEqual([
+      'bc_discount_illustration_plain_100',
+      'bc_discount_illustration_plain_200',
+    ])
+    expect(Number(sales.rows[0].n)).toBe(0)
+  })
+
+  it('keeps ask_order, which is the order the family asks in and not the contract order', async () => {
+    const family = await one('SELECT ask_order FROM families')
+
+    expect(JSON.parse(String(family.ask_order))).toEqual(['quantity', 'paper', 'sides', 'finish'])
+  })
 })

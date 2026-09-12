@@ -13,6 +13,8 @@ const seedItemSchema = z.object({
   kind: itemTierSchema,
   label: z.string(),
   unit: unitSchema.optional(),
+  group: z.string().optional(),
+  provisional: z.boolean().default(false),
   attributes: z.record(z.string(), attributeValueSchema).default({}),
   applies_to: z.array(z.string()).default([]),
   applies_to_family: z.boolean().default(false),
@@ -32,6 +34,7 @@ const seedSchema = z.object({
     unit: unitSchema,
     module: z.object({ width_cm: z.number(), height_cm: z.number() }).nullish(),
     attributes: z.array(z.string()),
+    ask_order: z.array(z.string()),
   }),
   items: z.array(seedItemSchema),
   module_discounts: z
@@ -78,8 +81,8 @@ async function writeFamily(client: Writer, seed: Seed): Promise<void> {
   await client.execute({
     sql: `INSERT INTO families
       (slug, label, unit, vat_rate, vat_included, quote_validity_days,
-       module_width_cm, module_height_cm, attributes, module_discounts)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       module_width_cm, module_height_cm, attributes, ask_order, module_discounts)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (slug) DO UPDATE SET
         label = excluded.label,
         unit = excluded.unit,
@@ -89,6 +92,7 @@ async function writeFamily(client: Writer, seed: Seed): Promise<void> {
         module_width_cm = excluded.module_width_cm,
         module_height_cm = excluded.module_height_cm,
         attributes = excluded.attributes,
+        ask_order = excluded.ask_order,
         module_discounts = excluded.module_discounts`,
     args: [
       seed.family.slug,
@@ -100,6 +104,7 @@ async function writeFamily(client: Writer, seed: Seed): Promise<void> {
       seed.family.module?.width_cm ?? null,
       seed.family.module?.height_cm ?? null,
       JSON.stringify(attributeContracts(seed)),
+      JSON.stringify(seed.family.ask_order),
       JSON.stringify(moduleDiscounts(seed)),
     ],
   })
@@ -108,14 +113,16 @@ async function writeFamily(client: Writer, seed: Seed): Promise<void> {
 async function writeItem(client: Writer, familySlug: string, item: SeedItem): Promise<void> {
   await client.execute({
     sql: `INSERT INTO items
-      (slug, family_slug, tier, label, unit, attributes, applies_to_family,
-       extra_business_days, note, source_note)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (slug, family_slug, tier, label, unit, item_group, provisional, attributes,
+       applies_to_family, extra_business_days, note, source_note)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (slug) DO UPDATE SET
         family_slug = excluded.family_slug,
         tier = excluded.tier,
         label = excluded.label,
         unit = excluded.unit,
+        item_group = excluded.item_group,
+        provisional = excluded.provisional,
         attributes = excluded.attributes,
         applies_to_family = excluded.applies_to_family,
         extra_business_days = excluded.extra_business_days,
@@ -127,6 +134,8 @@ async function writeItem(client: Writer, familySlug: string, item: SeedItem): Pr
       item.kind,
       item.label,
       item.unit ?? null,
+      item.group ?? null,
+      item.provisional ? 1 : 0,
       canonicalAttributes(item.attributes),
       item.applies_to_family ? 1 : 0,
       item.extra_business_days,

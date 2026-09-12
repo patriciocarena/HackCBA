@@ -8,8 +8,8 @@ let client: Client
 beforeEach(async () => {
   client = await migratedDb()
   await client.execute(`INSERT INTO families
-    (slug, label, unit, vat_rate, vat_included, quote_validity_days, attributes)
-    VALUES ('business_cards', 'Tarjetas personales', 'unit', 0.21, 1, 15, '[]')`)
+    (slug, label, unit, vat_rate, vat_included, quote_validity_days, attributes, ask_order)
+    VALUES ('business_cards', 'Tarjetas personales', 'unit', 0.21, 1, 15, '[]', '[]')`)
 })
 
 afterEach(() => {
@@ -59,8 +59,8 @@ describe('unit', () => {
   it('is required on a family', async () => {
     await expect(
       client.execute(`INSERT INTO families
-        (slug, label, unit, vat_rate, vat_included, quote_validity_days, attributes)
-        VALUES ('stickers', 'Stickers', NULL, 0.21, 1, 15, '[]')`),
+        (slug, label, unit, vat_rate, vat_included, quote_validity_days, attributes, ask_order)
+        VALUES ('stickers', 'Stickers', NULL, 0.21, 1, 15, '[]', '[]')`),
     ).rejects.toThrow('NOT NULL constraint failed')
   })
 
