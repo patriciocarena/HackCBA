@@ -1,4 +1,5 @@
 import { ESCALATION_REASONS, type EscalationReason } from "../domain/types";
+import { fence } from "../security/fence";
 import type { FetchLike } from "./transcription";
 
 
@@ -90,15 +91,6 @@ type RawIntent = {
   detail?: unknown;
 };
 
-// PLAN.md section 5: outside text is fenced and is never an instruction. A fence
-// the input can close is decorative, and stripping only the closing tag is not
-// enough, since removing it can splice a new one out of the halves around it.
-// Angle brackets cannot survive a trip through speech to text, so dropping them
-// outright costs nothing and leaves the fence unclosable.
-function fence(transcript: string): string {
-  return `<transcript>\n${transcript.replace(/[<>]/g, "")}\n</transcript>`;
-}
-
 function review(reason: EscalationReason, detail: string): PriceEditIntent {
   return { kind: "review", reason, detail };
 }
@@ -182,7 +174,7 @@ export function openRouterExtraction(
             temperature: 0,
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              { role: "user", content: fence(transcript) },
+              { role: "user", content: fence(transcript, "transcript") },
             ],
             response_format: {
               type: "json_schema",
