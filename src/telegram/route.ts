@@ -5,14 +5,14 @@ import { requireEnv } from '../config/env'
 import { adminTurn } from '../conversation/admin-turn'
 import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
-import { adminAllowlistFromEnv, type IsAdmin } from '../security/allowlist'
-import type { RecordVersion } from '../telegram/confirm-callback'
+import { inMemorySale } from '../conversation/sale'
+import { adminAllowlistFromEnv } from '../security/allowlist'
 import { readAdminAudio } from '../voice/admin-audio'
 import { extractionFromEnv } from '../voice/price-edit-intent'
 import type { PriceEditStore } from '../voice/price-edit-proposal'
 import { transcriptionFromEnv, type FetchLike } from '../voice/transcription'
 import { telegramAudio } from './audio-file'
-import { confirmCallback } from './confirm-callback'
+import { confirmCallback, type RecordVersion } from './confirm-callback'
 import type { Turn } from './inbound'
 import { telegramAsk, telegramSend } from './send'
 import { telegramWebhook, type WebhookDeps } from './webhook'
@@ -76,13 +76,22 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
     fetchImpl,
   })
 
+  // Built once, beside the states Map customerTurn holds, and for the same reason: a store
+  // built per message loses the quote between the message that gave it and the one that
+  // accepts it, and every unit test stays green while it does.
+  const sale = inMemorySale({
+    alias: requireEnv('DEPOSIT_ALIAS'),
+    now: () => new Date().toISOString(),
+    id: () => crypto.randomUUID(),
+  })
+
   const token = requireEnv('TELEGRAM_BOT_TOKEN')
   const send = telegramSend(token, fetchImpl)
 
   const customer = customerTurn(
     // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
     // half of the rule; the loaded half arrives with the table that holds them.
-    { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write },
+    { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write, sale },
     send,
   )
 

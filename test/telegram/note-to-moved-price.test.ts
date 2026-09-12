@@ -18,6 +18,7 @@ process.env.OPENROUTER_MODEL = 'a-model'
 process.env.ELEVENLABS_API_KEY = 'a-transcription-key'
 process.env.ELEVENLABS_MODEL_ID = 'scribe_v2'
 process.env.TRANSCRIPTION_LANGUAGE = 'es'
+process.env.DEPOSIT_ALIAS = 'dante.imprenta.mp'
 
 const DICTATED = { kind: 'edit', target: businessCards.label, direction: 'raise', changeKind: 'percent', value: 20, reason: null, detail: '' }
 

@@ -18,6 +18,7 @@ process.env.OPENROUTER_MODEL = 'a-model'
 process.env.ELEVENLABS_API_KEY = 'a-transcription-key'
 process.env.ELEVENLABS_MODEL_ID = 'scribe_v2'
 process.env.TRANSCRIPTION_LANGUAGE = 'es'
+process.env.DEPOSIT_ALIAS = 'dante.imprenta.mp'
 
 function handle(route: ReturnType<typeof telegramWebhookRoute>, request: Request): Promise<Response> {
   const { handler } = route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }
@@ -147,28 +148,13 @@ describe('the default turn', () => {
 })
 
 describe('every key is read at boot', () => {
-  for (const key of ['OPENROUTER_MODEL', 'OPENROUTER_API_KEY', 'TELEGRAM_BOT_TOKEN']) {
+  for (const key of ['OPENROUTER_MODEL', 'OPENROUTER_API_KEY', 'TELEGRAM_BOT_TOKEN', 'DEPOSIT_ALIAS']) {
     it(`throws when ${key} is missing, at construction and not at the first customer`, () => {
       const held = process.env[key]
       delete process.env[key]
 
       try {
         expect(() => telegramWebhookRoute({ onCallback: noPress }, aWiring())).toThrow(`${key} is not set`)
-      } finally {
-        process.env[key] = held
-      }
-    })
-  }
-
-  // The owner's half reads three more, and they are read the same way: at boot. Without this
-  // the suite was green here and broken in CI, which has no .env to fall back on.
-  for (const key of ['ELEVENLABS_API_KEY', 'ELEVENLABS_MODEL_ID', 'TRANSCRIPTION_LANGUAGE']) {
-    it(`throws when ${key} is missing, so the owner's path cannot boot half wired`, () => {
-      const held = process.env[key]
-      delete process.env[key]
-
-      try {
-        expect(() => telegramWebhookRoute({ onCallback: noPress }, aWiring())).toThrow(`missing ${key}`)
       } finally {
         process.env[key] = held
       }

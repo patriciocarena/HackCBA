@@ -6,6 +6,11 @@ import type { PriceForConfig } from '@/domain/price-for'
 import type { Send } from '@/telegram/send'
 import { telegramWebhook } from '@/telegram/webhook'
 import { OFFSET_1000 } from '@test/support/fixtures'
+import { inMemorySale } from '@/conversation/sale'
+import { liveCatalog, type LiveCatalog } from '@/catalog/live-catalog'
+import { conversationId } from '@/domain/types'
+import { totalOf } from '@/domain/breakdown'
+import { ars } from '@/domain/money'
 
 const SECRET = 'a-long-random-string'
 
@@ -145,5 +150,99 @@ describe('a reply Telegram refused', () => {
 
     expect(requests).toHaveLength(2)
     expect(requests[0]!.system).toBe(requests[1]!.system)
+  })
+})
+
+const ACCEPT = { kind: 'accept', family: null, attributes: {}, size: null, addOns: [], factKey: null, reason: null }
+
+const ALIAS = 'dante.imprenta.mp'
+
+/**
+ * Two messages, one conversation, through the webhook the route builds. The quote has to
+ * survive the gap between them, which is the thing a per-message store silently loses.
+ */
+function saleVertical(catalog: LiveCatalog = liveCatalog(catalogRows)) {
+  const replies: { chatId: string; text: string }[] = []
+  let asked = 0
+
+  const sale = inMemorySale({
+    alias: ALIAS,
+    now: () => '2026-09-12T14:00:00.000Z',
+    id: () => `id_${(asked += 1)}`,
+  })
+
+  const deps: TurnDeps = {
+    rows: catalog.rows,
+    config: baseConfig,
+    facts: [],
+    sale,
+    extract: async ({ user }) => (user.includes('la quiero') ? ACCEPT : QUOTE),
+    // The writer copies the answer it was handed, which is what the real prompt tells it to do.
+    write: async ({ user }) => user.split('<respuesta:')[1]?.split('\n').slice(1, -1).join('\n') ?? '',
+  }
+
+  const send: Send = async (chatId, text) => {
+    replies.push({ chatId, text })
+  }
+
+  return {
+    webhook: telegramWebhook({ secret: SECRET, turn: customerTurn(deps, send), onCallback: async () => {} }),
+    replies,
+    sale,
+  }
+}
+
+describe('the customer accepts, and the order is born', () => {
+  it('quotes, then turns an acceptance in a later message into a deposit ask', async () => {
+    const { webhook, replies, sale } = saleVertical()
+
+    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
+    await webhook(delivery(71, 'dale, la quiero'))
+
+    expect(replies).toHaveLength(2)
+    expect(replies[0]?.text).toContain(QUOTED)
+
+    const order = sale.orderFor(conversationId('telegram', '-100', 'customer'))
+    expect(order?.state).toBe('deposit_pending')
+    expect(order?.depositAlias).toBe(ALIAS)
+    expect(totalOf(order!.breakdown)).toBe(ars(45_000))
+
+    expect(replies[1]?.text).toContain(ALIAS)
+    expect(replies[1]?.text).toContain(QUOTED)
+  })
+
+  it('escalates the acceptance when no sale store is wired, rather than inventing an order', async () => {
+    const { webhook, replies } = vertical({
+      extract: async ({ user }) => (user.includes('la quiero') ? ACCEPT : QUOTE),
+      write: async ({ user }) => user.split('<respuesta:')[1]?.split('\n').slice(1, -1).join('\n') ?? '',
+    })
+
+    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
+    await webhook(delivery(71, 'dale, la quiero'))
+
+    expect(replies[1]?.text).toBe('te delego con un humano')
+  })
+})
+
+describe('the owner raises prices between the quote and the acceptance', () => {
+  it('honours the amount the customer was quoted, and quotes the new one to the next customer', async () => {
+    const catalog = liveCatalog(catalogRows)
+    const { webhook, replies, sale } = saleVertical(catalog)
+
+    await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
+    expect(replies[0]?.text).toContain(QUOTED)
+
+    // The owner's edit lands through the same getter C10 wired, while the quote is still open.
+    catalog.swap(catalogRows.map((row) => ({ ...row, price: (row.price * 2) as typeof row.price })))
+
+    await webhook(delivery(71, 'dale, la quiero'))
+
+    const order = sale.orderFor(conversationId('telegram', '-100', 'customer'))
+    expect(totalOf(order!.breakdown)).toBe(ars(45_000))
+    expect(replies[1]?.text).toContain(QUOTED)
+
+    // The next quote reads the list as it is now, which is the whole point of the getter.
+    await webhook(delivery(72, 'hola, cuánto 1000 tarjetas'))
+    expect(replies[2]?.text).toContain('$90.000')
   })
 })

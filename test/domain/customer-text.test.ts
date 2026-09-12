@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { depositText } from '@/conversation/sale'
 import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { priceFor } from '../../src/domain/price-for'
 import { askText, quoteText } from '../../src/domain/quote-text'
@@ -14,6 +15,7 @@ function customerText(overrides: Partial<QuoteIntent>): string {
   if (resolution.kind === 'price') return quoteText(resolution.breakdown, resolution.validityDays)
   if (resolution.kind === 'ask') return askText(resolution.missing)
   if (resolution.kind === 'escalate') return resolution.detail
+  if (resolution.kind === 'accepted') return depositText(resolution)
   return resolution.value
 }
 
