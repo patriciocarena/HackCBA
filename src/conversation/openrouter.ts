@@ -1,4 +1,3 @@
-import { requireEnv } from '../config/env'
 import type { FetchLike } from '../voice/transcription'
 import type { Extract, Write } from './turn'
 
@@ -6,7 +5,6 @@ export type OpenRouterConfig = {
   apiKey: string
   model: string
   fetchImpl?: FetchLike
-  timeoutMs?: number
 }
 
 export type Model = {
@@ -15,10 +13,10 @@ export type Model = {
 }
 
 const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions'
-const DEFAULT_TIMEOUT_MS = 30_000
+const TIMEOUT_MS = 30_000
 
 export function openRouterModel(config: OpenRouterConfig): Model {
-  const { apiKey, model, fetchImpl = fetch, timeoutMs = DEFAULT_TIMEOUT_MS } = config
+  const { apiKey, model, fetchImpl = fetch } = config
 
   async function complete(system: string, user: string, format?: object): Promise<string> {
     const response = await fetchImpl(ENDPOINT, {
@@ -33,7 +31,7 @@ export function openRouterModel(config: OpenRouterConfig): Model {
         ],
         ...format,
       }),
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -61,8 +59,4 @@ export function openRouterModel(config: OpenRouterConfig): Model {
       return await complete(system, user)
     },
   }
-}
-
-export function modelFromEnv(): Model {
-  return openRouterModel({ apiKey: requireEnv('OPENROUTER_API_KEY'), model: requireEnv('OPENROUTER_MODEL') })
 }

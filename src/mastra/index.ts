@@ -23,17 +23,20 @@ export const mastra = new Mastra({
   server: {
     apiRoutes: [
       healthDbRoute(),
-      telegramWebhookRoute({
-        onCallback: confirmCallback({
-          load: edits.load,
-          save: edits.save,
-          catalog,
-          record: versions.record,
-          isAdmin: adminAllowlistFromEnv(),
-          versionId: () => randomUUID(),
-          now: () => new Date().toISOString(),
-        }),
-      }),
+      telegramWebhookRoute(
+        {
+          onCallback: confirmCallback({
+            load: edits.load,
+            save: edits.save,
+            catalog,
+            record: versions.record,
+            isAdmin: adminAllowlistFromEnv(),
+            versionId: () => randomUUID(),
+            now: () => new Date().toISOString(),
+          }),
+        },
+        catalog,
+      ),
     ],
   },
   logger: new PinoLogger({ name: 'Dante', level: 'info' }),

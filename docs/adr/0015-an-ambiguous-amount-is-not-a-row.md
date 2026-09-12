@@ -1,4 +1,4 @@
-# 10. A proposal is the whole of what audio writes, and an ambiguous amount is not one
+# 15. A proposal is the whole of what audio writes, and an ambiguous amount is not one
 
 Date: 2026-09-12
 
