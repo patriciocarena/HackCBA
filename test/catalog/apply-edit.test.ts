@@ -64,4 +64,44 @@ describe('applyPriceEdit', () => {
 
     expect(outcome).toEqual({ ok: false, reason: 'not_a_time' })
   })
+
+  it('the version records who applied it, when, and the audio that caused it', () => {
+    const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      by: { kind: 'person', id: '42' },
+      now: '2026-09-12T10:05:00.000Z',
+    })
+
+    if (!outcome.ok) throw new Error(outcome.reason)
+    const { version } = outcome.applied
+
+    expect(version.proposalId).toBe('edit_1')
+    expect(version.appliedBy).toBe('42')
+    expect(version.appliedAt).toBe('2026-09-12T10:05:00.000Z')
+    expect(version.mediaId).toBe('voice_abc')
+    expect(version.id).not.toBe('')
+  })
+
+  it('the rows come back carrying the new price', () => {
+    const outcome = applyPriceEdit(PROPOSED, ROWS, {
+      by: { kind: 'person', id: '42' },
+      now: '2026-09-12T10:05:00.000Z',
+    })
+
+    if (!outcome.ok) throw new Error(outcome.reason)
+
+    expect(outcome.applied.rows).toEqual([{ ...ROWS[0], price: ars(14520) }])
+    expect(ROWS[0].price).toBe(ars(12100))
+  })
+
+  it('leaves a row the edit does not name alone', () => {
+    const untouched = { slug: 'bc_other', kind: 'sale' as const, label: 'otra', price: ars(500) }
+    const outcome = applyPriceEdit(PROPOSED, [...ROWS, untouched], {
+      by: { kind: 'person', id: '42' },
+      now: '2026-09-12T10:05:00.000Z',
+    })
+
+    if (!outcome.ok) throw new Error(outcome.reason)
+
+    expect(outcome.applied.rows[1]).toEqual(untouched)
+  })
 })

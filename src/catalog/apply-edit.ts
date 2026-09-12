@@ -54,7 +54,13 @@ export function applyPriceEdit(
         appliedAt: input.now,
         mediaId: proposal.mediaId,
       },
-      rows,
+      rows: rows.map((row) => repriced(row, proposal)),
     },
   }
+}
+
+function repriced(row: CatalogRow, proposal: PriceEditProposal): CatalogRow {
+  const line = proposal.lines.find((candidate) => candidate.slug === row.slug)
+
+  return line === undefined ? row : { ...row, price: line.newPrice }
 }
