@@ -64,10 +64,11 @@ turn's result.
 
 ## What we build in 24 hours
 
-One thin vertical, end to end, over a single catalog family: business cards. All of it on
-Telegram.
+One thin vertical, end to end, over three of the list's thirty eight families: business
+cards, folletos láser and facturas. All of it on Telegram.
 
-- Catalog parsed from the price list already versioned as HTML. Cards are loaded, in `seed/`.
+- Catalog parsed from the price list already versioned as HTML. Three families are loaded,
+  in `seed/`, behind a registry the rest are added to one at a time.
 - Pricing engine with module math: a size that is not in the list does not escalate, it
   gets computed.
 - Conversation with extraction, resolution and writing.
@@ -82,8 +83,10 @@ The full plan is in `PLAN.md`, the flowcharts and the run sheet in `SCHEDULE.md`
 
 WhatsApp and the LiveConnect proxy: it depends on credentials and on two unanswered
 questions, and risking the shop's number during a hackathon is not worth it. Email,
-billing, multi tenancy, and the other twenty one families. Because of the exact match rule,
-an unloaded family escalates instead of guessing, so not loading them breaks nothing.
+billing, multi tenancy, and the other thirty five families. Four of them are priced by the
+square or linear metre and the engine refuses those outright, until someone decides area
+pricing. Because of the exact match rule, an unloaded family escalates instead of guessing, so
+not loading them breaks nothing.
 
 ## Stack
 
@@ -108,11 +111,15 @@ from the first deploy; the reasoning is in ADR 0001.
 | `docs/assumptions.md` | What we take as true because the client has not answered yet |
 | `docs/amenazas.md` | The threat model, ticket D7 |
 | `docs/adr/` | The decisions this repo made and why |
-| `seed/lista-precios.html` | The owner's price list, 19 families, the source every seed is typed from |
+| `seed/lista-precios.html` | The owner's price list, 38 families, net of VAT, the source every seed is typed from |
 | `seed/business-cards.json` | The cards catalog: items, add-ons, discounts and the module table |
+| `seed/folletos-laser.json` | Folletos láser: eight rows, no module, no add-ons |
+| `seed/facturas.json` | Facturas: twenty eight rows, and every modifier a percentage |
+| `src/catalog/families.ts` | The registry. Every family the process quotes from, keyed by slug |
 | `seed/facts.json` | What the shop may say about itself. A row with no value escalates |
 | `scripts/parse-price-list.ts` | Reads the list and audits a seed's amounts against it, `bun run parse:list` |
-| `scripts/eval-flows.ts` | The two flows the shop sells on, driven through the real route with real models |
+| `scripts/eval-flows.ts` | The three flows the shop sells on, driven through the real route with real models |
+| `scripts/eval-families.ts` | The two newer families through the same route, `bun run eval:families` |
 
 The long product plan and the domain glossary live in the client repo. The ADRs here cover
 only this repo's own decisions.
