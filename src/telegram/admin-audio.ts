@@ -32,10 +32,10 @@ export function readAdminAudio(
   const { rows, family, transcription, extraction, fetchAudio = noAudio, save } = deps
 
   return async (message) => {
-    if (message.role !== 'admin' || message.mediaId === null) return null
+    if (message.role !== 'admin' || message.media?.kind !== 'voice') return null
 
-    const audio = await fetchAudio(message.mediaId)
-    if (audio === null) return { kind: 'failed', reason: `no audio for ${message.mediaId}` }
+    const audio = await fetchAudio(message.media.id)
+    if (audio === null) return { kind: 'failed', reason: `no audio for ${message.media.id}` }
 
     const heard = await transcription.transcribe(audio)
     if (!heard.ok) return { kind: 'failed', reason: heard.reason }
@@ -47,7 +47,7 @@ export function readAdminAudio(
       intent: extracted.intent,
       rows,
       family,
-      mediaId: message.mediaId,
+      mediaId: message.media.id,
       proposedBy: message.senderId,
       proposedAt: message.receivedAt,
     })

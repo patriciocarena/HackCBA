@@ -21,7 +21,7 @@ function message(fields: Partial<InboundMessage> = {}): InboundMessage {
     chatId: '42',
     senderId: '7',
     text: null,
-    mediaId: 'voice-1',
+    media: { kind: 'voice', id: 'voice-1' } as InboundMessage['media'],
     receivedAt: '2026-09-12T13:40:00.000Z',
     ...fields,
   }
@@ -84,7 +84,16 @@ describe('adminAudioTurn', () => {
   it('leaves a message with no audio alone, because this turn only reads audio', async () => {
     const { edits, heard, turn } = turnWith()
 
-    await turn(message({ mediaId: null, text: 'subí las tarjetas un 20%' as UntrustedText }))
+    await turn(message({ media: null, text: 'subí las tarjetas un 20%' as UntrustedText }))
+
+    expect(heard.heard).toBeEmpty()
+    expect(edits.proposals).toBeEmpty()
+  })
+
+  it('leaves a photo alone, because a list photographed is C5 and C5 was cut', async () => {
+    const { edits, heard, turn } = turnWith()
+
+    await turn(message({ media: { kind: 'photo', id: 'photo-1' } }))
 
     expect(heard.heard).toBeEmpty()
     expect(edits.proposals).toBeEmpty()

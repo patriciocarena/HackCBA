@@ -10,7 +10,7 @@ const message: InboundMessage = {
   chatId: '-100',
   senderId: '42',
   text: fence('hola', 'message'),
-  mediaId: null,
+  media: null,
   receivedAt: '2026-09-12T09:30:00.000Z',
 }
 
