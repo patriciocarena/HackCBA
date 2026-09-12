@@ -26,8 +26,9 @@ Whoever owns the demo decides what to do about that. This runbook does not work 
 
 ## What does not work yet
 
-Checked against `main` at `672afdb`. A3, A5, A8, C4, C7 and the price edit confirmation
-have all merged, so no row below cites an unmerged branch. PR #23 is E1 and PR #27 is D5.
+Checked against `main` at `c1137cf`. A3, A5, A8, C4, C7, D5 and the price edit
+confirmation have all merged, so no row below cites an unmerged branch. PR #23 is E1 and
+is the only thing step 1 still waits on.
 
 | # | What | Where |
 |---|---|---|
@@ -288,7 +289,9 @@ Ranked by what each step proves, best first.
 | 6 | 4 | It is safe, but on screen it is a non-event |
 
 Drop 4 first, then 2. Step 4's outcome is that nothing happened, which reads as a bug
-without narration, and `docs/amenazas.md` carries the argument in writing. Step 2 is
+without narration, and D5 proves the same property in CI, five injections through a real
+turn in `test/security/adversarial.test.ts`, with `docs/amenazas.md` carrying the argument
+in writing. Step 2 is
 provable from `docs/pricing-cases.md`, and step 1 has already shown a real number.
 
 What is left is 1, 3, 5 and 6. That is not a chatbot with a price list.
