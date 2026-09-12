@@ -1,5 +1,5 @@
 /**
- * The two flows the shop sells on, driven through the real route with real models.
+ * The three flows the shop sells on, driven through the real route with real models.
  *
  * The suite stubs every model, so it proves the wiring and nothing about what the models do
  * with a real sentence. That is how a customer asked one plain question in production and got
@@ -16,40 +16,17 @@
  * catalog moves. The same words from a client move nothing, and that is the allowlist, not
  * the model's judgement.
  *
+ * Flow 3, a follow up. The second question names only a quantity, so a price can only come
+ * out of what the conversation already holds. It is the writer's memory or it is nothing.
+ *
  * Needs OPENROUTER_API_KEY, OPENROUTER_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_MODEL_ID and
  * TELEGRAM_BOT_TOKEN. It spends money on every run.
  */
-import { mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
 import '../src/config/load-env'
-import { baseConfig, catalogRows } from '../src/catalog/business-cards'
-import { agentWrite, danteAgent } from '../src/conversation/agent'
-import { liveCatalog } from '../src/catalog/live-catalog'
 import { requireEnv } from '../src/config/env'
-import { priceFor } from '../src/domain/price-for'
 import type { QuoteIntent } from '../src/domain/types'
 import { pesos } from '../src/domain/quote-text'
-import { totalOf } from '../src/domain/breakdown'
-import { telegramWebhookRoute } from '../src/telegram/route'
-import { inMemoryPriceEdits } from '../src/voice/price-edit-proposal'
-import type { FetchLike } from '../src/voice/transcription'
-
-const OWNER = requireEnv('OWNER_CHAT_ID')
-const CLIENT = '900000001'
-const SECRET = requireEnv('TELEGRAM_WEBHOOK_SECRET')
-const TOKEN = requireEnv('TELEGRAM_BOT_TOKEN')
-const MODEL = requireEnv('OPENROUTER_MODEL')
-
-/**
- * A database per bench, not per run. The thread id is the chat id, so two flows that use the
- * same customer would otherwise share a conversation: flow 3 would open with flow 1's history
- * already behind it and stop testing what it says it tests. It also keeps the shop's own
- * memory clear of anything an eval said.
- */
-function scratchMemory(): string {
-  return `file:${mkdtempSync(join(tmpdir(), 'dante-eval-'))}/memory.db`
-}
+import { bench as harness, press, text, to, voice, CLIENT, OWNER, type Sent } from './bench'
 
 const ASKS_A_PRICE = 'hola, cuánto me sale 1000 tarjetas personales en papel ilustración 350, frente color y dorso gris?'
 const RAISES_A_PRICE = 'Che, subime un 20% todas las tarjetas personales, por favor'
@@ -87,130 +64,23 @@ function check(what: string, held: boolean, detail: string): void {
   ;(held ? pass : fail)(what, detail)
 }
 
-type Sent = { chatId: string; text: string; button: string | null }
-
-/**
- * Telegram, and only Telegram. Everything else goes to the network, because a stubbed model
- * is exactly the thing this eval exists to stop trusting.
- */
+/** The bench, with the one question these flows ask already bound to it. */
 function bench() {
-  const sent: Sent[] = []
-  const audio = Bun.file('fixtures/raise-cards.opus')
-
-  const fetchImpl: FetchLike = async (url, init) => {
-    if (new URL(String(url)).host !== 'api.telegram.org') return fetch(url, init)
-
-    const path = String(url)
-
-    if (path.includes('/getFile')) return Response.json({ ok: true, result: { file_path: 'voice/raise-cards.oga' } })
-    if (path.includes(`/file/bot${TOKEN}/`)) return new Response(await audio.arrayBuffer())
-
-    if (path.endsWith('/sendMessage')) {
-      const body = JSON.parse(String(init?.body)) as {
-        chat_id: string
-        text: string
-        reply_markup?: { inline_keyboard: { callback_data: string }[][] }
-      }
-      sent.push({
-        chatId: body.chat_id,
-        text: body.text,
-        button: body.reply_markup?.inline_keyboard[0]?.[0]?.callback_data ?? null,
-      })
-
-      return Response.json({ ok: true })
-    }
-
-    return Response.json({ ok: true })
-  }
-
-  const catalog = liveCatalog(catalogRows)
-  // The real agent, with its real Observational Memory, because a stubbed writer is exactly
-  // what this script exists to stop trusting. It calls OpenRouter itself and ignores fetchImpl.
-  const route = telegramWebhookRoute(
-    {},
-    { catalog, edits: inMemoryPriceEdits(), record: async () => {}, write: agentWrite(danteAgent(MODEL, scratchMemory())) },
-    fetchImpl,
-  )
-
-  const handler = (route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }).handler
+  const built = harness()
 
   return {
-    sent,
-    catalog,
+    ...built,
+    quoted: () => built.priced(ASKED_FOR),
     /** The same question at another quantity, which is what the follow up asks for. */
-    quotedFor(quantity: number): number {
-      const priced = priceFor(
-        { ...ASKED_FOR, attributes: { ...ASKED_FOR.attributes, quantity } },
-        catalog.rows(),
-        baseConfig,
-      )
-      if (priced.kind !== 'price') throw new Error(`the eval's own follow up does not price: ${priced.kind}`)
-
-      return totalOf(priced.breakdown)
-    },
-    /** What the client or the owner would be charged for ASKS_A_PRICE, as the catalog is now. */
-    quoted(): number {
-      const priced = priceFor(ASKED_FOR, catalog.rows(), baseConfig)
-      if (priced.kind !== 'price') throw new Error(`the eval's own question does not price: ${priced.kind}`)
-
-      return totalOf(priced.breakdown)
-    },
-    async deliver(update: Record<string, unknown>): Promise<number> {
-      const response = await handler({
-        req: {
-          raw: new Request('https://dante.example/telegram/webhook', {
-            method: 'POST',
-            headers: { 'X-Telegram-Bot-Api-Secret-Token': SECRET, 'Content-Type': 'application/json' },
-            body: JSON.stringify(update),
-          }),
-        },
-      })
-
-      return response.status
-    },
+    quotedFor: (quantity: number) =>
+      built.priced({ ...ASKED_FOR, attributes: { ...ASKED_FOR.attributes, quantity } }),
   }
-}
-
-let updateId = 1000
-
-function text(senderId: string, body: string): Record<string, unknown> {
-  return {
-    update_id: (updateId += 1),
-    message: { chat: { id: Number(senderId), type: 'private' }, from: { id: Number(senderId) }, text: body },
-  }
-}
-
-function voice(senderId: string): Record<string, unknown> {
-  return {
-    update_id: (updateId += 1),
-    message: {
-      chat: { id: Number(senderId), type: 'private' },
-      from: { id: Number(senderId) },
-      voice: { file_id: 'voice-1' },
-    },
-  }
-}
-
-function press(senderId: string, data: string): Record<string, unknown> {
-  return {
-    update_id: (updateId += 1),
-    callback_query: {
-      id: 'callback-1',
-      from: { id: Number(senderId) },
-      message: { chat: { id: Number(senderId), type: 'private' } },
-      data,
-    },
-  }
-}
-
-function to(sent: Sent[], chatId: string): Sent[] {
-  return sent.filter((one) => one.chatId === chatId)
 }
 
 /** How an escalation reads. Not `persona`, which is inside `tarjetas personales`. */
 const DELEGATED = /delego|humano|te paso con/i
 
-console.log(`model: ${MODEL}\n`)
+console.log(`model: ${requireEnv('OPENROUTER_MODEL')}\n`)
 
 console.log('flow 1: a price inquiry is answered, whoever asks')
 

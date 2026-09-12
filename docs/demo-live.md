@@ -59,8 +59,10 @@ dale, la quiero
 Dante creates the order at `$45.000`, names the deposit alias and asks for the receipt.
 Send the prepared receipt photo from C.
 
-On O's screen: the receipt notice, then the work order with `Cobrado: $45.000, seña
-confirmada.`
+On O's screen: the receipt notice and the work order with `Cobrado: $45.000, seña
+confirmada.` Either can land first. The job is sent from a confirm the domain makes
+synchronously and the notice is awaited after it, so the order is the runtime's, not a
+promise. Do not narrate one as following the other.
 
 Say: nobody pressed anything. The agent read the photo, checked the amount against what
 the order owes and the destination against the alias it gave, and confirmed. The amount it
@@ -125,18 +127,31 @@ Total 4:20. The 40 seconds left are for one thing going slower than it did in re
 
 ## Before you start
 
-### The receipt photo, the one thing to prepare
+### The receipt photo
 
-The vision path confirms only on an exact match. The image has to show the amount `45.000`
-and the destination alias exactly as `DEPOSIT_ALIAS` is set, compared case insensitively
-after trimming (`src/domain/deposit.ts:207`, `sameDestination`). A different amount is
-`wrong_amount`, a different alias is `wrong_destination`, and either one prints "no lo
-confirmé" on the owner's screen instead of the work order.
+```
+bun scripts/make-receipt.ts
+```
 
-Make the image now and send it through the real path once. Three photos per order is the
-ceiling and the fourth is kept but never read
+It renders `fixtures/receipt.jpg` from `DEPOSIT_ALIAS`, so the image cannot drift from the
+alias the app is configured with. Re-run it if the alias changes.
+
+The vision path confirms only on an exact match: the amount has to equal what the order
+owes and the destination has to equal the alias, compared case insensitively after trimming
+(`src/domain/deposit.ts`, `sameDestination`). A different amount is `wrong_amount`, a
+different alias is `wrong_destination`, and either prints "no lo confirmé" on the owner's
+screen instead of the work order.
+
+`DEPOSIT_ALIAS` is a 22 digit CBU. The model read it back exactly in every eval run against
+the generated image, and a photograph of a phone screen is a harder read than that file. If
+there is an alias like `dante.imprenta.mp` available, it is the safer thing to demo on.
+
+Three photos per order is the ceiling and the fourth is kept but never read
 (`src/conversation/receipt-path.ts`, `MAX_READINGS`), so do not burn the budget rehearsing
 on the order you will demo.
+
+Send the image from C's gallery as a photo, not as a file. A document is not a photo and
+the route reads only photos (`src/telegram/update.ts`, `mediaOf`).
 
 ### Environment
 
@@ -153,16 +168,27 @@ private chats, so it is not required.
 ### Fifteen minutes before, off camera
 
 ```
-bun run eval
+bun run eval:demo
 curl https://dante-multimpresos.fly.dev/health/db
 ```
 
-`bun run eval` drives the real route with real OpenRouter and real ElevenLabs, Telegram
-stubbed. It is the only pre-flight that proves the models answer. `health/db` returns a
-beat counter; if it does not climb, the deploy is not live.
+`bun run eval:demo` is these four actions, in this order, against one bench: the two
+pastes, the acceptance, the receipt, the voice note and the press, with real OpenRouter,
+real ElevenLabs and real pricing, and only Telegram stubbed. It prints every reply it got,
+so a rehearsal is reading its output rather than holding two phones. `bun run eval` is the
+older pair of flows, on the same bench.
 
-`bun test` is the wiring, not the models. Rate limiting is mid-TDD locally, so four tests
-in `test/telegram/webhook.test.ts` fail on an unclean tree. That does not affect the demo.
+`health/db` returns a beat counter. If it does not climb, the deploy is not live.
+
+Two things the eval cannot check. It stubs Telegram, so nothing it prints proves what a
+phone renders. And it serves `fixtures/receipt.jpg`, not a photo taken of a screen, so it
+proves the vision path reads a clean render and not a glare.
+
+`bun test` is the wiring, not the models.
+
+One thing the writing model does that no check catches: it sometimes wraps the amount in
+markdown, and replies are sent with no `parse_mode`, so `**$45.000**` reaches the phone with
+the asterisks showing. It is cosmetic and it is the first thing on screen in action 1.
 
 ### The reset
 

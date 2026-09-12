@@ -267,15 +267,22 @@ describe('through the composition root, with nothing wired by the test', () => {
     const toOwner = sends.filter((sent) => sent.chatId === OWNER_CHAT)
     const toCustomer = sends.filter((sent) => sent.chatId === CUSTOMER_CHAT)
 
-    // One notice, and it found an order: a receipt path handed a store of its own instead of
-    // sale.orderFor finds nothing and says nothing.
-    expect(toOwner).toHaveLength(1)
-    expect(toOwner[0]!.text).toContain('banco')
-    expect(toOwner[0]!.text).not.toContain('AgACtransfer')
+    // The notice and the job. Which lands first is not asserted: the job is sent from a
+    // confirm the domain makes synchronously and the notice is awaited after it, so the order
+    // is the microtask queue's and not a promise this makes the owner.
+    expect(toOwner).toHaveLength(2)
 
-    // And it confirmed it, through the route, with nobody pressing anything. The sale port is
+    const notice = toOwner.find((sent) => sent.text.includes('banco'))!
+    const job = toOwner.find((sent) => sent.text.startsWith('ORDEN'))!
+
+    expect(notice.text).not.toContain('AgACtransfer')
+
+    // It confirmed it, through the route, with nobody pressing anything. The sale port is
     // private in there, so this sentence is the only place the outcome is visible.
-    expect(toOwner[0]!.text).toContain('lo confirmé solo')
+    expect(notice.text).toContain('lo confirmé solo')
+
+    // And confirming is what prints, so the job arrives with nobody having asked for it.
+    expect(job.text).toContain('seña confirmada')
 
     // The quote and the deposit request. The photo never reached the turn, so it added none.
     expect(toCustomer).toHaveLength(2)
