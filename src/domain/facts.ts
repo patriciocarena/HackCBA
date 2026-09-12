@@ -1,3 +1,4 @@
+import { fence } from '../security/fence'
 import type { Resolution } from './types'
 
 /**
@@ -21,9 +22,6 @@ export type Fact = {
 
 const DELEGATE_DETAIL = 'eso no lo tengo cargado, te delego con un humano'
 
-const FENCE_OPEN = '<facts>'
-const FENCE_CLOSE = '</facts>'
-
 export function answerFromFacts(key: string, facts: Fact[]): Resolution {
   const fact = facts.find((candidate) => candidate.key === key)
 
@@ -35,27 +33,25 @@ export function answerFromFacts(key: string, facts: Fact[]): Resolution {
 }
 
 /**
- * The block handed to the turn. Only loaded facts go in, and nothing a value contains can
- * add a line to it or end it. Deterministic on purpose: the same facts always produce the
- * same block.
+ * The block handed to the turn. Each loaded fact's value goes through the real fence (D1,
+ * src/security/fence.ts), labelled `fact`: a keyed digest of the label and the value is
+ * unguessable and unforgeable, so a value cannot end its own fence or open a new one,
+ * whatever it contains — including a literal newline, which used to write a second line
+ * inside the block and hand Dante a branch the shop does not have. The fence does not
+ * strip or collapse the value; the boundary is the guarantee, not the payload's shape.
  *
- * The project wide fencing of untrusted text is ticket D1. When it lands, neutralise() is
- * the single line to swap.
+ * The display label is not attacker input — it comes from the fact declaration Javier
+ * typed, not from a value someone could edit — but it still sits in the block as plain
+ * text, so a stray newline in it is still collapsed. That is hygiene, not the security
+ * boundary; the value's fence is.
  */
 export function factsBlock(facts: Fact[]): string {
-  const loaded = facts
+  return facts
     .filter((fact) => fact.value !== null)
-    .map((fact) => `${neutralise(fact.label)}: ${neutralise(fact.value as string)}`)
-
-  return [FENCE_OPEN, ...loaded, FENCE_CLOSE].join('\n')
+    .map((fact) => `${oneLine(fact.label)}: ${fence(fact.value as string, 'fact')}`)
+    .join('\n')
 }
 
-/**
- * Closing the fence was never the only attack. One newline in a value writes a second line
- * inside the block, and a line inside the block is a fact, so a value can hand Dante a
- * branch the shop does not have. Angle brackets go with it: no fact the shop loads needs
- * one, and removing the characters beats matching the tokens they spell.
- */
-function neutralise(value: string): string {
-  return value.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim()
+function oneLine(text: string): string {
+  return text.replace(/\s+/g, ' ').trim()
 }
