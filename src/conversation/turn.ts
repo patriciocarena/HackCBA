@@ -59,9 +59,14 @@ export async function turn(
     .write({ system: writingSystem(state), user: writingUser(deps, fenced, answer) })
     .catch(() => null)
 
-  if (reply === null || !amountsHold(reply, answer, settled)) {
-    return silence({ ...state, escalated: true })
+  // A writer that never answered owes the customer the one sentence that does not need it.
+  // A writer that answered with an amount it was not given is told nothing back, because
+  // anything said after that would be a second chance to state the wrong number.
+  if (reply === null) {
+    return { reply: DELEGATE, resolution: escalate('ambiguous'), state: { ...state, escalated: true } }
   }
+
+  if (!amountsHold(reply, answer, fenced, settled)) return silence({ ...state, escalated: true })
 
   return { reply, resolution: settled, state: nextState(state, settled) }
 }
@@ -182,18 +187,40 @@ function writingUser(deps: TurnDeps, fenced: string, answer: string): string {
   return [factsBlock(deps.facts), fenced, fence(answer, 'respuesta')].join('\n\n')
 }
 
-// ponytail: a pesos-shaped run is what a model writes when it states a price. A number
-// spelled out in words would pass; the prompt forbids arithmetic and this catches the shape
-// every fixture produces.
-const AMOUNT = /\$\s?[\d.,]*\d/g
+const AMOUNT = /\$\s*[\d.,]*\d/g
+const NUMBER = /\d[\d.,]*/g
+const DELIMITER = /<\/?[a-z][a-z0-9_]*:[0-9a-f]{32}>/g
+
+// ponytail: the floor is what keeps a quantity from reading as a price. The cheapest row in
+// the catalog is 12100, so nothing a customer is charged can hide under it. Drop the floor and
+// compare against the catalog's own minimum when a row goes cheaper than this.
+const FLOOR = 1000
 
 export function amountsIn(text: string): string[] {
   return text.match(AMOUNT) ?? []
 }
 
-function amountsHold(reply: string, answer: string, resolution: Resolution): boolean {
-  const allowed = new Set(amountsIn(answer))
-  if (amountsIn(reply).some((amount) => !allowed.has(amount))) return false
+/** Every number as the guard compares them, so `37.190` and `37190` are one value. */
+function numbersIn(text: string): string[] {
+  return (text.match(NUMBER) ?? []).map((run) => run.replace(/[.,]/g, ''))
+}
+
+/** The customer's words without the fence around them: a nonce is hex and hex carries digits. */
+function said(fenced: string): string {
+  return fenced.replace(DELIMITER, '')
+}
+
+/**
+ * A reply may stand only on numbers it was given. A pesos sign is the shape a price usually
+ * has, and the prompt cannot stop a model writing `37190 pesos` or `ARS 30.000` instead, so
+ * every number above the floor has to come from the answer or from the customer's own message.
+ */
+function amountsHold(reply: string, answer: string, fenced: string, resolution: Resolution): boolean {
+  const shaped = new Set(amountsIn(answer))
+  if (amountsIn(reply).some((amount) => !shaped.has(amount))) return false
+
+  const given = new Set([...numbersIn(answer), ...numbersIn(said(fenced))])
+  if (numbersIn(reply).some((number) => Number(number) >= FLOOR && !given.has(number))) return false
 
   return resolution.kind !== 'price' || reply.includes(pesos(totalOf(resolution.breakdown)))
 }
