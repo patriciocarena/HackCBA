@@ -92,3 +92,24 @@ fixture and fail on the owner's next audio.
 This branch has no `package.json` and no `tsconfig.json` of its own: A1 owns both, so A1
 lands first or this merges as code nobody can run. Typecheck passes against A1's config
 with `@types/bun`, verified out of tree; rerun it in place once A1 is in.
+
+## Extraction, and which models it was verified against
+
+`structuredOutput` goes through OpenRouter, and both `strict: true` and `response_format`
+itself are honoured unevenly across providers. A provider that quietly ignores the schema
+returns prose, `JSON.parse` throws, and the port reports `{ ok: false }`. That fails closed,
+but the feature is off and the only symptom is an operator seeing extraction failures.
+
+Verified end to end on real voice notes with:
+
+| `OPENROUTER_MODEL` | Result |
+|---|---|
+| `openai/gpt-4o-mini` | schema honoured, both fixtures correct |
+
+Anything else needs a run of `bun scripts/dictate.ts fixtures/raise-cards.opus` before being
+trusted. Cheap to check, and the failure is silent otherwise.
+
+`Extraction` is `{ ok: true, intent }` or `{ ok: false, reason }`. A review intent means the
+model answered and the answer was not actionable; `ok: false` means we never got an answer.
+Do not collapse them: the first is worth asking the owner to repeat himself, the second is
+not his fault.

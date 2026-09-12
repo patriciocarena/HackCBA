@@ -13,21 +13,28 @@ export const ESCALATION_REASONS = [
 ] as const;
 export type EscalationReason = (typeof ESCALATION_REASONS)[number];
 
+// The direction lives inside the percent arm because that is the only place it
+// means anything: it gives an otherwise unsigned number a sign. An absolute
+// change is a target price, which the catalog can already compare against, and
+// a sibling direction could only contradict it. "Raise the cards to one peso"
+// is not expressible here, by construction.
 export type PriceChange =
-  | { kind: "percent"; value: number }
+  | { kind: "percent"; direction: "raise" | "lower"; value: number }
   | { kind: "absolute"; amount: number };
 
 export type PriceEditIntent =
-  | {
-      kind: "edit";
-      target: string;
-      direction: "raise" | "lower";
-      change: PriceChange;
-    }
+  | { kind: "edit"; target: string; change: PriceChange }
   | { kind: "review"; reason: EscalationReason; detail: string };
 
+// A review intent means the model answered and the answer was not actionable.
+// ok: false means we never got an answer at all. Collapsing the two would report
+// a provider outage as the owner having been vague.
+export type Extraction =
+  | { ok: true; intent: PriceEditIntent }
+  | { ok: false; reason: string };
+
 export interface PriceEditExtractionPort {
-  extract(transcript: string): Promise<PriceEditIntent>;
+  extract(transcript: string): Promise<Extraction>;
 }
 
 export function isActionable(
@@ -42,6 +49,13 @@ export interface OpenRouterConfig {
   fetchImpl?: FetchLike;
   timeoutMs?: number;
 }
+
+// Speech to text misreads dictated amounts, which PLAN.md lists as a known risk:
+// "veinte" arrives as "veinte mil" and passes every other check as a well formed
+// number. A person confirms before anything is written, so this is not about data
+// loss; it is that passing a 5000% raise along is exactly the guess this module
+// exists to refuse. A legitimate raise above the ceiling costs one review.
+export const MAX_PERCENT = 100;
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -87,6 +101,15 @@ type RawIntent = {
   detail?: unknown;
 };
 
+// PLAN.md section 5: outside text is fenced and is never an instruction. A fence
+// the input can close is decorative, and stripping only the closing tag is not
+// enough, since removing it can splice a new one out of the halves around it.
+// Angle brackets cannot survive a trip through speech to text, so dropping them
+// outright costs nothing and leaves the fence unclosable.
+function fence(transcript: string): string {
+  return `<transcript>\n${transcript.replace(/[<>]/g, "")}\n</transcript>`;
+}
+
 function review(reason: EscalationReason, detail: string): PriceEditIntent {
   return { kind: "review", reason, detail };
 }
@@ -108,9 +131,6 @@ export function toIntent(raw: RawIntent): PriceEditIntent {
   if (typeof target !== "string" || target.trim() === "") {
     return review("no_match", "nothing was named to change");
   }
-  if (direction !== "raise" && direction !== "lower") {
-    return review("ambiguous", "no direction was dictated");
-  }
   if (changeKind !== "percent" && changeKind !== "absolute") {
     return review("ambiguous", "no amount was dictated");
   }
@@ -118,14 +138,29 @@ export function toIntent(raw: RawIntent): PriceEditIntent {
     return review("ambiguous", "no amount was dictated");
   }
 
+  if (changeKind === "percent" && value > MAX_PERCENT) {
+    return review(
+      "ambiguous",
+      `${value}% is beyond the ceiling of ${MAX_PERCENT}%, which reads as a misheard number`,
+    );
+  }
+
+  if (changeKind === "absolute") {
+    return {
+      kind: "edit",
+      target: target.trim(),
+      change: { kind: "absolute", amount: value },
+    };
+  }
+
+  if (direction !== "raise" && direction !== "lower") {
+    return review("ambiguous", "no direction was dictated");
+  }
+
   return {
     kind: "edit",
     target: target.trim(),
-    direction,
-    change:
-      changeKind === "percent"
-        ? { kind: "percent", value }
-        : { kind: "absolute", amount: value },
+    change: { kind: "percent", direction, value },
   };
 }
 
@@ -142,7 +177,7 @@ export function openRouterExtraction(
   return {
     async extract(transcript) {
       if (transcript.trim() === "") {
-        return review("ambiguous", "empty transcript");
+        return { ok: false, reason: "empty transcript" };
       }
 
       let response: Response;
@@ -158,10 +193,7 @@ export function openRouterExtraction(
             temperature: 0,
             messages: [
               { role: "system", content: SYSTEM_PROMPT },
-              {
-                role: "user",
-                content: `<transcript>\n${transcript}\n</transcript>`,
-              },
+              { role: "user", content: fence(transcript) },
             ],
             response_format: {
               type: "json_schema",
@@ -175,15 +207,15 @@ export function openRouterExtraction(
           signal: AbortSignal.timeout(timeoutMs),
         });
       } catch (error) {
-        return review("ambiguous", `network: ${String(error)}`);
+        return { ok: false, reason: `network: ${String(error)}` };
       }
 
       if (!response.ok) {
         const body = await response.text().catch(() => "");
-        return review(
-          "ambiguous",
-          `openrouter ${response.status}: ${body.slice(0, 200)}`,
-        );
+        return {
+          ok: false,
+          reason: `openrouter ${response.status}: ${body.slice(0, 200)}`,
+        };
       }
 
       let content: unknown;
@@ -191,17 +223,17 @@ export function openRouterExtraction(
         const payload = await response.json();
         content = payload?.choices?.[0]?.message?.content;
       } catch (error) {
-        return review("ambiguous", `malformed response: ${String(error)}`);
+        return { ok: false, reason: `malformed response: ${String(error)}` };
       }
 
       if (typeof content !== "string") {
-        return review("ambiguous", "the model returned no content");
+        return { ok: false, reason: "the model returned no content" };
       }
 
       try {
-        return toIntent(JSON.parse(content));
+        return { ok: true, intent: toIntent(JSON.parse(content)) };
       } catch (error) {
-        return review("ambiguous", `unparseable intent: ${String(error)}`);
+        return { ok: false, reason: `unparseable intent: ${String(error)}` };
       }
     },
   };

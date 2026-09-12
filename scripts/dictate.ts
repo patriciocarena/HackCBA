@@ -28,7 +28,15 @@ if (!heard.ok) {
 
 console.log(`heard:  ${heard.text}`);
 
-const intent = await extractionFromEnv().extract(heard.text);
+const extracted = await extractionFromEnv().extract(heard.text);
+
+if (!extracted.ok) {
+  console.error(`extraction failed: ${extracted.reason}`);
+  console.error("\nthis is our fault, not the owner's. nothing to ask him to repeat.");
+  process.exit(1);
+}
+
+const intent = extracted.intent;
 
 if (intent.kind === "review") {
   console.log(`intent: REVIEW (${intent.reason}) — ${intent.detail}`);
@@ -38,8 +46,8 @@ if (intent.kind === "review") {
 
 const change =
   intent.change.kind === "percent"
-    ? `${intent.change.value}%`
-    : `$${intent.change.amount}`;
+    ? `${intent.change.direction} by ${intent.change.value}%`
+    : `set to $${intent.change.amount}`;
 
-console.log(`intent: ${intent.direction} "${intent.target}" by ${change}`);
+console.log(`intent: "${intent.target}" ${change}`);
 console.log("\nthis is a proposal. a person still has to confirm it.");
