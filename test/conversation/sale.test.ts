@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { withVat } from '../support/fixtures'
 import { DELEGATE } from '../../src/domain/handoff'
 import { inMemorySale } from '@/conversation/sale'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
@@ -126,7 +127,7 @@ describe('a person confirms the deposit, and the record says who', () => {
 })
 
 describe('the agent confirms a deposit it could check', () => {
-  const reading = { looksLikeReceipt: true, amount: 45000, destination: ALIAS, confidence: 0.95 }
+  const reading = { looksLikeReceipt: true, amount: withVat(45_000), destination: ALIAS, confidence: 0.95 }
 
   function held() {
     const sale = aSale()
@@ -165,7 +166,7 @@ describe('the agent confirms a deposit it could check', () => {
     const order = sale.orderFor(conversation)!
 
     // Both sides of the comparison come from the order, never from the reading.
-    expect(totalOf(order.breakdown)).toBe(ars(45_000))
+    expect(totalOf(order.breakdown)).toBe(withVat(45_000))
     expect(order.depositAlias).toBe(ALIAS)
   })
 })

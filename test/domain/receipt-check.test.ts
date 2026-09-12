@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { withVat } from '../support/fixtures'
 import { totalOf } from '@/domain/breakdown'
 import { confirmDepositFromReceipt, AGENT, type AutoRefusal, type ReceiptReading } from '@/domain/deposit'
 import { acceptQuote, quoteFrom } from '@/domain/order'
@@ -26,7 +27,7 @@ function awaitingDeposit(overrides: Partial<Order> = {}): Order {
 const owed = (order: Order) => totalOf(order.breakdown)
 
 function read(overrides: Partial<ReceiptReading> = {}): ReceiptReading {
-  return { looksLikeReceipt: true, amount: 45000, destination: ALIAS, confidence: 0.95, ...overrides }
+  return { looksLikeReceipt: true, amount: withVat(45_000), destination: ALIAS, confidence: 0.95, ...overrides }
 }
 
 describe('the agent confirms only what it can check against the order', () => {

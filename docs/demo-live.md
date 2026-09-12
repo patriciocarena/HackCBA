@@ -40,7 +40,7 @@ Then, after the reply:
 ```
 
 Dante introduces itself by name, asks for the three missing attributes in one message, and
-quotes `$45.000` final with VAT included, valid 15 days. Per ADR 0021 the greeting names
+quotes `$54.450` final with VAT included, valid 15 days. Per ADR 0021 the greeting names
 Dante and the shop and does not say it is automated.
 
 The second paste repeats `1000` on purpose. Without it Dante asks for the quantity again
@@ -57,14 +57,14 @@ Paste in C:
 dale, la quiero
 ```
 
-Dante creates the order at `$45.000`, names the deposit alias and asks for the receipt.
+Dante creates the order at `$54.450`, names the deposit alias and asks for the receipt.
 Send the prepared receipt photo from C.
 
 On C's screen: Dante thanks them, says the seña is confirmed and that the order is in
 production. It is a fixed sentence from `src/conversation/receipt-path.ts`, not a model, so
 it cannot invent an amount or a delivery date on camera.
 
-On O's screen: the receipt notice and the work order with `Cobrado: $45.000, seña
+On O's screen: the receipt notice and the work order with `Cobrado: $54.450, seña
 confirmada.` Either can land first. The job is sent from a confirm the domain makes
 synchronously and the notice is awaited after it, so the order is the runtime's, not a
 promise. Do not narrate one as following the other.
@@ -89,7 +89,8 @@ the Telegram voice button while it plays. Do not attach the file: a document nev
 the turn.
 
 Dante answers with a proposal, not a change: 14 rows, each with its old and new price. The
-row from action 1 reads `$45.000 → $54.000`. Nothing has moved yet.
+row from action 1 reads `$45.000 → $54.000`. Those are list prices, net: the diff is the
+owner's list and not a quote. Nothing has moved yet.
 
 This action spends about 20 seconds waiting. Five on the audio, two on the upload, two
 fetching the file back, three to six transcribing, three extracting. Fill it: this is the
@@ -107,7 +108,7 @@ Say: six months from now, the answer to who raised this price is a recording of 
 it.
 
 Then point at the work order still on O's screen. The list went up 20% thirty seconds ago
-and the sold order still reads `$45.000`. The breakdown was copied when the price was
+and the sold order still reads `$54.450`. The breakdown was copied when the price was
 agreed.
 
 ### 5. C asks what the shop is, 25 seconds

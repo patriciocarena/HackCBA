@@ -1,8 +1,9 @@
 # Pricing cases
 
 What `priceFor` must do, case by case, agreed before the code exists. Amounts come from
-`seed/business-cards.json` and are the amounts the owner typed. The list is already final,
-tax included, so there is nothing to add to it. See ADR 0003.
+`seed/business-cards.json` and are the amounts the owner typed, which are **list prices**: the
+list is net. Every result below is the final price, the list amount with VAT applied once at
+the end. See ADR 0020, which reversed ADR 0003's premise and kept its shape.
 
 Quoted strings are what Dante says to a customer, so they are in Spanish. Everything else
 here is English, per the rules of the day.
@@ -11,8 +12,8 @@ here is English, per the rules of the day.
 
 | # | Intent | Result |
 |---|---|---|
-| 1 | 1000 cards, illustration 350g, colour front and grayscale back | `bc_offset_1000_4_1`, **45.000**, valid 15 days |
-| 2 | 100 cards, special paper, front only | `bc_special_100_front`, **12.100** |
+| 1 | 1000 cards, illustration 350g, colour front and grayscale back | `bc_offset_1000_4_1`, lists 45.000, quotes **54.450**, valid 15 days |
+| 2 | 100 cards, special paper, front only | `bc_special_100_front`, lists 12.100, quotes **14.641** |
 
 ## Quantities the list does not carry
 
@@ -47,7 +48,7 @@ module count, and the module discount applies after the multiplication. Percenta
 | # | Intent | Result |
 |---|---|---|
 | 8 | card 15 x 5 cm | 75 cm² / 42.5 = 1.76 → **2 modules**, no discount, the bracket starts at 3 |
-| 9 | large card 10 x 15 cm, 1000 units, illustration 350g 4/1 | 150 / 42.5 = 3.53 → **4 modules** → 4 x 45.000 = 180.000, −10% = **162.000** |
+| 9 | large card 10 x 15 cm, 1000 units, illustration 350g 4/1 | 150 / 42.5 = 3.53 → **4 modules** → 4 x 45.000 = 180.000, −10% = 162.000 net, quotes **196.020** |
 | 10 | a piece of 13 modules or more | −25%, the last bracket |
 
 Dante states the derivation: *"entra en 4 módulos"*. A human must be able to catch the error
@@ -66,9 +67,9 @@ declares: `lamination`, `design`, `extra_cut`, `label_perforation`, `rounded_cor
 
 | # | Intent | Result |
 |---|---|---|
-| 11 | 100 cards, special, front, with lamination | 12.100 + 5.100 = **17.200** |
+| 11 | 100 cards, special, front, with lamination | 12.100 + 5.100 = 17.200 net, quotes **20.812**. Not 14.641 + 6.171: VAT is applied once to the whole net, not per line |
 | 12 | a finish the column shows as a dash | escalate `no_match`. A dash means the finish is not offered, there is no row |
-| 13a | 100 cards, illustration 300g, 4/0 | **10.300**. The two plain-illustration discount rows are NOT applied: the column price reads as already discounted |
+| 13a | 100 cards, illustration 300g, 4/0 | lists 10.300, quotes **12.463**. The two plain-illustration discount rows are NOT applied: the column price reads as already discounted |
 | 13b | the same, with the named flag on | the discount rows come off. One flag, and both sides have a test |
 | 14 | "¿me hacés precio si llevo varias?" | escalate `commercial_discount`. Extraction's call, never the engine's: it returns a `fact` or `other` intent, never a quote. Tested in A5, not here. See ADR 0012 |
 
@@ -95,12 +96,16 @@ no contradicting unit left to read: extraction either resolved it or never built
 ## Invariants
 
 Every quote is a whole number of final pesos and carries its 15 day validity. The list is
-already final, so a quote off a single row is the amount the owner typed. Where the engine
-does arithmetic, on modules, add-ons and list discounts, it rounds once at the end.
+net, so a quote off a single row is the amount the owner typed plus 21%. The engine assembles
+the whole net first, on modules, add-ons and list discounts, then applies VAT once and rounds
+once, at the very end. So the final price of a job with an add-on is not the sum of two grossed
+amounts, and case 11 is the example worth reading twice.
 
-`vatIncluded` stays on the family, so a family whose list really is net is grossed up by
-`totalOf` and nothing else changes. That flag is what makes ADR 0003 reversible if Javier
-says the list is net after all.
+`vatIncluded` stays on the family, and it is what made ADR 0020 a data change rather than an
+engine change. `parsePriceList` reads it off the list's own header and throws rather than
+default, so no family loaded from that file can arrive with the flag guessed by a person. That
+is the actual lesson of ADR 0020: the premise a source in hand can check is not a premise to
+argue.
 
 ## The ten cases the ticket asks for
 

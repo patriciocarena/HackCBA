@@ -4,10 +4,10 @@
     "family": "Tarjetas personales",
     "client": "Multimpresos",
     "closed_on": "2026-09-10",
-    "note": "Amounts are copied from the list exactly as the owner typed them."
+    "note": "Amounts are copied from the list exactly as the owner typed them, and the list is net."
   },
   "currency": "ARS",
-  "vat_included": true,
+  "vat_included": false,
   "vat_rate": 0.21,
   "quote_validity_days": 15,
   "family": {
@@ -255,7 +255,7 @@
     { "from_modules": 13, "to_modules": null, "rate": 0.25 }
   ],
   "rules": [
-    "Prices are final, VAT included. The engine adds nothing, and Dante says that one number.",
+    "The list is net. The engine grosses up once, at the end, and Dante says that one final number. ADR 0020.",
     "Quantities are the ones in the tables. The customer picks among them. No intermediate quantity is quoted.",
     "A piece larger than the module uses several modules and the excess is cut. Multiply the module price by the module count, then apply the module discount.",
     "When more than one percentage applies, they compound. They are not summed.",

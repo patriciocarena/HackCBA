@@ -6,7 +6,7 @@ import { ars } from '../../src/domain/money'
 import { acceptQuote, advanceOrder, quoteFrom, type Actor } from '../../src/domain/order'
 import { priceFor } from '../../src/domain/price-for'
 import { conversationId, type Order, type Quote, type Resolution } from '../../src/domain/types'
-import { intent, OFFSET_1000 } from '../support/fixtures'
+import { intent, OFFSET_1000, withVat } from '../support/fixtures'
 
 const quotedAt = '2026-09-12T10:00:00.000Z'
 const conversation = conversationId('telegram', '55512345', 'customer')
@@ -89,7 +89,7 @@ describe('the order copies the price instead of pointing at it', () => {
 
     expect(order.state).toBe('quoted')
     expect(order.quoteId).toBe('qt_1')
-    expect(totalOf(order.breakdown)).toBe(ars(45_000))
+    expect(totalOf(order.breakdown)).toBe(withVat(45_000))
   })
 
   test('editing the catalog afterwards does not move the amount', () => {
@@ -103,7 +103,7 @@ describe('the order copies the price instead of pointing at it', () => {
 
     if (reQuoted.kind !== 'price') throw new Error('expected a price')
     expect(totalOf(reQuoted.breakdown)).not.toBe(totalOf(order.breakdown))
-    expect(totalOf(order.breakdown)).toBe(ars(45_000))
+    expect(totalOf(order.breakdown)).toBe(withVat(45_000))
   })
 
   test('an escalation is not a quote', () => {

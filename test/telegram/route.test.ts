@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from 'bun:test'
 import { DELEGATE, OUT_OF_CATALOG } from '../../src/domain/handoff'
+import { pesos } from '../../src/domain/quote-text'
+import { withVat } from '../support/fixtures'
 import type { InboundMessage } from '@/telegram/inbound'
 import { dispatch, telegramWebhookRoute } from '@/telegram/route'
 import { liveCatalog } from '@/catalog/live-catalog'
@@ -79,8 +81,13 @@ function voiceDelivery(senderId: number): Request {
   })
 }
 
-/** The seed prices 1000 offset cards at this, and the customer may read no other number. */
-const QUOTED = 'Te cotizo $45.000 final con IVA incluido.'
+/**
+ * What the engine makes of the 1000 offset row, and the customer may read no other number.
+ * The seed lists it net at 45.000 (ADR 0020), so this is the grossed amount: a stubbed writer
+ * reply that does not carry the engine's exact total is refused by the ADR 0010 guard and
+ * never sent, which fails these tests without naming the amount.
+ */
+const QUOTED = `Te cotizo ${pesos(withVat(45_000))} final con IVA incluido.`
 
 const EXTRACTED = {
   kind: 'quote',

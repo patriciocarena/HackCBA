@@ -139,12 +139,16 @@ describe('the committed seed against the committed price list', () => {
     expect(audit.unclaimed).toEqual([])
   })
 
-  // ADR 0020. The seed still says the opposite, on purpose and until after the demo, so this
-  // pins what the list says rather than what the seed does.
-  it('reads the list as net, which is what ADR 0020 is about', async () => {
+  /**
+   * ADR 0020, applied. This used to pin the list as net and the seed as saying otherwise,
+   * which was a true statement about a known defect. What is worth pinning now is that they
+   * agree: the header governs the whole list, so any family loaded off it inherits the answer
+   * and nobody gets to type the flag from memory.
+   */
+  it('loads the seed with the VAT answer the list states, not one a person typed', async () => {
     const html = await Bun.file('seed/lista-precios.html').text()
 
     expect(parsePriceList(html).vatIncluded).toBe(false)
-    expect(seed.vat_included).toBe(true)
+    expect(seed.vat_included).toBe(parsePriceList(html).vatIncluded)
   })
 })

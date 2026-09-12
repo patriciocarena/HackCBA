@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'bun:test'
+import { withVat } from '../support/fixtures'
 import { DELEGATE } from '../../src/domain/handoff'
+import { pesos } from '../../src/domain/quote-text'
 import { baseConfig, catalogRows } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
 import { NO_MEDIA, type TurnDeps } from '@/conversation/turn'
@@ -25,20 +27,24 @@ const QUOTE = {
   factKey: null,
 }
 
-/**
- * What the owner's list charges for 1000 offset cards, written out rather than computed.
- * Asking `priceFor` what `priceFor` should say proves the wiring and nothing about the
- * price: double every row in the seed and a derived expectation follows it up.
- */
-const QUOTED = '$45.000'
+/** What the owner's list charges for 1000 offset cards, net, as he typed it. */
+const LISTED = 45_000
 
-/** The same order once VAT is the engine's to add, which is 45000 x 1.21. */
-const QUOTED_NET_LIST = '$54.450'
+/**
+ * What the customer is told, written out rather than computed. Asking `priceFor` what
+ * `priceFor` should say proves the wiring and nothing about the price: double every row in the
+ * seed and a derived expectation follows it up. ADR 0020: the list is net, so this is the list
+ * amount plus 21%.
+ */
+const QUOTED = '$54.450'
+
+/** The same row if the list had been final, which is the other branch of `totalOf`. */
+const QUOTED_FINAL_LIST = '$45.000'
 
 const QUOTED_REPLY = `Te cotizo ${QUOTED} final con IVA incluido.`
 
-/** A family whose list is net, so `totalOf` has to apply the rate instead of passing it through. */
-const NET_LIST: PriceForConfig = { ...baseConfig, family: { ...baseConfig.family, vatIncluded: false } }
+/** A family whose list is already final, so `totalOf` passes the amount through. */
+const FINAL_LIST: PriceForConfig = { ...baseConfig, family: { ...baseConfig.family, vatIncluded: true } }
 
 /**
  * The whole vertical behind one webhook, recording both ends: what the writer was asked and
@@ -125,8 +131,8 @@ describe('a customer message crosses the whole vertical', () => {
   })
 
   it('adds the VAT itself when the list is net, and sends that number', async () => {
-    const reply = `Te cotizo ${QUOTED_NET_LIST} final con IVA incluido.`
-    const { webhook, replies } = vertical({ config: NET_LIST, write: async () => reply })
+    const reply = `Te cotizo ${QUOTED_FINAL_LIST} final con IVA incluido.`
+    const { webhook, replies } = vertical({ config: FINAL_LIST, write: async () => reply })
 
     await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
 
@@ -134,7 +140,7 @@ describe('a customer message crosses the whole vertical', () => {
   })
 
   it('refuses the list amount when the list is net, because the customer reads the gross', async () => {
-    const { webhook, replies } = vertical({ config: NET_LIST, write: async () => QUOTED_REPLY })
+    const { webhook, replies } = vertical({ config: FINAL_LIST, write: async () => QUOTED_REPLY })
 
     await webhook(delivery(70, 'hola, cuánto 1000 tarjetas'))
 
@@ -242,7 +248,7 @@ describe('the customer accepts, and the order is born', () => {
     const order = sale.orderFor(conversationId('telegram', '-100', 'customer'))
     expect(order?.state).toBe('deposit_pending')
     expect(order?.depositAlias).toBe(ALIAS)
-    expect(totalOf(order!.breakdown)).toBe(ars(45_000))
+    expect(totalOf(order!.breakdown)).toBe(withVat(LISTED))
 
     expect(replies[1]?.text).toContain(ALIAS)
     expect(replies[1]?.text).toContain(QUOTED)
@@ -275,11 +281,11 @@ describe('the owner raises prices between the quote and the acceptance', () => {
     await webhook(delivery(71, 'dale, la quiero'))
 
     const order = sale.orderFor(conversationId('telegram', '-100', 'customer'))
-    expect(totalOf(order!.breakdown)).toBe(ars(45_000))
+    expect(totalOf(order!.breakdown)).toBe(withVat(LISTED))
     expect(replies[1]?.text).toContain(QUOTED)
 
     // The next quote reads the list as it is now, which is the whole point of the getter.
     await webhook(delivery(72, 'hola, cuánto 1000 tarjetas'))
-    expect(replies[2]?.text).toContain('$90.000')
+    expect(replies[2]?.text).toContain(pesos(withVat(LISTED * 2)))
   })
 })

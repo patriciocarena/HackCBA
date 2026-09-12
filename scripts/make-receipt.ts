@@ -17,7 +17,9 @@ import { requireEnv } from '../src/config/env'
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const OUT = 'fixtures/receipt.jpg'
 
-const amount = Number(process.argv[2] ?? 45000)
+// What the demo order owes: the 1000 offset row is listed net at 45.000 and the engine
+// grosses it up once (ADR 0020). A fixture at the list amount is refused as wrong_amount.
+const amount = Number(process.argv[2] ?? 54450)
 if (!Number.isInteger(amount)) throw new Error(`not a whole number of pesos: ${process.argv[2]}`)
 
 const alias = requireEnv('DEPOSIT_ALIAS')

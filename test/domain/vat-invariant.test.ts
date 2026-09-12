@@ -19,23 +19,28 @@ function totalFor(overrides: Partial<QuoteIntent>, config: Partial<PriceForConfi
 }
 
 /**
- * B6, as ADR 0003 restated it: no amount leaves the engine that is not the final number.
+ * B6, as ADR 0020 restated it: no amount leaves the engine that is not the final number.
  *
- * The list the shop publishes already includes tax. Grossing it up again quotes 21% over the
- * owner's own price, in every conversation, and fails at the counter where the customer
- * notices. The flag stays on the family so a net list can still be loaded.
+ * The rule never changed. Which number it is did. ADR 0003 read the country instead of the
+ * document and set the cards list to VAT included; the list Javier closed says twice that it
+ * does not include it. So a List price is what he typed and a Final price is what the customer
+ * pays, and the whole distance between them is one multiply at the end of `totalOf`.
+ *
+ * This file was written to prove the opposite premise, and every assertion in it passed. That
+ * is the thing worth remembering about it: a suite can be green and 21% under the shop's own
+ * price in every conversation.
  */
 describe('no amount leaves the engine that is not the final number', () => {
   test('the catalog is not empty, so the sweep below means something', () => {
     expect(saleRows.length).toBeGreaterThan(10)
   })
 
-  test('the loaded family says its list is already final', () => {
-    expect(businessCards.vatIncluded).toBe(true)
+  test('the loaded family says its list is net', () => {
+    expect(businessCards.vatIncluded).toBe(false)
     expect(businessCards.vatRate).toBe(0.21)
   })
 
-  test('every sale row quotes the amount the owner typed, unchanged', () => {
+  test('every sale row quotes its list amount grossed up once', () => {
     const wrong: string[] = []
 
     for (const row of saleRows) {
@@ -46,54 +51,66 @@ describe('no amount leaves the engine that is not the final number', () => {
       }
 
       const total = totalOf(resolution.breakdown)
-      if (total !== row.price) {
-        wrong.push(`${row.slug}: got ${total}, expected ${row.price}`)
+      if (total !== withVat(row.price)) {
+        wrong.push(`${row.slug}: got ${total}, expected ${withVat(row.price)}`)
       }
     }
 
     expect(wrong).toEqual([])
   })
 
-  test('no quote is its own price plus 21%, which is what the old bug looked like', () => {
+  /**
+   * The failure this file exists to catch, pointed the other way round. Quoting a net list as
+   * if it were final is the bug that was live until ADR 0020 was applied, and it is silent:
+   * the amount looks like the one in the list because it is the one in the list.
+   */
+  test('no quote is its own list price, which is what the old bug looked like', () => {
     for (const row of saleRows) {
-      expect(totalFor({ attributes: row.attributes })).not.toBe(Math.round(row.price * 1.21))
+      expect(totalFor({ attributes: row.attributes })).not.toBe(row.price)
     }
   })
 
-  test('an add-on is added at the price the list carries, not grossed again', () => {
+  test('VAT is applied once to the whole net, so an add-on is not grossed on its own', () => {
+    const net = priceOf('bc_special_100_front') + priceOf('bc_addon_lamination_special_100_front')
+
     expect(totalFor({ attributes: attributesOf('bc_special_100_front'), addOns: ['lamination'] })).toBe(
-      priceOf('bc_special_100_front') + priceOf('bc_addon_lamination_special_100_front'),
+      withVat(net),
     )
   })
 
-  test('the module path multiplies and discounts a final amount', () => {
+  test('the module path multiplies and discounts the net, then grosses up', () => {
     expect(
       totalFor({
         attributes: attributesOf('bc_offset_1000_4_1'),
         size: { widthCm: 10, heightCm: 15 },
       }),
-    ).toBe(Math.round(4 * priceOf('bc_offset_1000_4_1') * 0.9))
+    ).toBe(withVat(4 * priceOf('bc_offset_1000_4_1') * 0.9))
   })
 
-  test('a list discount comes off the final amount', () => {
+  test('a list discount comes off the net before VAT, not off the final amount', () => {
+    const net = priceOf('bc_illustration300_100_front') - priceOf('bc_discount_illustration_plain_100')
+
     expect(
       totalFor({ attributes: attributesOf('bc_illustration300_100_front') }, {
         listDiscountPolicy: { applyProvisionalDiscounts: true },
       }),
-    ).toBe(priceOf('bc_illustration300_100_front') - priceOf('bc_discount_illustration_plain_100'))
+    ).toBe(withVat(net))
   })
 
-  test('a family whose list really is net is still grossed up, once, at the end', () => {
-    // The flag is what makes the decision reversible. Twenty one families are still unloaded
-    // and some of them may well be quoted net to businesses.
-    const netFamily = { ...baseConfig, family: { ...businessCards, vatIncluded: false } }
+  /**
+   * The flag is still what makes this reversible, and it is still worth a test, because a
+   * family whose list really is final is the case the parser would read off a different
+   * header. `vatStatement` throws rather than default, so no family can arrive with it guessed.
+   */
+  test('a family whose list really is final states the amount unchanged', () => {
+    const finalList = { ...baseConfig, family: { ...businessCards, vatIncluded: true } }
 
-    expect(totalFor({ attributes: attributesOf('bc_special_100_front') }, netFamily)).toBe(
-      Math.round(priceOf('bc_special_100_front') * 1.21),
+    expect(totalFor({ attributes: attributesOf('bc_special_100_front') }, finalList)).toBe(
+      priceOf('bc_special_100_front'),
     )
   })
 
   test('the helper every suite prices against follows the family, not a constant', () => {
-    expect(withVat(12_100)).toBe(ars(12_100))
+    expect(withVat(12_100)).toBe(ars(14_641))
   })
 })

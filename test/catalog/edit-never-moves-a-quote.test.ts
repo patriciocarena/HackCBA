@@ -6,7 +6,7 @@ import { ars } from '../../src/domain/money'
 import { acceptQuote, quoteFrom } from '../../src/domain/order'
 import { priceFor } from '../../src/domain/price-for'
 import { conversationId, type PriceEditProposal } from '../../src/domain/types'
-import { intent, priceOf, SPECIAL_100 } from '../support/fixtures'
+import { SPECIAL_100, intent, priceOf, withVat } from '../support/fixtures'
 
 const BY = { kind: 'person', id: '42' } as const
 const QUOTED_AT = '2026-09-12T10:00:00.000Z'
@@ -44,7 +44,7 @@ describe('applying an edit never moves a price already quoted', () => {
 
     const accepted = acceptQuote(quote.quote, { id: 'o1', now: QUOTED_AT })
     if (!accepted.ok) throw new Error(accepted.reason)
-    expect(totalOf(accepted.order.breakdown)).toBe(ars(12100))
+    expect(totalOf(accepted.order.breakdown)).toBe(withVat(12_100))
 
     const applied = applyPriceEdit(raiseTwentyPercent('bc_special_100_front'), catalogRows, {
       id: 'ver_1',
@@ -53,11 +53,11 @@ describe('applying an edit never moves a price already quoted', () => {
     })
     if (!applied.ok) throw new Error(applied.reason)
 
-    expect(totalOf(accepted.order.breakdown)).toBe(ars(12100))
+    expect(totalOf(accepted.order.breakdown)).toBe(withVat(12_100))
 
     const after = priceFor(intent({ attributes: SPECIAL_100 }), applied.applied.rows, baseConfig)
     if (after.kind !== 'price') throw new Error(after.kind)
-    expect(totalOf(after.breakdown)).toBe(ars(14520))
+    expect(totalOf(after.breakdown)).toBe(withVat(14_520))
   })
 
   it('the catalog the edit was applied against is left untouched', () => {

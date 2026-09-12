@@ -73,11 +73,17 @@ which channel blocks nothing.
 
 ## 7. VAT
 
-Assumption: 21% rate in config, rounded to the peso, and the number Dante writes is always
-the final one with VAT. Any question about whether VAT is mandatory escalates.
+Not an assumption. 21% rate in config, rounded to the peso once at the end of the whole
+breakdown, and the number Dante writes is always the final one with VAT. Any question about
+whether VAT is mandatory escalates.
 
-This is already settled in ADR 0003 in the client repo. It is not a hackathon assumption. It
-sits here so nobody reopens it at three in the morning.
+The list is **net**: it says so twice in its own header, in the version Javier closed on
+2026-09-10. ADR 0003 argued the opposite from a general fact about Argentine print shops while
+the document that settles it sat in this repo. ADR 0020 reversed the premise, kept the shape,
+and is applied. `parsePriceList` now reads the flag off the header and throws rather than
+default, so no family can arrive with it guessed.
+
+It sits here so nobody reopens it at three in the morning.
 
 ## 8. Tone and name
 

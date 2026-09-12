@@ -11,7 +11,7 @@ describe('loadCatalog', () => {
     expect(config.family.label).toBe('Tarjetas personales')
     expect(config.family.unit).toBe('unit')
     expect(config.family.vatRate).toBe(0.21)
-    expect(config.family.vatIncluded).toBe(true)
+    expect(config.family.vatIncluded).toBe(false)
     expect(config.family.module).toEqual({ widthCm: 8.5, heightCm: 5 })
   })
 

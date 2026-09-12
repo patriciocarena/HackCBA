@@ -56,7 +56,7 @@ loaded as a fact, Dante does not know, and not knowing it escalates.
 _Avoid_: Info, knowledge, context
 
 **Quote**:
-An amount Dante states to a customer. It is gross, final, and valid for a declared window.
+An amount Dante states to a customer. It is a final price, valid for a declared window.
 A quote is not an order until the customer accepts.
 _Avoid_: Estimate, budget, price
 
@@ -83,9 +83,15 @@ add-ons and the list discounts. It is the audit trail, and it is what a quote an
 store. A human reading it can catch the error.
 _Avoid_: Calculation, detail, line items
 
+**List price**:
+An amount the owner typed into his price list. It is net of VAT and Dante never states one.
+Every amount in `seed/` and every amount the owner signs in a price edit diff is a list price.
+_Avoid_: Net, cost, base price
+
 **Final price**:
-An amount in whole pesos that the customer pays. Every amount in this repo is final. The
-shop's list is already final, so there is nothing to add to it.
+An amount in whole pesos that the customer pays. VAT is the function from a list price to it,
+applied once at the end of the whole breakdown rather than line by line. Every amount Dante
+says is final.
 _Avoid_: Gross, net, subtotal, price plus VAT
 
 **Order**:

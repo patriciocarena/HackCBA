@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { withVat } from '../support/fixtures'
 import { catalogRows, baseConfig } from '@/catalog/business-cards'
 import { customerTurn } from '@/conversation/customer-turn'
 import { receiptTurn } from '@/conversation/receipt-path'
@@ -38,7 +39,7 @@ const conversation = conversationId('telegram', CUSTOMER_CHAT, 'customer')
 /** What the model reads off a clean receipt for this order: $45.000 to the alias it was told. */
 const MATCHES: ReceiptReading = {
   looksLikeReceipt: true,
-  amount: 45000,
+  amount: withVat(45_000),
   destination: 'dante.imprenta.mp',
   confidence: 0.95,
 }

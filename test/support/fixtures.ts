@@ -1,4 +1,5 @@
 import { businessCards, catalogRows } from '../../src/catalog/business-cards'
+import { totalOf } from '../../src/domain/breakdown'
 import { ars, type Ars } from '../../src/domain/money'
 import type { CatalogRow } from '../../src/domain/price-for'
 import type { QuoteIntent } from '../../src/domain/types'
@@ -16,9 +17,24 @@ export function priceOf(slug: string): Ars {
   return rowFor(slug).price
 }
 
-/** What the list amount becomes once the family's VAT rule is applied. */
+/**
+ * What a list amount becomes once the family's VAT rule is applied.
+ *
+ * It goes through `totalOf` rather than doing the multiply itself. It used to do the multiply,
+ * which is why most of the suite followed the ADR 0020 flip for free, and also why the suite
+ * could have stayed green with the helper and the engine disagreeing about where to round.
+ * A second implementation of the one rule under test is not a fixture, it is a way to pass.
+ */
 export function withVat(net: number): Ars {
-  return ars(businessCards.vatIncluded ? Math.round(net) : Math.round(net * (1 + businessCards.vatRate)))
+  return totalOf({
+    base: { slug: 'withVat', label: 'withVat', amount: ars(Math.round(net)) },
+    moduleFactor: 1,
+    moduleDiscountRates: [],
+    addOns: [],
+    listDiscounts: [],
+    vatRate: businessCards.vatRate,
+    vatIncluded: businessCards.vatIncluded,
+  })
 }
 
 export function intent(overrides: Partial<QuoteIntent> = {}): QuoteIntent {

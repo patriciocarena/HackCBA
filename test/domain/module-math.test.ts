@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { totalOf } from '../../src/domain/breakdown'
 import { priceFor, type PriceForConfig } from '../../src/domain/price-for'
-import { quoteText } from '../../src/domain/quote-text'
+import { pesos, quoteText } from '../../src/domain/quote-text'
 import type { PriceBreakdown, QuoteIntent, Resolution, Size } from '../../src/domain/types'
 import { intent, OFFSET_1000, priceOf, withVat } from '../support/fixtures'
 
@@ -80,7 +80,7 @@ describe('what the customer reads about modules', () => {
   test('says the module count, discount, amount and validity', () => {
     expect(text()).toContain('4 módulos')
     expect(text()).toContain('10%')
-    expect(text()).toContain('$162.000')
+    expect(text()).toContain(pesos(withVat(162_000)))
     expect(text()).toContain('15 días')
   })
 

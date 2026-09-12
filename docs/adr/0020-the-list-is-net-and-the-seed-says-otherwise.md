@@ -4,9 +4,13 @@ Date: 2026-09-12
 
 ## Status
 
-Accepted, and not yet applied. Supersedes the premise of ADR 0003, not its shape.
+Accepted and applied, on 2026-09-12, after the demo. Supersedes the premise of ADR 0003, not
+its shape.
 
-The seed ships `vat_included: true` through the hackathon demo on purpose. See Decision.
+The Decision below reads as future tense because it was written before the flip. It describes
+what was done. The one estimate in it that was wrong is the size: thirty two test expectations
+turned out to be twenty eight, in twelve files, because `totalOf` grosses up once on the whole
+net rather than per line, so nothing that asserts a row price or an add-on line moved.
 
 ## Context
 

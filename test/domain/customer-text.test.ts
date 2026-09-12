@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test'
 import { depositText } from '@/conversation/sale'
 import { baseConfig, catalogRows } from '../../src/catalog/business-cards'
 import { priceFor } from '../../src/domain/price-for'
-import { askText, quoteText } from '../../src/domain/quote-text'
+import { askText, pesos, quoteText } from '../../src/domain/quote-text'
 import type { QuoteIntent, Resolution } from '../../src/domain/types'
-import { intent, OFFSET_1000, SPECIAL_100 } from '../support/fixtures'
+import { intent, OFFSET_1000, SPECIAL_100, withVat } from '../support/fixtures'
 
 const resolve = (overrides: Partial<QuoteIntent>): Resolution =>
   priceFor(intent(overrides), catalogRows, baseConfig)
@@ -51,7 +51,7 @@ describe('what the customer reads', () => {
     const text = customerText({ attributes: SPECIAL_100, addOns: ['lamination'] })
 
     expect(text).toContain('Incluye Laminado')
-    expect(text).not.toContain('$5.100')
+    expect(text).not.toContain(pesos(withVat(5_100)))
   })
 
   test('names the missing attributes in Spanish, in the order the family declares', () => {
@@ -86,7 +86,7 @@ describe('a plain quote reads like a person too', () => {
   })
 
   test('states the amount and the validity, and stays short', () => {
-    expect(plain()).toContain('$45.000')
+    expect(plain()).toContain(pesos(withVat(45_000)))
     expect(plain()).toContain('15 días')
     expect(plain()).not.toContain('redondeo al peso')
     expect(plain().length).toBeLessThan(140)
