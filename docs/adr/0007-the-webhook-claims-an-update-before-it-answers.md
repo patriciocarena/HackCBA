@@ -51,8 +51,8 @@ deduped, and the error stays in the log instead of being swallowed into a 200.
 
 Every dependency this route does not own is an injected function with a type declared here
 and a default that fails closed: `IsAdmin` denies everyone, `Turn` says nothing, the fence
-brands after neutralising its own delimiters, and the inbound log and the claim set are in
-memory. The orchestrator swaps each default for the lane that owns it. This branch imports
+strips the angle brackets a real fence is delimited with before branding, and the inbound
+log and the claim set are in memory. The orchestrator swaps each default for the lane that owns it. This branch imports
 nothing from `src/domain/` except the `UntrustedText` and `ConversationId` types.
 
 ## Consequences
@@ -68,3 +68,11 @@ work against rather than a rule to remember.
 
 `update_id` is the key on its own. It is unique per bot, and PLAN.md section 2 leaves
 multi tenancy out, so nothing else needs to be mixed into it.
+
+The route reads `TELEGRAM_WEBHOOK_SECRET` when it is built, so a boot without it fails at
+once rather than serving a webhook that admits anybody. `set-webhook.ts` already requires
+the same variable, and `.env.example` lists it.
+
+Only a `message` update is routed. A callback query, which is how a button press would
+arrive, is acknowledged and dropped. C6 adds the arm when it needs one; a webhook that
+claims to handle it today would be claiming to handle something nothing reads.

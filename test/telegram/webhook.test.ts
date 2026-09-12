@@ -81,6 +81,17 @@ describe('telegramWebhook', () => {
     expect(turns.map((message) => message.role)).toEqual(['admin', 'customer'])
   })
 
+  it('claims nothing for a rejected delivery, so a forged one cannot silence a real update', async () => {
+    const { turns, turn } = spy()
+    const webhook = telegramWebhook({ secret: SECRET, turn })
+
+    await webhook(delivery(update(70), 'wrong'))
+    const real = await webhook(delivery(update(70)))
+
+    expect(real.status).toBe(200)
+    expect(turns).toHaveLength(1)
+  })
+
   it('fires one turn for a repeated update', async () => {
     const { turns, turn } = spy()
     const webhook = telegramWebhook({ secret: SECRET, turn })
