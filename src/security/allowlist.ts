@@ -7,11 +7,15 @@ export type AdminAllowlistConfig = {
   recordDenial: (denial: Denial) => void
 }
 
+const TELEGRAM_USER_ID = /^[1-9][0-9]{0,18}$/
+
 function parse(ids: string | undefined): ReadonlySet<string> {
   const entries = (ids ?? '')
     .split(',')
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0)
+
+  if (entries.some((entry) => !TELEGRAM_USER_ID.test(entry))) return new Set()
 
   return new Set(entries)
 }

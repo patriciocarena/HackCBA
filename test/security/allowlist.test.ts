@@ -45,4 +45,24 @@ describe('adminAllowlist', () => {
     expect(isAdmin('123')).toBe(true)
     expect(isAdmin('456')).toBe(true)
   })
+
+  test('voids the whole list when an entry is not an id', () => {
+    const isAdmin = adminAllowlist({ ids: 'abc,123', recordDenial: ignore })
+
+    expect(isAdmin('abc')).toBe(false)
+    expect(isAdmin('123')).toBe(false)
+  })
+
+  test('voids the whole list when an entry carries a leading zero', () => {
+    const isAdmin = adminAllowlist({ ids: '0123', recordDenial: ignore })
+
+    expect(isAdmin('0123')).toBe(false)
+    expect(isAdmin('123')).toBe(false)
+  })
+
+  test('voids the whole list when an entry is longer than a Telegram id', () => {
+    const isAdmin = adminAllowlist({ ids: '12345678901234567890,123', recordDenial: ignore })
+
+    expect(isAdmin('123')).toBe(false)
+  })
 })
