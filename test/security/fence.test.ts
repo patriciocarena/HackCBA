@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import type { UntrustedText } from '../../src/domain/types'
 import { fence } from '../../src/security/fence'
 
 function partsOf(block: string) {
@@ -108,5 +109,16 @@ describe('a message carrying the fence delimiters does not break the fence', () 
     const text = '<<facts>facts>'
 
     expect(partsOf(fence(text, 'facts')).body).toBe(text)
+  })
+})
+
+describe('only fence() builds an UntrustedText', () => {
+  test('a raw string does not typecheck where the fenced block does', () => {
+    const fenced: UntrustedText = fence('cien tarjetas', 'message')
+    // @ts-expect-error the brand is what stops unfenced text reaching extraction
+    const unfenced: UntrustedText = 'cien tarjetas'
+
+    expect(fenced).toContain('cien tarjetas')
+    expect(unfenced).toBe('cien tarjetas' as UntrustedText)
   })
 })
