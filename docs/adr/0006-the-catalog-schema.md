@@ -75,6 +75,18 @@ forever.
 The partial index means a duplicated add-on is caught by its slug, not by its identity. That
 is a weaker guarantee than sale rows get, and it is the guarantee the loaded list allows.
 
+Foreign keys are the client's default, not ours. Plain SQLite leaves `foreign_keys` off per
+connection, so the references in this schema would be decoration. `@libsql/client` 0.18.0
+turns them on for every connection it opens, verified by reading the pragma back, so we set
+nothing. What that buys is real: an orphan row in `price_versions` would be a price belonging
+to no item.
+
+Because our setting would duplicate the default exactly, a test of our own pragma could not
+fail. So the test in `test/storage/sqlite.test.ts` is aimed at the dependency instead: it
+reads the pragma back and asserts a foreign key violation is refused, and it fails if an
+upgrade ever changes that default. If it does, set `PRAGMA foreign_keys = ON` where the
+client is created, which is per connection and not once per database.
+
 Replication stays where ADR 0001 left it. Durability is the Fly volume and its snapshots, and
 a replica is lane A1's deployment decision, not this schema's.
 

@@ -23,8 +23,8 @@ describe('dbUrl', () => {
   })
 })
 
-describe('withDb', () => {
-  it('enforces foreign keys, which SQLite leaves off per connection', async () => {
+describe('the client we pin', () => {
+  it('enables foreign keys on every connection, which plain SQLite does not', async () => {
     const orphaned = await withDb(async (client) => {
       await migrate(client)
 
@@ -35,5 +35,14 @@ describe('withDb', () => {
     }, 'file::memory:')
 
     expect(orphaned).toContain('FOREIGN KEY constraint failed')
+  })
+
+  it('reports the pragma as on, so an upgrade that changes the default fails here', async () => {
+    const pragma = await withDb(
+      async (client) => (await client.execute('PRAGMA foreign_keys')).rows[0],
+      'file::memory:',
+    )
+
+    expect(Number(pragma?.foreign_keys)).toBe(1)
   })
 })
