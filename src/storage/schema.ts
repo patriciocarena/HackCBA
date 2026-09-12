@@ -1,6 +1,18 @@
-import { ITEM_TIERS } from '@/catalog/tiers'
-import { ORDER_STATES, PRICE_EDIT_SOURCES, PRICE_EDIT_STATES, ROLES, UNITS } from '@/domain/types'
-import { sqliteCheck } from './check'
+import { ITEM_TIERS, type ItemTier } from '@/catalog/tiers'
+import {
+  ORDER_STATES,
+  PRICE_EDIT_SOURCES,
+  PRICE_EDIT_STATES,
+  ROLES,
+  UNITS,
+  type PriceEditState,
+} from '@/domain/types'
+import { sqliteCheck, sqliteLiteral } from './check'
+
+// The two rules below name one member of an enum. Typing the constant is what makes a
+// rename fail the compile instead of the next insert.
+const SALE: ItemTier = 'sale'
+const PROPOSED: PriceEditState = 'proposed'
 
 const jsonObject = (column: string) => `CHECK (json_type(${column}) = 'object')`
 const jsonArray = (column: string) => `CHECK (json_type(${column}) = 'array')`
@@ -41,7 +53,7 @@ export const SCHEMA: readonly string[] = [
   )`,
 
   `CREATE UNIQUE INDEX IF NOT EXISTS items_identity
-    ON items (family_slug, tier, attributes_key) WHERE tier = 'sale'`,
+    ON items (family_slug, tier, attributes_key) WHERE tier = ${sqliteLiteral(SALE)}`,
 
   `CREATE TABLE IF NOT EXISTS item_applications (
     item_id INTEGER NOT NULL REFERENCES items (id) ON DELETE CASCADE,
@@ -99,7 +111,7 @@ export const SCHEMA: readonly string[] = [
     resolved_by TEXT,
     resolved_at TEXT,
     ${together('resolved_by', 'resolved_at')},
-    CHECK (state = 'proposed' OR resolved_at IS NOT NULL)
+    CHECK (state = ${sqliteLiteral(PROPOSED)} OR resolved_at IS NOT NULL)
   )`,
 
   `CREATE TABLE IF NOT EXISTS telegram_updates (
