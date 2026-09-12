@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import {
   confirmDeposit,
+  inMemoryReceipts,
   recordReceipt,
   requestDeposit,
   type Receipt,
@@ -174,8 +175,8 @@ describe('only an admin confirms, and confirming never shows the receipt', () =>
     expect(JSON.stringify(confirmed.order)).not.toContain(FORGED)
   })
 
-  test('the store has no reader, so a later lane cannot add one by accident', () => {
-    const store: ReceiptStore = aStore()
+  test('the store the demo actually runs on has no reader either', () => {
+    const store: ReceiptStore = inMemoryReceipts()
 
     // @ts-expect-error a ReceiptStore writes and never reads. Adding any reader fails typecheck
     // here, which is what keeps a confirmation screen from ever being able to show a receipt.

@@ -51,6 +51,11 @@ guarantee.
 Recording a receipt changes no state. Evidence is not a transition. The order waits in
 `deposit_pending` until a person moves it, which is `advanceOrder`'s decision and stays there.
 
+`confirmDeposit` refuses an order whose `depositAlias` is null. `advanceOrder` is public, so an
+order can reach `deposit_pending` without passing through `requestDeposit` and without ever
+naming where the money was meant to go; confirming that is confirming a transfer to nothing.
+Checking the admin and the edge but not the destination was the hole a staff review found.
+
 ## Consequences
 
 Nobody can build a confirmation screen that previews the receipt without first widening
