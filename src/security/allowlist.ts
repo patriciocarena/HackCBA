@@ -8,9 +8,12 @@ export type AdminAllowlistConfig = {
 }
 
 export function adminAllowlist(config: AdminAllowlistConfig): IsAdmin {
-  const { recordDenial } = config
+  const { ids, recordDenial } = config
+  const allowed = new Set((ids ?? '').split(','))
 
   return (telegramUserId) => {
+    if (allowed.has(telegramUserId)) return true
+
     recordDenial({ telegramUserId })
     return false
   }
