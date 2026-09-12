@@ -56,6 +56,12 @@ describe('adminAllowlist', () => {
     )
   })
 
+  test('accepts an id at the full nineteen digits', () => {
+    const isAdmin = adminAllowlist({ ids: '1234567890123456789' })
+
+    expect(isAdmin('1234567890123456789')).toBe(true)
+  })
+
   test('names the entry that is wrong by its position', () => {
     expect(() => adminAllowlist({ ids: '123,12345678901234567890' })).toThrow(
       'admin allowlist entry 2 is not a Telegram user id',

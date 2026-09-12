@@ -39,6 +39,9 @@ that answers false to every sender.
 Entries are trimmed and empty segments are dropped, because a trailing comma is punctuation
 and not intent. An entry that survives trimming and is not a positive decimal integer, with no
 leading zero and at most nineteen digits, is an operator error and throws at construction.
+Nineteen is the range of a signed 64 bit integer, not a promise Telegram makes. The Bot API
+guarantees an id fits in 52 significant bits, which is sixteen digits, so the cap only widens
+what the owner may type and never narrows it.
 Partial trust in a security list is not trust, and a typo that silently drops one admin looks
 like a list that worked.
 
