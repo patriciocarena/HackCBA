@@ -40,7 +40,7 @@ describe('a fenced block', () => {
   test('wraps the text in a labelled delimiter pair', () => {
     const block = fence('cien tarjetas', 'message')
 
-    expect(block).toMatch(/^<message:[0-9a-f]{16}>\ncien tarjetas\n<\/message:[0-9a-f]{16}>$/)
+    expect(block).toMatch(/^<message:[0-9a-f]{32}>\ncien tarjetas\n<\/message:[0-9a-f]{32}>$/)
   })
 
   test('opens and closes on the same nonce', () => {

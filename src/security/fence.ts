@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from 'node:crypto'
 import type { UntrustedText } from '../domain/types'
 
-const NONCE_LENGTH = 16
+const NONCE_LENGTH = 32
 const LABEL = /^[a-z][a-z0-9_]*$/
 
 export function fencer(secret: string) {
