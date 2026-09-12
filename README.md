@@ -36,6 +36,10 @@ customer message
 
 Determinism is a pure function with a test, not a hope about a sequence of tool calls.
 
+Only the writing phase is a Mastra agent, and only it has a memory. Extraction reads one fenced
+message under a strict schema, because an attribute is a price and a model's summary of an older
+message must never be able to set one. ADR 0019 says why the line is drawn there.
+
 ## The rules
 
 They are the product. Loosen them and we are back to the bot that invented prices.
@@ -102,6 +106,7 @@ from the first deploy; the reasoning is in ADR 0001.
 | `docs/amenazas.md` | The threat model, ticket D7 |
 | `docs/adr/` | The decisions this repo made and why |
 | `seed/business-cards.json` | The cards catalog: items, add-ons, discounts and the module table |
+| `scripts/eval-flows.ts` | The two flows the shop sells on, driven through the real route with real models |
 
 The long product plan and the domain glossary live in the client repo. The ADRs here cover
 only this repo's own decisions.
@@ -144,6 +149,12 @@ bun test
 bun run typecheck
 bun run dev
 ```
+
+`bun test` stubs every model, so it proves the wiring and nothing about what a model does with a
+real sentence. `bun run eval` drives the real route with real models over three flows: a price
+inquiry from a client and from the owner, a price update only the owner can make, and a
+conversation that refers back to what it already said. It needs the keys and it spends money.
+Run it before a deploy that touches a prompt, an intent or the turn.
 
 There is no migration step. Every store creates its own table with `CREATE TABLE IF NOT
 EXISTS` the first time it is used, so the schema arrives with the code that needs it.

@@ -21,7 +21,17 @@ import { depositText, type Sale } from './sale'
 
 export type Extract = (request: { system: string; user: string; schema: object }) => Promise<unknown>
 
-export type Write = (request: { system: string; user: string }) => Promise<string>
+/**
+ * `thread` and `resource` are what a memory needs to know whose conversation this is: the
+ * conversation id, and the person behind the chat. The raw model port ignores both; the agent
+ * that carries Observational Memory throws without a thread.
+ */
+export type Write = (request: {
+  system: string
+  user: string
+  thread: string
+  resource: string
+}) => Promise<string>
 
 export type TurnDeps = {
   // A getter, not an array. Capturing the catalog once at boot is what makes a confirmed
@@ -79,7 +89,12 @@ export async function turn(
   const answer = answerOf(settled)
 
   const reply = await deps
-    .write({ system: writingSystem(state), user: writingUser(deps, fenced, answer) })
+    .write({
+      system: writingSystem(state),
+      user: writingUser(deps, fenced, answer),
+      thread: message.conversationId,
+      resource: message.senderId,
+    })
     .catch(() => null)
 
   // A writer that never answered owes the customer the one sentence that does not need it.
@@ -89,9 +104,11 @@ export async function turn(
     return { reply: DELEGATE, resolution: escalate('ambiguous'), state: { ...state, escalated: true } }
   }
 
-  if (!amountsHold(reply, answer, fenced, settled)) return silence({ ...state, escalated: true })
+  if (!amountsHold(reply, answer, fenced, settled, state.amounts, resolved.attributes)) {
+    return silence({ ...state, escalated: true })
+  }
 
-  return { reply, resolution: settled, state: nextState(state, settled, resolved.attributes) }
+  return { reply, resolution: settled, state: nextState(state, settled, resolved.attributes, answer) }
 }
 
 function silence(state: TurnState): TurnResult {
@@ -236,10 +253,12 @@ function nextState(
   state: TurnState,
   resolution: Resolution,
   attributes: Record<string, string | number>,
+  answer: string,
 ): TurnState {
   return {
     ...state,
     attributes,
+    amounts: [...new Set([...state.amounts, ...amountsIn(answer)])],
     introduced: true,
     escalated: resolution.kind === 'escalate',
     asked: resolution.kind === 'ask' ? [...new Set([...state.asked, ...resolution.missing])] : state.asked,
@@ -282,11 +301,30 @@ function said(fenced: string): string {
  * has, and the prompt cannot stop a model writing `37190 pesos` or `ARS 30.000` instead, so
  * every number above the floor has to come from the answer or from the customer's own message.
  */
-function amountsHold(reply: string, answer: string, fenced: string, resolution: Resolution): boolean {
-  const shaped = new Set(amountsIn(answer))
+function amountsHold(
+  reply: string,
+  answer: string,
+  fenced: string,
+  resolution: Resolution,
+  earlier: string[],
+  stated: Record<string, string | number>,
+): boolean {
+  // A pesos sign may only ever come from the engine: this turn's answer, or an amount it
+  // already gave this conversation. Nothing the customer said widens this set.
+  const shaped = new Set([...amountsIn(answer), ...earlier])
   if (amountsIn(reply).some((amount) => !shaped.has(amount))) return false
 
-  const given = new Set([...numbersIn(answer), ...numbersIn(said(fenced))])
+  // A bare number may also be one the customer stated themselves. `quantity: 1000` sits on the
+  // floor, so once the writer has a memory it says "las 1000 tarjetas" in a turn whose message
+  // never repeats the number, and without this the reply is refused and the customer hears
+  // nothing. An attribute is the customer's own word, read under a strict schema, and repeating
+  // it invents no price.
+  const given = new Set([
+    ...numbersIn(answer),
+    ...numbersIn(said(fenced)),
+    ...numbersIn(earlier.join(' ')),
+    ...numbersIn(Object.values(stated).join(' ')),
+  ])
   if (numbersIn(reply).some((number) => Number(number) >= FLOOR && !given.has(number))) return false
 
   return resolution.kind !== 'price' || reply.includes(pesos(totalOf(resolution.breakdown)))

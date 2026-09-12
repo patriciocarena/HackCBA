@@ -6,11 +6,17 @@ import { catalogRows } from '@/catalog/business-cards'
 import type { OnCallback } from '@/telegram/callback'
 import { inMemoryPriceEdits } from '@/voice/price-edit-proposal'
 import { ONLY_AUDIO } from '@/conversation/admin-turn'
-import { NO_MEDIA } from '@/conversation/turn'
+import { NO_MEDIA, type Write } from '@/conversation/turn'
 
 const noPress: OnCallback = async () => {}
 const aCatalog = () => liveCatalog(catalogRows)
-const aWiring = () => ({ catalog: aCatalog(), edits: inMemoryPriceEdits(), record: async () => {} })
+/**
+ * The writer is a Mastra agent in production and it carries its own HTTP client, so the
+ * route's fetchImpl cannot reach it and a stub here is the only way this file stays offline.
+ * What the route still proves end to end is extraction, the engine, and the send.
+ */
+const aWriter: Write = async () => QUOTED
+const aWiring = () => ({ catalog: aCatalog(), edits: inMemoryPriceEdits(), record: async () => {}, write: aWriter })
 import type { FetchLike } from '@/voice/transcription'
 
 process.env.TELEGRAM_WEBHOOK_SECRET = 'a-long-random-string'
@@ -162,9 +168,9 @@ describe('the default turn', () => {
     const accepted = await handle(route, delivery(SECRET))
 
     expect(accepted.status).toBe(200)
-    expect(calls.map((call) => host(call.url))).toEqual(['openrouter.ai', 'openrouter.ai', 'api.telegram.org'])
-    expect(calls[2]!.url).toBe('https://api.telegram.org/bota-bot-token/sendMessage')
-    expect(calls[2]!.body).toEqual({ chat_id: '-100', text: QUOTED })
+    expect(calls.map((call) => host(call.url))).toEqual(['openrouter.ai', 'api.telegram.org'])
+    expect(calls[1]!.url).toBe('https://api.telegram.org/bota-bot-token/sendMessage')
+    expect(calls[1]!.body).toEqual({ chat_id: '-100', text: QUOTED })
   })
 
   it('fails loudly when Telegram refuses, because the last leg is the whole point', async () => {
@@ -212,8 +218,8 @@ describe('the owner writes instead of recording', () => {
     const accepted = await handle(route, privateDelivery(7))
 
     expect(accepted.status).toBe(200)
-    expect(calls.map((call) => host(call.url))).toEqual(['openrouter.ai', 'openrouter.ai', 'api.telegram.org'])
-    expect(calls[2]!.body).toEqual({ chat_id: '7', text: QUOTED })
+    expect(calls.map((call) => host(call.url))).toEqual(['openrouter.ai', 'api.telegram.org'])
+    expect(calls[1]!.body).toEqual({ chat_id: '7', text: QUOTED })
   })
 
   it('points him at the audio when he sends a photo, instead of escalating the owner', async () => {

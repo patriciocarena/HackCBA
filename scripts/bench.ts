@@ -6,7 +6,11 @@
  * and the real pricing engine. Only Telegram is a stub, because the eval must not message
  * anybody and because a fixture has to stand in for a file id.
  */
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { baseConfig, catalogRows } from '../src/catalog/business-cards'
+import { agentWrite, danteAgent } from '../src/conversation/agent'
 import { liveCatalog, type LiveCatalog } from '../src/catalog/live-catalog'
 import { requireEnv } from '../src/config/env'
 import { totalOf } from '../src/domain/breakdown'
@@ -21,6 +25,17 @@ export const CLIENT = '900000001'
 
 const SECRET = requireEnv('TELEGRAM_WEBHOOK_SECRET')
 const TOKEN = requireEnv('TELEGRAM_BOT_TOKEN')
+const MODEL = requireEnv('OPENROUTER_MODEL')
+
+/**
+ * A database per bench, not per run. The thread id is the chat id, so two flows that use the
+ * same customer would otherwise share a conversation: the third would open with the first's
+ * history already behind it and stop testing what it says it tests. It also keeps the shop's
+ * own memory clear of anything an eval said.
+ */
+function scratchMemory(): string {
+  return `file:${mkdtempSync(join(tmpdir(), 'dante-eval-'))}/memory.db`
+}
 
 /** The one file id the stub serves the voice note for, and the one it serves the receipt for. */
 export const VOICE_ID = 'voice-1'
@@ -84,7 +99,18 @@ export function bench(): Bench {
   }
 
   const catalog = liveCatalog(catalogRows)
-  const route = telegramWebhookRoute({}, { catalog, edits: inMemoryPriceEdits(), record: async () => {} }, fetchImpl)
+  // The real agent, with its real Observational Memory, because a stubbed writer is exactly
+  // what this script exists to stop trusting. It calls OpenRouter itself and ignores fetchImpl.
+  const route = telegramWebhookRoute(
+    {},
+    {
+      catalog,
+      edits: inMemoryPriceEdits(),
+      record: async () => {},
+      write: agentWrite(danteAgent(MODEL, scratchMemory())),
+    },
+    fetchImpl,
+  )
   const handler = (route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }).handler
 
   return {

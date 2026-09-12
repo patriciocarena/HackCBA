@@ -213,3 +213,28 @@ Gating the channel on the role gates the answer too. Gate the write instead: the
 owner is quoted like anybody else, and a price change he types is pointed back
 at the audio, which is the only route that can write. Escalating him there would
 have ended the conversation he tests the shop from.
+
+## Memory in one phase changes the guard in another
+
+2026-09-12, Observational Memory. Giving the writer a past did not break the writer. It broke
+`amountsHold`, three files away, which allowed a reply to carry only numbers from this turn's
+answer or this turn's message. That held exactly as long as the writer had nothing to refer to.
+
+With a memory the writer says "las 1000 tarjetas" in a turn whose message never repeats the
+quantity, and "te había cotizado $45.000" a turn after the quote. Both were refused, and a
+refused reply is silence and a dead conversation, which is the bug this same session had just
+finished fixing.
+
+`bun test` stayed green through all of it. The eval found it, twice, because it drives real
+models over a real conversation. When you widen what a component knows, list what elsewhere was
+narrow *because* it did not know that.
+
+## When the user names a product feature, read its docs before designing
+
+Same day. "We should have observational memory" read as three different things, and I asked
+which. The answer was a URL: it was Mastra's own feature, with a name, a version, defaults and
+a config shape. Nothing I would have designed from the phrase resembled it.
+
+Install the vendor's skill or fetch the vendor's docs first, then ask the questions the docs
+cannot answer. The two that mattered here were product decisions the docs never address: may an
+LLM-written observation set an attribute that becomes a price, and what is the memory for.

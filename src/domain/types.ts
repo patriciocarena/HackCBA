@@ -231,4 +231,14 @@ export type TurnState = {
    * the caras it was already given. That loop is what a conversation dies of.
    */
   attributes: Record<string, string | number>
+  /**
+   * Every amount the engine has given this conversation, written as the customer read it.
+   *
+   * The guard used to allow only this turn's own answer, which held while the writer had no
+   * past. Once it has one it refers back, and "te había cotizado $45.000" is the natural
+   * sentence: without this the guard refuses that reply, says nothing, and ends the
+   * conversation. The rule is unchanged in substance. A number Dante says still has to have
+   * come out of priceFor, only now from any turn of this conversation and not just the last.
+   */
+  amounts: string[]
 }

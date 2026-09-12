@@ -3,6 +3,8 @@ import { Mastra } from '@mastra/core/mastra'
 import { LibSQLStore } from '@mastra/libsql'
 import { PinoLogger } from '@mastra/loggers'
 import { catalogRows } from '../catalog/business-cards'
+import { agentWrite, danteAgent } from '../conversation/agent'
+import { requireEnv } from '../config/env'
 import { liveCatalog } from '../catalog/live-catalog'
 import { healthDbRoute } from '../health/route'
 import { sqliteInboundLog } from '../storage/inbound-log'
@@ -27,12 +29,23 @@ const versions = inMemoryPriceVersions()
 const db = createClient({ url: dbUrl() })
 await migrate(db)
 
+// The writing phase, minted once so its Observational Memory outlives a message. Mastra
+// creates its own four tables on the same volume, idempotently, so there is nothing to add to
+// SCHEMA. See ADR 0019 for why this phase is an agent and extraction is not.
+const writer = danteAgent(requireEnv('OPENROUTER_MODEL'))
+
 export const mastra = new Mastra({
   storage: new LibSQLStore({ id: 'dante-storage', url: dbUrl() }),
+  // Registered so Studio and `mastra api` can see the writer and its threads, which is the
+  // observability this repo had none of.
+  agents: { dante: writer },
   server: {
     apiRoutes: [
       healthDbRoute(),
-      telegramWebhookRoute({ log: sqliteInboundLog(db) }, { catalog, edits, record: versions.record }),
+      telegramWebhookRoute(
+        { log: sqliteInboundLog(db) },
+        { catalog, edits, record: versions.record, write: agentWrite(writer) },
+      ),
     ],
   },
   logger: new PinoLogger({ name: 'Dante', level: 'info' }),

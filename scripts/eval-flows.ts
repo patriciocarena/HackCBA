@@ -1,5 +1,5 @@
 /**
- * The two flows the shop sells on, driven through the real route with real models.
+ * The three flows the shop sells on, driven through the real route with real models.
  *
  * The suite stubs every model, so it proves the wiring and nothing about what the models do
  * with a real sentence. That is how a customer asked one plain question in production and got
@@ -16,6 +16,9 @@
  * catalog moves. The same words from a client move nothing, and that is the allowlist, not
  * the model's judgement.
  *
+ * Flow 3, a follow up. The second question names only a quantity, so a price can only come
+ * out of what the conversation already holds. It is the writer's memory or it is nothing.
+ *
  * Needs OPENROUTER_API_KEY, OPENROUTER_MODEL, ELEVENLABS_API_KEY, ELEVENLABS_MODEL_ID and
  * TELEGRAM_BOT_TOKEN. It spends money on every run.
  */
@@ -30,6 +33,12 @@ const RAISES_A_PRICE = 'Che, subime un 20% todas las tarjetas personales, por fa
 
 /** What a customer says when Dante asks for the one attribute the question left out. */
 const ANSWERS_THE_ASK = 'sin terminación, lisas, tamaño estándar'
+
+/**
+ * The follow up. It names a quantity and nothing else, so the paper, the caras and the
+ * terminación can only come from what the conversation already holds.
+ */
+const REFERS_BACK = '¿y en 500?'
 
 /** The attributes the sentence above names, so the eval knows the number before it asks. */
 const ASKED_FOR = {
@@ -59,7 +68,13 @@ function check(what: string, held: boolean, detail: string): void {
 function bench() {
   const built = harness()
 
-  return { ...built, quoted: () => built.priced(ASKED_FOR) }
+  return {
+    ...built,
+    quoted: () => built.priced(ASKED_FOR),
+    /** The same question at another quantity, which is what the follow up asks for. */
+    quotedFor: (quantity: number) =>
+      built.priced({ ...ASKED_FOR, attributes: { ...ASKED_FOR.attributes, quantity } }),
+  }
 }
 
 /** How an escalation reads. Not `persona`, which is inside `tarjetas personales`. */
@@ -139,5 +154,28 @@ console.log('\nflow 2: a price update is the owner\'s, and only his')
   check('the owner is told, not the client', to(sent, OWNER).length > 0, `${to(sent, OWNER).length} to the owner`)
 }
 
-console.log(failures === 0 ? '\nboth flows ran' : `\n${failures} checks failed`)
+console.log('\nflow 3: the writer remembers the conversation it is in')
+
+{
+  const { sent, deliver, quoted, quotedFor } = bench()
+  const thousand = pesos(quoted())
+
+  await deliver(text(CLIENT, ASKS_A_PRICE))
+  await deliver(text(CLIENT, ANSWERS_THE_ASK))
+
+  const priced = to(sent, CLIENT).at(-1)?.text ?? ''
+  check('the client reaches the first price', priced.includes(thousand), `expected ${thousand}, got ${JSON.stringify(priced)}`)
+
+  // Nothing is restated. Only the quantity changes, and only memory can supply the rest.
+  await deliver(text(CLIENT, REFERS_BACK))
+
+  const again = to(sent, CLIENT).at(-1)?.text ?? ''
+  const five = pesos(quotedFor(500))
+
+  check('a follow up that names only the quantity is priced', again.includes(five), `expected ${five}, got ${JSON.stringify(again)}`)
+  check('the follow up is not handed to a person', !DELEGATED.test(again), JSON.stringify(again))
+  check('the follow up is not an introduction again', !/^.{0,40}soy dante/i.test(again), JSON.stringify(again.slice(0, 60)))
+}
+
+console.log(failures === 0 ? '\nall three flows ran' : `\n${failures} checks failed`)
 process.exit(failures === 0 ? 0 : 1)

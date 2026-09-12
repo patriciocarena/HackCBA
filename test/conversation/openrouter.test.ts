@@ -67,11 +67,14 @@ describe('extraction', () => {
   })
 })
 
+/** The raw port ignores both, and takes them so one Write covers it and the agent alike. */
+const WHOSE = { thread: 'telegram:42:customer', resource: '42' }
+
 describe('writing', () => {
   test('returns the text and asks for no schema', async () => {
     const { sent, fetchImpl } = answering('Te cotizo $45.000 final con IVA incluido.')
 
-    const reply = await openRouterModel({ ...CONFIG, fetchImpl }).write({ system: 'sos dante', user: 'los bloques' })
+    const reply = await openRouterModel({ ...CONFIG, fetchImpl }).write({ system: 'sos dante', user: 'los bloques', ...WHOSE })
 
     expect(reply).toBe('Te cotizo $45.000 final con IVA incluido.')
     expect(sent[0].body).not.toHaveProperty('response_format')
@@ -80,7 +83,7 @@ describe('writing', () => {
   test('an empty answer throws, because a reply nobody wrote is not a reply', async () => {
     const { fetchImpl } = answering('')
 
-    expect(openRouterModel({ ...CONFIG, fetchImpl }).write({ system: 's', user: 'u' })).rejects.toThrow()
+    expect(openRouterModel({ ...CONFIG, fetchImpl }).write({ system: 's', user: 'u', ...WHOSE })).rejects.toThrow()
   })
 })
 

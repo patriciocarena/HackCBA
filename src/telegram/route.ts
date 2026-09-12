@@ -5,6 +5,7 @@ import { requireEnv } from '../config/env'
 import { adminTurn } from '../conversation/admin-turn'
 import { customerTurn } from '../conversation/customer-turn'
 import { openRouterModel } from '../conversation/openrouter'
+import type { Write } from '../conversation/turn'
 import { receiptTurn, type Notify } from '../conversation/receipt-path'
 import { receiptReader } from '../conversation/receipt-reading'
 import { inMemorySale } from '../conversation/sale'
@@ -31,6 +32,13 @@ export type Wiring = {
   catalog: LiveCatalog
   edits: PriceEditStore
   record: RecordVersion
+  /**
+   * The writing phase. It is a Mastra agent in production and carries its own HTTP client, so
+   * unlike everything else here it cannot be reached through `fetchImpl`. Minting it outside is
+   * also what keeps its Observational Memory to one instance: an agent built per message holds
+   * a memory nothing ever reads twice.
+   */
+  write: Write
 }
 
 export function telegramWebhookRoute(
@@ -143,7 +151,7 @@ function productionTurn(fetchImpl: FetchLike, wiring: Wiring): Turn {
     customerTurn(
       // ponytail: no fact is loaded, so every fact question escalates. That is the fail closed
       // half of the rule; the loaded half arrives with the table that holds them.
-      { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: model.write, sale },
+      { rows: wiring.catalog.rows, config: baseConfig, facts: [], extract: model.extract, write: wiring.write, sale },
       send,
       notify,
     ),

@@ -228,7 +228,15 @@ function routed() {
 
   const route = telegramWebhookRoute(
     { onCallback: async () => {} },
-    { catalog: liveCatalog(catalogRows), edits: inMemoryPriceEdits(), record: async () => {} },
+    // The writer is a Mastra agent in production and carries its own HTTP client, so fetchImpl
+    // cannot reach it. `passThrough` is what the fetch stub did for the writing call, moved to
+    // the seam the writer now arrives through.
+    {
+      catalog: liveCatalog(catalogRows),
+      edits: inMemoryPriceEdits(),
+      record: async () => {},
+      write: async ({ user }) => passThrough(user),
+    },
     fetchImpl,
   )
   const { handler } = route as { handler: (c: { req: { raw: Request } }) => Promise<Response> }

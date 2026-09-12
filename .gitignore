@@ -9,3 +9,10 @@ medios/
 .DS_Store
 .mastra/
 .claude/settings.local.json
+
+# The Mastra skill, installed with `npx skills add mastra-ai/skills`. It is tooling for
+# whoever is writing the code, not part of what ships.
+.agents/
+skills-lock.json
+.claude/skills/mastra
+.claude/skills/mastra-factory
