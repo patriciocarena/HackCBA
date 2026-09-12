@@ -68,6 +68,10 @@ type PricedPart = {
   operation: 'base' | 'add' | 'subtract'
 }
 
+type ModuleRequest =
+  | { kind: 'dimensions'; widthCm: number; heightCm: number }
+  | { kind: 'module_count'; moduleCount: number }
+
 // A sanity ceiling, not a price: past this many modules the piece is not a business card
 // any more, and a confident quote would be the exact failure this engine exists to prevent.
 // Override it through config when a family legitimately runs larger.
@@ -179,10 +183,10 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
     return null
   }
 
-  const dimensions = requestedModuleDimensions(context.intent)
+  const moduleRequest = requestedModuleRequest(context.intent)
   const module = context.config.family.module
-  const moduleDiscounts = context.config.moduleDiscounts
-  if (dimensions === null || module === undefined || moduleDiscounts === undefined) {
+  const moduleDiscounts = context.config.moduleDiscounts ?? []
+  if (moduleRequest === null || module === undefined) {
     return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
   }
 
@@ -230,13 +234,27 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
     return { kind: 'escalate', reason: 'ambiguous', detail: DELEGATE_DETAIL }
   }
 
-  const pieceArea = dimensions.widthCm * dimensions.heightCm
   const moduleArea = module.widthCm * module.heightCm
-  if (pieceArea <= 0 || moduleArea <= 0) {
+  if (moduleArea <= 0) {
     return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
   }
 
-  const moduleCount = Math.ceil(pieceArea / moduleArea)
+  const pieceArea =
+    moduleRequest.kind === 'dimensions' ? moduleRequest.widthCm * moduleRequest.heightCm : null
+  if (pieceArea !== null && pieceArea <= 0) {
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  }
+
+  let moduleCount: number
+  if (moduleRequest.kind === 'module_count') {
+    moduleCount = moduleRequest.moduleCount
+  } else {
+    moduleCount = Math.ceil(moduleRequest.widthCm * moduleRequest.heightCm / moduleArea)
+  }
+  if (moduleCount <= 0) {
+    return { kind: 'escalate', reason: 'no_match', detail: DELEGATE_DETAIL }
+  }
+
   const maxModules = context.config.maxModules ?? DEFAULT_MAX_MODULES
   if (moduleCount > maxModules) {
     return { kind: 'escalate', reason: 'out_of_catalog', detail: OUT_OF_CATALOG_DETAIL }
@@ -249,8 +267,17 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
     (total, discount) => total * (1 - discount.rate),
     moduleSubtotal,
   )
+  const discounts = listDiscounts(context.rows, saleRow, context.policy)
   const addOnNetTotal = addOnRows.reduce((total, row) => total + row.price, 0)
-  const grossTotal = grossAmount(discountedNetTotal + addOnNetTotal, context.config.vatRate)
+  const listDiscountNetTotal = discounts.reduce((total, row) => total + row.price, 0)
+  const grossTotal = grossAmount(
+    discountedNetTotal + addOnNetTotal - listDiscountNetTotal,
+    context.config.vatRate,
+  )
+  const derivationWidthCm =
+    moduleRequest.kind === 'dimensions' ? moduleRequest.widthCm : moduleCount * module.widthCm
+  const derivationHeightCm = moduleRequest.kind === 'dimensions' ? moduleRequest.heightCm : module.heightCm
+  const derivationPieceArea = pieceArea ?? moduleCount * moduleArea
 
   return {
     kind: 'price',
@@ -260,16 +287,17 @@ function moduleMathStrategy(context: PriceContext): Resolution | null {
       grossTotal,
       moduleCount,
       appliedDiscounts,
+      addOnRows,
       config: context.config,
     }),
     derivation: modulePriceDerivation({
       saleRow,
       addOnRows,
-      widthCm: dimensions.widthCm,
-      heightCm: dimensions.heightCm,
+      widthCm: derivationWidthCm,
+      heightCm: derivationHeightCm,
       moduleWidthCm: module.widthCm,
       moduleHeightCm: module.heightCm,
-      pieceArea,
+      pieceArea: derivationPieceArea,
       moduleArea,
       moduleCount,
       moduleSubtotal,
@@ -396,7 +424,12 @@ function grossAmount(netAmount: number, vatRate: number): number {
   return Math.round(netAmount * (1 + vatRate))
 }
 
-function requestedModuleDimensions(intent: Intent): { widthCm: number; heightCm: number } | null {
+function requestedModuleRequest(intent: Intent): ModuleRequest | null {
+  const explicitModuleCount = numericAttribute(intent.attributes.modules ?? intent.attributes.module_count)
+  if (explicitModuleCount !== null && Number.isInteger(explicitModuleCount)) {
+    return { kind: 'module_count', moduleCount: explicitModuleCount }
+  }
+
   const widthCm = numericAttribute(intent.attributes.width_cm)
   const heightCm = numericAttribute(intent.attributes.height_cm)
 
@@ -404,7 +437,7 @@ function requestedModuleDimensions(intent: Intent): { widthCm: number; heightCm:
     return null
   }
 
-  return { widthCm, heightCm }
+  return { kind: 'dimensions', widthCm, heightCm }
 }
 
 function numericAttribute(value: string | number | undefined): number | null {
@@ -468,12 +501,17 @@ function modulePriceExplanation(input: {
   grossTotal: number
   moduleCount: number
   appliedDiscounts: ModuleDiscount[]
+  addOnRows: PriceForCatalogRow[]
   config: PriceForConfig
 }): string {
+  const addOnText =
+    input.addOnRows.length > 0
+      ? `. Incluye ${joinSpanishList(input.addOnRows.map((row) => row.label))}`
+      : ''
   const discountText =
     input.appliedDiscounts.length === 0
-      ? ''
-      : ` y por eso lleva ${input.appliedDiscounts.map((discount) => formatPercent(discount.rate)).join(' compuesto con ')} de descuento`
+      ? addOnText
+      : ` y por eso lleva ${input.appliedDiscounts.map((discount) => formatPercent(discount.rate)).join(' compuesto con ')} de descuento${addOnText}`
 
   return `Te cotizo ${formatPesos(input.grossTotal)} final con IVA incluido. La medida entra en ${input.moduleCount} ${pluralizeModule(input.moduleCount)}${discountText}. La cotización es válida por ${input.config.quoteValidityDays} días.`
 }
@@ -518,9 +556,6 @@ function hasModuleSizeRequest(intent: Intent): boolean {
   return [
     'width_cm',
     'height_cm',
-    'width',
-    'height',
-    'size',
     'modules',
     'module_count',
   ].some((attribute) => intent.attributes[attribute] !== undefined)
@@ -532,8 +567,8 @@ function isVatQuestion(intent: Intent): boolean {
       return false
     }
 
-    const normalized = normalizeToken(value)
-    return normalized.includes('iva') || normalized.includes('vat')
+    const tokens = normalizeToken(value).split('_')
+    return tokens.includes('iva') || tokens.includes('vat')
   })
 }
 

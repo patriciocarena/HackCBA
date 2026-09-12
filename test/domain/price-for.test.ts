@@ -24,11 +24,17 @@ const businessCardsFamily: PriceForFamily = {
 }
 
 const businessCardsRows = businessCardsSeed.items.map(toCatalogRow)
+const moduleDiscounts = businessCardsSeed.module_discounts.map((discount) => ({
+  fromModules: discount.from_modules,
+  toModules: discount.to_modules,
+  rate: discount.rate,
+}))
 
 const baseConfig: PriceForConfig = {
   family: businessCardsFamily,
   vatRate: businessCardsSeed.vat_rate,
   quoteValidityDays: 15,
+  moduleDiscounts,
   listDiscountPolicy: DEFAULT_LIST_DISCOUNT_POLICY,
 }
 
@@ -127,7 +133,7 @@ describe('priceFor', () => {
     expectEscalation(resolution, 'missing_attribute', 'Para cotizarlo, pasame: terminación.')
   })
 
-  test('case 8: card 15 x 5 cm reaches the B5 module seam and is refused by B4', () => {
+  test('case 8: card 15 x 5 cm prices as 2 modules with no discount', () => {
     const resolution = quote({
       attributes: {
         quantity: 1000,
@@ -139,10 +145,10 @@ describe('priceFor', () => {
       },
     })
 
-    expectEscalation(resolution, 'no_match', 'te delego con un humano')
+    expectPrice(resolution, 108_900, numericIdForSlug('bc_offset_1000_4_1'))
   })
 
-  test('case 9: large card 10 x 15 cm reaches the B5 module seam and is refused by B4', () => {
+  test('case 9: large card 10 x 15 cm prices as 4 modules with the 10 percent bracket', () => {
     const resolution = quote({
       attributes: {
         quantity: 1000,
@@ -154,10 +160,10 @@ describe('priceFor', () => {
       },
     })
 
-    expectEscalation(resolution, 'no_match', 'te delego con un humano')
+    expectPrice(resolution, 196_020, numericIdForSlug('bc_offset_1000_4_1'))
   })
 
-  test('case 10: a 13 module piece reaches the B5 module seam and is refused by B4', () => {
+  test('case 10: a 13 module piece prices with the 25 percent bracket', () => {
     const resolution = quote({
       attributes: {
         quantity: 1000,
@@ -168,7 +174,7 @@ describe('priceFor', () => {
       },
     })
 
-    expectEscalation(resolution, 'no_match', 'te delego con un humano')
+    expectPrice(resolution, 530_888, numericIdForSlug('bc_offset_1000_4_1'))
   })
 
   test('case 11: requested lamination add-on is added to the matched sale row', () => {
@@ -363,9 +369,9 @@ function quote(
   )
 }
 
-function toCatalogRow(item: SeedItem, index: number): PriceForCatalogRow {
+function toCatalogRow(item: SeedItem): PriceForCatalogRow {
   return {
-    id: index + 1,
+    id: idFor(item.id),
     slug: item.id,
     kind: item.kind as PriceForCatalogRow['kind'],
     label: item.label,
@@ -374,6 +380,12 @@ function toCatalogRow(item: SeedItem, index: number): PriceForCatalogRow {
     appliesToFamily: 'applies_to_family' in item ? item.applies_to_family : undefined,
     price: item.price,
   }
+}
+
+function idFor(slug: string): number {
+  let hash = 0
+  for (const char of slug) hash = (hash * 31 + char.charCodeAt(0)) % 2_147_483_647
+  return hash
 }
 
 function numericIdForSlug(slug: string): number {

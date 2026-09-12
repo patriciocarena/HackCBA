@@ -2,8 +2,14 @@ import { describe, expect, test } from 'bun:test'
 import seed from '../../seed/business-cards.json'
 import { priceFor, type PriceForCatalogRow, type PriceForConfig } from '../../src/domain/price-for'
 
-const rows: PriceForCatalogRow[] = (seed as any).items.map((item: any, index: number) => ({
-  id: index + 1,
+const idFor = (slug: string) => {
+  let hash = 0
+  for (const char of slug) hash = (hash * 31 + char.charCodeAt(0)) % 2_147_483_647
+  return hash
+}
+
+const rows: PriceForCatalogRow[] = (seed as any).items.map((item: any) => ({
+  id: idFor(item.id),
   slug: item.id,
   kind: item.kind,
   label: item.label,
