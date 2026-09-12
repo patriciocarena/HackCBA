@@ -6,6 +6,7 @@ import { inMemoryPriceEdits } from '@/voice/price-edit-proposal'
 import type { Extraction, PriceEditExtractionPort, PriceEditIntent } from '@/voice/price-edit-intent'
 import type { Transcription, TranscriptionPort } from '@/voice/transcription'
 import { businessCards, catalogRows } from '@/catalog/business-cards'
+import type { CatalogRow } from '@/domain/price-for'
 
 const RAISE: PriceEditIntent = {
   kind: 'edit',
@@ -70,6 +71,36 @@ describe('readAdminAudio, on an owner who dictated an edit', () => {
       proposedAt: '2026-09-12T13:40:00.000Z',
     })
     expect(edits.proposals[0]?.lines[0]).toMatchObject({ oldPrice: 12100, newPrice: 14520 })
+  })
+})
+
+function watched(rows: CatalogRow[]) {
+  const writes: string[] = []
+  const record = (_target: CatalogRow, key: string | symbol) => {
+    writes.push(String(key))
+    return true
+  }
+
+  return {
+    writes,
+    rows: rows.map(
+      (row) => new Proxy(row, { set: record, deleteProperty: record, defineProperty: record }) as CatalogRow,
+    ),
+  }
+}
+
+describe('readAdminAudio, against the list it reads', () => {
+  it('changes no price, on the path the ticket names', async () => {
+    const guarded = watched(catalogRows)
+    const before = structuredClone(catalogRows)
+    const { edits, read } = readerWith({ rows: guarded.rows })
+
+    const outcome = await read(message())
+
+    expect(outcome).toMatchObject({ kind: 'proposed' })
+    expect(edits.proposals).toHaveLength(1)
+    expect(guarded.writes).toBeEmpty()
+    expect(catalogRows).toEqual(before)
   })
 })
 
