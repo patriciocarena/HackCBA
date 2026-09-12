@@ -27,3 +27,74 @@ this ticket; it is what the person holding the phone needs to know before 20:00.
 Rows 1, 2 and 3 are E1's work and the middle three beats of step 5 and all of step 6 belong
 to nobody's ticket yet. Read that before promising the full six.
 
+## Before you record
+
+Three customer conversations and one admin conversation. Row 6 is why: an escalated
+conversation never speaks again, step 3 escalates and step 4 escalates, so steps 3, 4 and
+the pair 1/2/6 cannot share a chat.
+
+| Chat | Who | Steps |
+|---|---|---|
+| C1 | The customer account, private chat with the bot | 1, 2, 6 |
+| C2 | A group with the bot in it, `@bot` mentioned in the message | 3 |
+| C3 | A second group, same shape | 4 |
+| A | The owner account, private chat with the bot | 5, and the confirmation in 6 |
+
+A group message reads as `customer` because the role is admin only in a private chat from
+an allowlisted sender (`src/telegram/webhook.ts:48`). Mentioning the bot by handle is
+cheaper than turning group privacy off in BotFather, and the handle in the text changes
+nothing downstream. Three separate accounts work too, if three are to hand.
+
+C1 and A must be different accounts. An account on the allowlist is `admin` in every
+private chat it opens, so the owner can never play the customer.
+
+### The allowlist
+
+`TELEGRAM_ADMIN_IDS`, comma separated numeric Telegram user ids, no `@`, no prefix. The
+owner account A goes in it and the customer account C1 does not. An empty or malformed
+value denies everyone (`src/security/allowlist.ts:23`), which is the safe direction and
+also a silent demo failure: step 5 would read as a customer and get a `not_authorized`
+escalation instead of a price edit.
+
+The repo prints no user id anywhere, so get A's numeric id from Telegram before 19:00, not
+during the take.
+
+Also needed, named and not printed here: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`,
+`TELEGRAM_WEBHOOK_URL`, `FENCE_SECRET`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`,
+`ELEVENLABS_API_KEY`, `ELEVENLABS_MODEL_ID`, `TRANSCRIPTION_LANGUAGE`, `DATA_DIR`. Step 6
+also needs `DEPOSIT_ALIAS`, which no code reads yet.
+
+`OPENROUTER_MODEL` is verified only against `openai/gpt-4o-mini`. Anything else needs the
+pre-flight below before it is trusted.
+
+### Pre-flight, at 19:30, off camera
+
+```
+bun test
+bun run typecheck
+bun scripts/dictate.ts fixtures/raise-cards.opus
+```
+
+The third one is the whole voice path without Telegram: it transcribes, extracts, and
+prints the intent. If it prints `intent: "tarjetas" raise by 20%`, step 5's two model calls
+work. If it fails, step 5 is the step to cut.
+
+### The audio
+
+`fixtures/raise-cards.opus`, already in the repo. A real Argentine voice note, Ogg/Opus
+48 kHz mono, verified against the live ElevenLabs API on Friday, transcribing to
+`Subí las tarjetas un 20 %`. Nothing was recorded for this ticket and nothing was added
+under `demo/`: a byte-identical second copy of a working fixture is a file to keep in sync,
+not an asset.
+
+It reaches Telegram by being held up to the phone. Play it from the laptop and hold the
+Telegram voice button on account A while it plays. Attaching the file instead sends a
+document, and row 7 says a document never reaches the turn. If the phone is out of reach,
+hold the button and read the line aloud: `Subí las tarjetas un 20 por ciento`.
+
+### Reset
+
+Restart the service. Conversation state is in memory, so a restart clears every
+conversation and every proposal. Do it once before step 1 and not again, because a restart
+between steps loses C1 and step 6 needs C1 alive.
+
